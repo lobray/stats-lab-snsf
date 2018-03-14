@@ -206,3 +206,52 @@ nrow(t.2016) # In the original dataset we have 1623 observations in 2016
 
 # Now we are not missing any observation
 # I suppose the problem was with ID which were not in both datasets
+
+###########################################################
+## ALTERNATIVE WAY: USING TIDYR WITHOUT MERGING DATASETS ##
+###########################################################
+
+## Modify structure reviewers dataset
+library(tidyr)
+cc_reviews<-spread(c.reviews,Question,QuestionRating)
+
+## Modify structure referees dataset
+cc_referee<-spread(c.referee,Question,QuestionRating)
+
+## Select only reviews from 2016
+rows.rev16 <- match(cc_reviews$ProjectID, apps.2016$ProjectID) # originally 8319
+# app rows corresponding to that review
+# NAs means that in apps we don't have that projectID -> remove from reviews
+# sum(is.na(rows.rev16)) #2559
+rows.rev16 <- which(is.na(rows.rev16)==FALSE)
+cc_reviews2 <- cc_reviews[rows.rev16,] # now 5760
+
+## Select only referees from 2016
+rows.ref16 <- match(cc_referee$ProjectID, apps.2016$ProjectID) # originally 8971
+# app rows corresponding to that referee
+# NAs means that in apps we don't have that projectID -> remove from referee
+# sum(is.na(rows.ref16)) #7234
+rows.ref16 <- which(is.na(rows.ref16)==FALSE)
+cc_referee2 <- cc_referee[rows.ref16,] # now 1737
+
+
+length(unique(cc_reviews2$ProjectID)) # 1623
+length(unique(cc_referee2$ProjectID)) # 1634
+# We have more projectID in referees -> remove those without review
+
+## Select only projects that are both in reviews and referees
+rows.rr <- match(cc_referee2$ProjectID, cc_reviews2$ProjectID) # originally 1737
+rows.rr <- which(is.na(rows.rr)==FALSE)
+cc_referee2 <- cc_referee2[rows.rr,] # now 1726
+
+length(unique(cc_referee2$ProjectID)) # 1623 as the reviews
+
+# We still have more projects in applications (probably without referee and reviews)
+rows.rr2 <- match(apps.2016$ProjectID, cc_reviews2$ProjectID)
+rows.rr2 <- which(is.na(rows.rr2)==FALSE)
+apps.2016_2 <- apps.2016[rows.rr2,] # 1623 projects
+
+rows.rr3 <- match(apps.2016_2$ProjectID, cc_referee2$ProjectID)
+sum(is.na(rows.rr3))
+
+## Now we have the same projectsID in all the 3 datasets
