@@ -110,7 +110,7 @@ cc.referee <- f.spread(c.referee)
 cc.reviews_2 <- selection.f(c.apps2016,cc.reviews)
 cc.referee_2 <- selection.f(c.apps2016,cc.referee)
 cc.referee_2 <- selection.f(cc.reviews_2,cc.referee_2)
-c.apps2016_2 <- selection.f(c.apps2016,cc.referee_2)
+c.apps2016_2 <- selection.f(cc.referee_2,c.apps2016)
 
 ## Quick check that now we have the same number of ProjectID in every dataset
 cbind(length(unique(cc.referee_2$ProjectID)), length(unique(cc.reviews_2$ProjectID)), 
