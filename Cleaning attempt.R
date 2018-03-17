@@ -98,6 +98,11 @@ selection.f <- function(data1,data2) {
   return(data2)
 }
 
+## Function to check the proportion of NAs per variable
+count.na <- function(v) {
+  count <- sum(is.na(v))/length(v)
+  return(count)
+}
 
 ## Code to run
 
@@ -116,3 +121,14 @@ c.apps2016_2 <- selection.f(cc.referee_2,c.apps2016)
 cbind(length(unique(cc.referee_2$ProjectID)), length(unique(cc.reviews_2$ProjectID)), 
               length(unique(c.apps2016_2$ProjectID)))
 
+## Check proportion of NAs we have
+count.na(c.apps2016_2$ResponsibleApplicantAcademicAgeAtSubmission) # 58%
+count.na(c.apps2016_2$ResponsibleApplicantProfessorshipType) # 55%
+count.na(cc.reviews_2$`Broader impact (forms part of the assessment of scientific relevance, originality and topicality)`) # 100%
+# count.na(cc.reviews_2$Country) # 3%
+
+## Remove variables with more than 50% of NAs
+drops <- c("ResponsibleApplicantAcademicAgeAtSubmission","ResponsibleApplicantProfessorshipType")
+c.apps2016_2 <- c.apps2016_2[ , !(names(c.apps2016_2) %in% drops)]
+drops2 <- c("Broader impact (forms part of the assessment of scientific relevance, originality and topicality)")
+cc.reviews_2 <- cc.reviews_2[ , !(names(cc.reviews_2) %in% drops2)]
