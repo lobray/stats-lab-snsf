@@ -55,6 +55,7 @@ cleaning_reviews <- function(reviews) {
   aa_reviews$OverallGrade <- factor(aa_reviews$OverallGrade)
   aa_reviews$SourcePerson <- factor(aa_reviews$SourcePerson)
   aa_reviews$Gender <- factor(aa_reviews$Gender)
+  colnames(aa_reviews)[5] <- "ReviewerGender"
   ## We combine info from COUNTRY and EMAIL to avoid NA
   IsoCountry<-ISO_3166_1[,c("Alpha_2","Name")]  #Add UK which is not in dataset
   IsoCountry<-rbind(IsoCountry, c(Alpha_2="UK", Name="Great Britain and Northern Ireland"))
@@ -132,3 +133,50 @@ drops <- c("ResponsibleApplicantAcademicAgeAtSubmission","ResponsibleApplicantPr
 c.apps2016_2 <- c.apps2016_2[ , !(names(c.apps2016_2) %in% drops)]
 drops2 <- c("Broader impact (forms part of the assessment of scientific relevance, originality and topicality)")
 cc.reviews_2 <- cc.reviews_2[ , !(names(cc.reviews_2) %in% drops2)]
+
+## Function to put the applicant gender in the other two datasets
+gender.f <- function(application,data){
+  rows <- match(data$ProjectID, application$ProjectID) # rows on applications dataset
+  gender <- vector()
+  for (i in 1:nrow(data)) {
+    gender[i] <- application$Gender[rows[i]]
+  }
+  data$ApplicantGender <- gender
+  data$ApplicantGender <- factor(data$ApplicantGender)
+  levels(data$ApplicantGender) <- c("f","m")
+  return(data)
+}
+
+## Run the previous functions
+g.review <- gender.f(c.apps2016_2,cc.reviews_2)
+g.referee <- gender.f(c.apps2016_2, cc.referee_2)
+
+## Function to add a variable to see if gender of applicant and reviewer are the same
+same.gender <- function(data){
+  s <- vector()
+  for (i in 1:nrow(data)) {
+    if (data$ApplicantGender[i] == data$ReviewerGender[i]) {s[i] <- 1}
+    else {s[i] <- 0}
+  }
+  data$SameGender <- s
+  # If SameGender=0: the gender is different
+  # If SameGender=1: the gender is the same
+  return(data)
+}
+
+## Function to add a variable to see if gender of applicant and referee are the same
+same.gender2 <- function(data){
+  s <- vector()
+  for (i in 1:nrow(data)) {
+    if (data$ApplicantGender[i] == data$RefereeGender[i]) {s[i] <- 1}
+    else {s[i] <- 0}
+  }
+  data$SameGender <- s
+  # If SameGender=0: the gender is different
+  # If SameGender=1: the gender is the same
+  return(data)
+}
+
+## Run the previous two functions
+gg.review <- same.gender(g.review)
+gg.referee <- same.gender2(g.referee)
