@@ -6,11 +6,6 @@ library(tidyr)
 
 cleaning_apps <- function(applications) {
   apps <- applications  # Rename data
-  ## Check all variable types
-  apps$IsApproved <- factor(apps$IsApproved)
-  apps$GradeFinal <- factor(apps$GradeFinal)
-  apps$Division <- factor(apps$Division)
-  apps$MainDisciplineLevel2 <- factor(apps$MainDisciplineLevel2)
   # I decided to remove MainDiscipline and keep MainDisciplineLevel2 because
   # the first has 140 levels, the latter only 21 (maybe could be useful)
   # I also removed CallTitle because we are more interested in the date I think
@@ -20,12 +15,6 @@ cleaning_apps <- function(applications) {
   # I added a new column with the year to make it easier to select obs from 2016
   apps$CallEndDate <- as.Date(apps$CallEndDate, format="%Y-%m-%d") # extract year
   apps$Year <- format(as.Date(apps$CallEndDate, format="%Y-%m-%d"),"%Y") 
-  
-  apps$ResponsibleApplicantProfessorshipType <- factor(apps$ResponsibleApplicantProfessorshipType)
-  apps$Gender <- factor(apps$Gender)
-  apps$IsHasPreviousProjectRequested <- factor(apps$IsHasPreviousProjectRequested)
-  apps$InstType <- factor(apps$InstType)
-  apps$IsContinuation <- factor(apps$IsContinuation)
   
   # Removed NAs for gender since we are interested in it
   id.g <- which(is.na(apps$Gender)) 
@@ -42,20 +31,13 @@ select.2016 <- function(data) {
   return(apps.2016)
 }
 
-
 ## Function to clean reviews dataset
 
 cleaning_reviews <- function(reviews) {
   aa_reviews <- reviews
-  # Correct some misspelled grades
-  id<- which(aa_reviews$QuestionRating=="-outstanding") 
+  id<- which(aa_reviews$QuestionRating=="-outstanding") # Correct some misspelled grades
   aa_reviews$QuestionRating[id]<-"outstanding"
-  ## Check all variable types
-  aa_reviews$QuestionRating <- factor(aa_reviews$QuestionRating)
-  aa_reviews$OverallGrade <- factor(aa_reviews$OverallGrade)
-  aa_reviews$SourcePerson <- factor(aa_reviews$SourcePerson)
-  aa_reviews$Gender <- factor(aa_reviews$Gender)
-  colnames(aa_reviews)[5] <- "ReviewerGender"
+  colnames(aa_reviews)[5] <- "ReviewerGender"  # Change name of the gender column
   ## We combine info from COUNTRY and EMAIL to avoid NA
   IsoCountry<-ISO_3166_1[,c("Alpha_2","Name")]  #Add UK which is not in dataset
   IsoCountry<-rbind(IsoCountry, c(Alpha_2="UK", Name="Great Britain and Northern Ireland"))
@@ -66,22 +48,8 @@ cleaning_reviews <- function(reviews) {
       id.c <- which(IsoCountry$Alpha_2==aa_reviews$EmailEnding[i])
       aa_reviews$Country[i] <- IsoCountry[id.c,2]
     }}
-  sum(is.na(aa_reviews$Country)) # Now we have 949 NAs for Country instead of 6111
-  # Down here I checked for how many reviewers we don't know the country -> 267 (before 1658))
-  # test <- aa_reviews[c(is.na(aa_reviews$Country)),]
-  # length(unique(test$ReviewerID))
+  # sum(is.na(aa_reviews$Country)) # Now we have 949 NAs for Country instead of 6111
   return(aa_reviews)
-}
-
-## Function to clean referees dataset
-
-cleaning_referees <- function(referee_grades) {
-  bb_referee_grades <- referee_grades  # Rename data
-  bb_referee_grades$QuestionRating <- factor(bb_referee_grades$QuestionRating)
-  bb_referee_grades$OverallComparativeRanking <- factor(bb_referee_grades$OverallComparativeRanking)
-  bb_referee_grades$RefereeRole <- factor(bb_referee_grades$RefereeRole)
-  bb_referee_grades$RefereeGender <- factor(bb_referee_grades$RefereeGender)
-  return(bb_referee_grades)
 }
 
 ## Function to put QuestionRating as different columns for reviews and referees
@@ -99,20 +67,13 @@ selection.f <- function(data1,data2) {
   return(data2)
 }
 
-## Function to check the proportion of NAs per variable
-count.na <- function(v) {
-  count <- sum(is.na(v))/length(v)
-  return(count)
-}
-
 ## Code to run
 
 c.apps <- cleaning_apps(applications)
 c.apps2016 <- select.2016(c.apps)
 c.reviews <- cleaning_reviews(reviews)
-c.referee <- cleaning_referees(referee_grades)
 cc.reviews <- f.spread(c.reviews)
-cc.referee <- f.spread(c.referee)
+cc.referee <- f.spread(referee_grades)
 cc.reviews_2 <- selection.f(c.apps2016,cc.reviews)
 cc.referee_2 <- selection.f(c.apps2016,cc.referee)
 cc.referee_2 <- selection.f(cc.reviews_2,cc.referee_2)
@@ -122,17 +83,22 @@ c.apps2016_2 <- selection.f(cc.referee_2,c.apps2016)
 cbind(length(unique(cc.referee_2$ProjectID)), length(unique(cc.reviews_2$ProjectID)), 
               length(unique(c.apps2016_2$ProjectID)))
 
-## Check proportion of NAs we have
-count.na(c.apps2016_2$ResponsibleApplicantAcademicAgeAtSubmission) # 58%
-count.na(c.apps2016_2$ResponsibleApplicantProfessorshipType) # 55%
-count.na(cc.reviews_2$`Broader impact (forms part of the assessment of scientific relevance, originality and topicality)`) # 100%
-# count.na(cc.reviews_2$Country) # 3%
 
-## Remove variables with more than 50% of NAs
-drops <- c("ResponsibleApplicantAcademicAgeAtSubmission","ResponsibleApplicantProfessorshipType")
-c.apps2016_2 <- c.apps2016_2[ , !(names(c.apps2016_2) %in% drops)]
-drops2 <- c("Broader impact (forms part of the assessment of scientific relevance, originality and topicality)")
-cc.reviews_2 <- cc.reviews_2[ , !(names(cc.reviews_2) %in% drops2)]
+## Function to check the proportion of NAs per variable and delete columns with more than 50% NAs
+count.na <- function(data) {
+  count <- vector()
+  r <- rep(F,ncol(data))
+  for (i in 1:ncol(data)){
+    count[i] <- sum(is.na(data[,i]))/length(data[,i])
+    if (count[i]>0.5) {r[i] <- T}
+  }
+  data <- data[,c(which(r==F))]
+  return(data)
+}
+
+c.apps2016_2 <- count.na(c.apps2016_2)   # AcademicAge and ProfessorshipType are removed
+cc.reviews_2 <- count.na(cc.reviews_2)   # BroaderImpact is removed
+
 
 ## Function to put the applicant gender in the other two datasets
 gender.f <- function(application,data){
@@ -147,36 +113,152 @@ gender.f <- function(application,data){
   return(data)
 }
 
-## Run the previous functions
 g.review <- gender.f(c.apps2016_2,cc.reviews_2)
 g.referee <- gender.f(c.apps2016_2, cc.referee_2)
 
-## Function to add a variable to see if gender of applicant and reviewer are the same
+## Functions to add a variable to see if gender of applicant and reviewer / referee are the same
 same.gender <- function(data){
   s <- vector()
   for (i in 1:nrow(data)) {
     if (data$ApplicantGender[i] == data$ReviewerGender[i]) {s[i] <- 1}
     else {s[i] <- 0}
   }
-  data$SameGender <- s
+  data$SameGender <- factor(s)
   # If SameGender=0: the gender is different
   # If SameGender=1: the gender is the same
   return(data)
 }
 
-## Function to add a variable to see if gender of applicant and referee are the same
 same.gender2 <- function(data){
   s <- vector()
   for (i in 1:nrow(data)) {
     if (data$ApplicantGender[i] == data$RefereeGender[i]) {s[i] <- 1}
     else {s[i] <- 0}
   }
-  data$SameGender <- s
+  data$SameGender <- factor(s)
   # If SameGender=0: the gender is different
   # If SameGender=1: the gender is the same
   return(data)
 }
 
-## Run the previous two functions
 gg.review <- same.gender(g.review)
 gg.referee <- same.gender2(g.referee)
+
+## Function to transform the variable type
+
+var.app <- function(data){
+  id.B <- which(data$GradeFinal=='B-' | data$GradeFinal=='B+')
+  data$GradeFinal[id.B] <- 'B'
+  id.BC <- which(data$GradeFinal=='BC-' | data$GradeFinal=='BC+' | data$GradeFinal=='BC ')
+  data$GradeFinal[id.BC] <- 'BC'
+  data$GradeFinal <- factor(data$GradeFinal, levels=c('D','C','BC','B','AB','A'), ordered = T)
+  data$IsApproved <- factor(data$IsApproved)
+  data$Division <- factor(data$Division)
+  data$MainDisciplineLevel2 <- factor(data$MainDisciplineLevel2)
+  data$Gender <- factor(data$Gender)
+  data$IsHasPreviousProjectRequested <- factor(data$IsHasPreviousProjectRequested)
+  data$InstType <- factor(data$InstType)
+  data$IsContinuation <- factor(data$IsContinuation)
+  return(data)
+}
+
+d.apps2016 <- var.app(c.apps2016_2)
+
+var.rev <- function(data){
+  data$OverallGrade <- factor(data$OverallGrade, levels=c("not considered","poor", "average", 
+                            "good", "very good","excellent","outstanding"), ordered=TRUE)
+  data$SourcePerson <- factor(data$SourcePerson)
+  data$ReviewerGender <- factor(data$ReviewerGender)
+  colnames(data)[9:11] <- c("TrackRecord","Relevance","Feasibility")
+  data$TrackRecord <- factor(data$TrackRecord, levels=c("0","poor","average","good","very good",
+                            "excellent","outstanding"),ordered = T)
+  data$Relevance <- factor(data$Relevance, levels=c("0","poor","average","good","very good",
+                            "excellent","outstanding"),ordered=T)
+  data$Feasibility <- factor(data$Feasibility, levels=c("0","poor","average","good","very good",
+                            "excellent","outstanding"),ordered=T)
+  return(data)
+}
+
+d.review <- var.rev(gg.review)
+
+var.ref <- function(data){
+  data$OverallComparativeRanking <- factor(data$OverallComparativeRanking, 
+              levels=c("D","C", "BC", "B", "AB","A"), ordered=TRUE)
+  data$RefereeRole <- factor(data$RefereeRole)
+  data$RefereeGender <- factor(data$RefereeGender)
+  colnames(data)[7:8] <- c("TrackRecord","Project")
+  data$TrackRecord <- factor(data$TrackRecord, levels=c("0","poor","average","good","very good",
+                                                        "excellent","outstanding"),ordered = T)
+  data$Project <- factor(data$Project, levels=c("0","poor","average","good","very good",
+                                                    "excellent","outstanding"),ordered=T)
+  return(data)
+}
+
+d.referee <- var.ref(gg.referee)
+
+########################################################################################
+
+## GRAPHICAL ANALYSIS WITH MOSAICPLOT
+
+library(vcd)
+
+## APPLICATIONS:
+cotabplot(~ Gender+IsApproved, data=d.apps2016, shade=T)   
+cotabplot(~ Gender + Division, data= d.apps2016, shade=T)  
+# Different ratio M/F per division: less women in Div2, more women in Div1
+cotabplot(~ Division + IsApproved, data=d.apps2016, shade=T) 
+# Different acceptance rate per division: less approved in Div1, more in Div2
+cotabplot(~ IsContinuation + IsApproved, data=d.apps2016, shade=T)  
+# If it's continuation is more likely to be approved
+cotabplot(~ Gender+IsApproved | Division, data=d.apps2016, shade=T) 
+# No difference M/F acceptance rate in each division
+
+# cotabplot(~ MainDisciplineLevel2+IsApproved, data=d.apps2016, shade=T) 
+# Too many levels to visualize it
+cotabplot(~ IsHasPreviousProjectRequested+IsApproved, data=c.apps2016_2, shade=T) 
+# Having Previous Project is not significant
+cotabplot(~ IsApproved+InstType, data=d.apps2016, shade=T) 
+# Applicants from ETH are more likely to be approved
+
+
+## REVIEWERS
+cotabplot(~OverallGrade+ApplicantGender, data=d.review, shade=T)
+# Woman applicant less likely to be rated as outstanding
+cotabplot(~OverallGrade+ApplicantGender|ReviewerGender, data=d.review, shade=T) 
+# P-value not significant for woman reviewer but it is for male reviewer
+cotabplot(~OverallGrade+SameGender, data=d.review, shade=T)
+# If applicant and referee have same gender, more likely to get Outstanding
+cotabplot(~OverallGrade+SameGender|ReviewerGender, data=d.review, shade=T)
+# If applicant and referee don't have same gender, less likely for women to get Outstanding 
+
+cotabplot(~ApplicantGender+TrackRecord, data=d.review, shade=T) 
+# Considering TrackRecord, less likely for women to get outstanding
+cotabplot(~ApplicantGender+Relevance,data=d.review, shade=T) 
+cotabplot(~ApplicantGender+Feasibility,data=d.review, shade=T) 
+# These two test are less significant than the previous
+
+
+cotabplot(~ApplicantGender+TrackRecord|ReviewerGender, data=d.review, shade=T) 
+# If reviewer is woman no difference, if it's man significant difference judging TrackRecord
+cotabplot(~ApplicantGender+Relevance|ReviewerGender,data=d.review, shade=T) 
+# P-value still significant but much higher
+cotabplot(~ApplicantGender+Feasibility|ReviewerGender,data=d.review, shade=T)
+# P-value significant for men
+
+cotabplot(~TrackRecord+SameGender, data=d.review, shade=T)
+cotabplot(~Relevance+SameGender,data=d.review, shade=T)
+cotabplot(~Feasibility+SameGender,data=d.review, shade=T)
+
+
+## REFEREE
+
+cotabplot(~OverallComparativeRanking+ApplicantGender, data=d.referee, shade=T) 
+# P-value significant but not big residuals Significant
+cotabplot(~OverallComparativeRanking+ApplicantGender|RefereeGender, data=d.referee, shade=T)
+cotabplot(~TrackRecord+ApplicantGender, data=d.referee, shade=T) 
+cotabplot(~Project+ApplicantGender, data=d.referee, shade=T)
+cotabplot(~TrackRecord+ApplicantGender|RefereeGender, data=d.referee, shade=T) 
+cotabplot(~Project+ApplicantGender|RefereeGender, data=d.referee, shade=T)
+
+cotabplot(~TrackRecord+SameGender, data=d.referee, shade=T) # Not significant
+cotabplot(~Project+SameGender,data=d.referee, shade=T) # Not significant
