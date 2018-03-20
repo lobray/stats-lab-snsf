@@ -2,13 +2,19 @@ setwd("/home/leslie/Desktop/stats-lab-snsf")
 
 merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   
+  library(ISOcodes)
+  library(stringr)
+  library(lubridate)
+  
   ## Rename data
   apps <- applications # make copy of applications
   aa_reviews <- reviews # make copy
   bb_referee_grades <- referee_grades # make copy
   
+  #######################################
   ## First, clean up reviews data, and prepare it to be merged wtih referee data
-  
+  #######################################
+    
   #Here I change some variable Types
   #Gender
   aa_reviews$Gender<-as.factor(aa_reviews$Gender) 
@@ -38,8 +44,6 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
                               "ReviewerCountry", "EmailEnding")] #a align order with referees
   
   # A few lines to try to get Reviewers Country from EmailEnding
-  library(ISOcodes)
-  library(stringr)
   IsoCountry<-ISO_3166_1[,c("Alpha_2","Name")]  #Uk Is not in this data Set
   IsoCountry<-rbind(IsoCountry, c(Alpha_2="UK", Name="Great Britain and Northern Ireland"))
   
@@ -82,7 +86,7 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   #For Gender
   apps$Gender<-as.factor(apps$Gender)
   #Date
-  library(lubridate)
+  
   apps$CallEndDate<-ymd(apps$CallEndDate)
   colnames(apps)[colnames(apps)=="CallEndDate"]<- "Year"
   #For Division
@@ -106,7 +110,7 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   testing_merge <- merge(full_review_profile, apps, by="ProjectID") # merges everything into one!
   merged_2016<- subset(testing_merge,year(testing_merge$Year)==2016)
   
- 
+
  return(merged_2016)
 }
 
