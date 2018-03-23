@@ -1,7 +1,5 @@
 setwd("/home/leslie/Desktop/stats-lab-snsf")
 
-
-
 merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   
   library(ISOcodes)
@@ -123,8 +121,14 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   testing_merge <- merge(full_review_profile, apps, by="ProjectID") # merges everything into one!
   merged_2016<- subset(testing_merge,year(testing_merge$Year)==2016)
   
+  
+  ### Remove variables we don't care about
+  useless_variables <- colnames(merged_2016) %in% c("MainDisciplineLevel2", 
+                                                 "CallTitle", "SourcePerson", "Professorship", "AcademicAge", "EmailEnding")
+  reduced_merged_2016 <- merged_2016[,!useless_variables]
 
- return(merged_2016)
+  
+ return(reduced_merged_2016)
   
 }
 
@@ -132,4 +136,4 @@ combined <- merge_snsf_data_2016(applications = applications, reviews = reviews,
 
 
 
-  
+
