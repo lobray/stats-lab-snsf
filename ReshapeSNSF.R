@@ -1,5 +1,7 @@
 setwd("/home/leslie/Desktop/stats-lab-snsf")
 
+
+
 merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   
   library(ISOcodes)
@@ -29,8 +31,8 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   
   ### Clean up external data, and prepare it to be merged internal data
   
-  aa_proj_id <- which(duplicated(external_reviews$ProjectID)) # identify duplicate project id
-  unique_external_reviews <- external_reviews[-aa_proj_id,] # make new data frame removing project id
+  aa_reviewer_id <- which(duplicated(external_reviews$ReviewerID)) # identify duplicate reviewer id
+  unique_external_reviews <- external_reviews[-aa_reviewer_id,] # make new data frame removing reviewer id
   unique_external_reviews$Question <- rep("OverallGrade", dim(unique_external_reviews)[1]) # input OverallGrade as a Question
   unique_external_reviews$QuestionRating <- unique_external_reviews$OverallGrade # input OverallGrade rating into QuestionRating
   unique_external_reviews <- unique_external_reviews[,-c(3)] # remove "OverallGrade" column
@@ -64,8 +66,8 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   
   ### Clean internal reviewer data, and prepare it to be merged with external reviews data
   
-  bb_proj_id <- which(duplicated(internal_reviews$ProjectID)) # identify duplicate project ids
-  unique_internal_reviews <- internal_reviews[-bb_proj_id,] # make new data frame with unique project id
+  bb_reviewer_id <- which(duplicated(internal_reviews$RefereeID)) # identify duplicate reviewer ids
+  unique_internal_reviews <- internal_reviews[-bb_reviewer_id,] # make new data frame with unique reviewer id
   unique_internal_reviews$Question <- rep("OverallComparativeRanking", dim(unique_internal_reviews)[1]) # input OverallRanking into Question
   unique_internal_reviews$QuestionRating <- unique_internal_reviews$OverallComparativeRanking # input overall comparative grade into questionrating column
   internal_reviews <- rbind(internal_reviews, unique_internal_reviews) # rejoin data
@@ -84,7 +86,6 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   ## Merge internal and external reviews
   
   full_review_profile <- rbind(external_reviews, internal_reviews) # combine two review sources
-  print(length(unique(full_review_profile$ProjectID)))
   
   
   ### Simplify a few variable names in apps data set
@@ -128,6 +129,7 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
 }
 
 combined <- merge_snsf_data_2016(applications = applications, reviews = reviews, referee_grades = referee_grades)
-length(unique(combined$ProjectID))
 
-      
+
+
+  
