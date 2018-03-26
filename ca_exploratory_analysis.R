@@ -2,16 +2,13 @@
 ### StatLab - Data review                     ######
 ####################################################
 
-setwd("~/MSc Statistics/StatsLab")
-load("SNFS Data/snsf_data.RData")
-source("Analysis/Cleaning Functions.R")
+source("Cleaning Functions.R")
 
 
 # Cleanning  and Exploring Applications --------------------------------------------------
 
 
 apps<-d.apps(applications)    
-summary(apps)
 
   # Are there any Not approved with Granted >0
     table(apps$Approved, useNA = "always")
@@ -24,7 +21,7 @@ summary(apps)
     margin.table(frequencies,1)
     prop.table(frequencies,1)
 
-    #For Nationality
+  #For Nationality
     length(levels(apps$Nationality)) #74
     nationality<-as.matrix(table(apps$Nationality))
     summary(nationality)
@@ -72,9 +69,7 @@ summary(apps)
     #with the higher percentage of womans
     prop.table(table(approved=apps$Gender,Institution=apps$InstType),2)
     
-  #verify if Project ID are duplicated
-    sum(duplicated(apps$ProjectID))   #0 -> there are no duplicates
-    
+     
   #which percentaje are approved per gender 2016
     app2016<- subset(apps,year(apps$Date)==2016)
     (gender_cuota<- prop.table(table(app2016$Gender,app2016$Approved),1))
@@ -96,25 +91,8 @@ summary(apps)
     #Source Person -- Who suggested the reviewer?
       table(external_reviews$SourcePerson)
       
-    # Which Nationalities we do not know
-      id<-which(is.na(external_reviews$ReviewerCountry))    #To see which ones
-      idd<-external_reviews[id,c("ReviewerCountry", "EmailEnding")]
-      table(idd$EmailEnding)
-      
-      #DDU EDU  EU GOV ORG  SU 
-      #  1 181   6   9  21   1 
-
-      # Which entries correspond to 2016 applications
-      ID<-unique(external_reviews$ProjectID) #projects evaluated
-      IDin2016<- match(ID,app2016$ProjectID)
-      IDin2016<-IDin2016[-which(is.na(IDin2016))] # 1623 applications
-      
-     
-      # Which entries correspond to 2017
-      IDin2017<-match(ID,app2017$ProjectID)
-      IDin2017<-IDin2017[-which(is.na(IDin2017))] #727 applications
-
-# Cleaning referee grades -------------------------------------------------
+   
+# Referee grades -------------------------------------------------
 
     internal_reviews<-d.referee(referee_grades)
     #Summary tables
@@ -125,7 +103,7 @@ summary(apps)
       table(internal_reviews$RefereeRole)
       
       #RefereeGender vs. Ranking
-      #Woman grades are stricter than males. i.e. woman are more strict
+      #Woman grades are stricter than males.
       prop.table(table(internal_reviews$RefereeGender,internal_reviews$Ranking),1)
       
       #ApplicantTrack
@@ -134,16 +112,7 @@ summary(apps)
       #Project assesmet
       table(internal_reviews$ProjectAssesment)
       
-      # Which entries correspond to 2016 applications
-      ID<-unique(internal_reviews$ProjectID) #projects evaluated
-      IDin2016<- match(ID,app2016$ProjectID)
-      IDin2016<-IDin2016[-which(is.na(IDin2016))] # 1623 applications
-      
-      
-      # Which entries correspond to 2017
-      IDin2017<-match(ID,app2017$ProjectID)
-      IDin2017<-IDin2017[-which(is.na(IDin2017))] #727 applications
-  
+       
 # Merging data --------------------------------------------------------
    ### 2016 --------------------------------------------------------------------
    
