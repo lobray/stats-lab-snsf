@@ -211,4 +211,23 @@ length(id) # we have 1311 questions referring to Broader Impact
 sum(is.na(combined$QuestionRating[id]))  # we have 1311 NAs
 
 
+################
+## For Carla:
+## Thank you for the explanation, I tried what you suggested and now I understand what you meant, 
+## however I think we still have a problem... Look at the following code...
 
+d2016 <- applications[c(which(applications$CallEndDate=="2016-04-01"|applications$CallEndDate=="2016-10-01")),] 
+pID <- d2016$ProjectID # extract all the IDs referring to 2016
+referee2016 <- referee_grades[c(which(referee_grades$ProjectID %in% pID)),]
+reviews2016 <- reviews[c(which(reviews$ProjectID %in% pID)),]
+
+projects_external <- unique(reviews2016$ProjectID)  # IDs of projects in external reviews
+projects_internal <- unique(referee2016$ProjectID)  # IDs of projects in internal reviews
+which(!projects_internal %in% projects_external)    # rows of projects that are just in internal reviews
+projects_internal[82]  # example of projectID that is only in one dataset: 18925
+which(applications$ProjectID==18925)    # it's in applications dataset
+which(referee_grades$ProjectID==18925)  # it's in referees dataset (2 reviews)
+which(reviews$ProjectID==18925)         # it's not in reviews dataset
+
+## Now in our final dataset we are including also observations like this one but it doesn't make much sense, since
+## they are not complete and we can't consider them anyway...
