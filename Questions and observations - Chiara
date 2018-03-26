@@ -84,7 +84,17 @@ merge_snsf_data_2016 <- function(applications, reviews, referee_grades) {
   ## Merge internal and external reviews
   
   full_review_profile <- rbind(external_reviews, internal_reviews) # combine two review sources
-  
+    
+    #Try this:
+    #If you run this code not as a function and check for unique ID's at this point. 
+    #I copied your lines from below
+      ## Number of different projectID in the original dataset with year 2016: 1743
+        d2016 <- applications[c(which(applications$CallEndDate=="2016-04-01"|applications$CallEndDate=="2016-10-01")),]
+        length(unique(d2016$ProjectID))
+        pID <- d2016$ProjectID # extract all the IDs referring to 2016
+     ## Number of different projectID from 2016 in the original referee dataset: 1635
+      full_review2016 <- full_review_profile[c(which(full_review_profile$ProjectID %in% pID)),]
+      length(unique(full_review2016$ProjectID)) #1635
   
   ### Simplify a few variable names in apps data set
   
@@ -166,8 +176,9 @@ length(unique(reviews2016$ProjectID))
 # Assume we want to see the distribution of OverallGrade, so we select only the rows
 # in combined dataset referring to that
 
+internal_levels<- c("0", "B", "C","AB","BC","D", "A")
 c <- combined[c(which(combined$Question=="OverallGrade")),]
-table(c$QuestionRating)
+table(c$QuestionRating, exclude =internal_levels )
 
 # As you can see, when we table the QuestionRating (referring to OverallGrade) we obtain
 # not only the frequencies for average, excellent... but also those for A, B, AB...
