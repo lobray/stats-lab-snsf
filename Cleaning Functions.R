@@ -182,3 +182,5 @@ d.referee<-function(data){
   
   return(internal_reviews)
   }
+
+apps2016 <- d.apps(applications)
