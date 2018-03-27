@@ -185,8 +185,3 @@ d.referee<-function(data){
 
 apps2016 <- d.apps(applications)
 
-<<<<<<< HEAD
-# Another comment at the end
-=======
-# Comment at the end 
->>>>>>> 268be936c18495a4813e147367397196c717c4cb
