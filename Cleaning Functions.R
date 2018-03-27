@@ -170,6 +170,11 @@ d.referee<-function(data){
   
   names(internal_reviews)<-mynames
   
+  # Delete observations with no grades
+  
+  id<-which(is.na(internal_reviews$Ranking)&is.na(internal_reviews$ApplicantTrack)
+            &is.na(internal_reviews$ProjectAssessment))
+  internal_reviews<-internal_reviews[-id,]
   
   # Turning variables to factors
   
@@ -189,7 +194,7 @@ d.referee<-function(data){
   useless_variables <- colnames(internal_reviews) %in% c("RefereeRole")
   reduced_data <- internal_reviews[,!useless_variables]
   
-  return(internal_reviews)
+  return(reduced_data)
   }
 
 
