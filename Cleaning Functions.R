@@ -269,3 +269,58 @@ calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender")
   colnames(percent_female_matrix) <- c("ProjectID", "PercentFemale")
   return(percent_female_matrix)
 }
+
+
+library(plyr)
+
+levels(f.referees$ApplicantTrack)
+#Revalue factors on a 1:6 scale and set the variable as numeric for ApplicantTrack, ProjectAssessment and Ranking
+f.referees$ApplicantTrack <- revalue(f.referees$ApplicantTrack, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+f.referees$ApplicantTrack <- as.numeric(f.referees$ApplicantTrack)
+
+f.referees$ProjectAssesment <- revalue(f.referees$ProjectAssesment, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+f.referees$ProjectAssesment <- as.numeric(f.referees$ProjectAssesment)
+
+levels(f.referees$Ranking)
+f.referees$Ranking <- revalue(f.referees$Ranking, c("D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6))
+f.referees$Ranking <- as.numeric(f.referees$Ranking)
+summary(f.referees)
+
+#Function for matrix with unique IDs
+calculate_average_review <- function(data) {
+  #crete a vector of unique IDs
+  projID <- unique(data$ProjectID)
+  #create matrix to store the data
+  average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=4)
+  
+  j <- 1
+  for (i in projID) {
+    
+    # Count number of reviewers per project ID
+    number_reviewers <- dim(data[which(data$ProjectID == i),])[1] 
+    
+    # Input the project id into the matrix
+    average_review_matrix[j,1] <- i 
+    
+    # Get a vector of just the vote for each variable
+    reviewer_vote_per_projectID_ApplicantTrack <- data[which(data$ProjectID == i),]$ApplicantTrack
+    reviewer_vote_per_projectID_ProjectAssessment <- data[which(data$ProjectID == i),]$ProjectAssesment
+    reviewer_vote_per_projectID_Ranking <- data[which(data$ProjectID == i),]$Ranking
+    
+    # Count number of females and divide by number of reviewers
+    average_ApplicantTrack <- round(mean(reviewer_vote_per_projectID_ApplicantTrack, na.rm = TRUE),0)
+    average_ProjectAssessment <-round( mean(reviewer_vote_per_projectID_ProjectAssessment, na.rm = TRUE),0)
+    average_Ranking <- round(mean(reviewer_vote_per_projectID_Ranking, na.rm = TRUE),0)
+    
+    # Put percent female into the matrix
+    average_review_matrix[j,2] <- average_ApplicantTrack
+    average_review_matrix[j,3] <- average_ProjectAssessment
+    average_review_matrix[j,4] <- average_Ranking
+    
+    # Increment j
+    j <- j+1
+  }
+  
+  colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ProjectAssessment", "Ranking")
+  return(as.data.frame(average_review_matrix))
+}
