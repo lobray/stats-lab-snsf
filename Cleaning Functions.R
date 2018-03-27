@@ -273,11 +273,11 @@ calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender")
 
 
 
-# Functions to average grade ----------------------------------------------
+# FUNCTIONS TO AVERAGE GRADES ----------------------------------------------
 
 ### Average of referee
 
-calculate_average <- function(data) {
+calculate_average_referee <- function(data) {
 
 
   # Revalue factors on a 1:6 scale and set the variable as numeric for ApplicantTrack, 
@@ -329,3 +329,67 @@ calculate_average <- function(data) {
       colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ProjectAssessment", "Ranking")
       return(as.data.frame(average_review_matrix))
     }
+
+
+
+
+### Average of Reviewers
+
+calculate_average_reviewers<- function(data) {
+  
+  
+  # Revalue factors on a 1:6 scale and set the variable as numeric for ApplicantTrack, 
+  # ProjectAssessment and Ranking
+  
+  data$ApplicantTrack <- revalue(data$ApplicantTrack, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+  data$ApplicantTrack <- as.numeric(data$ApplicantTrack)
+  
+  data$ScientificRelevance <- revalue(data$ScientificRelevance, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+  data$ScientificRelevance <- as.numeric(data$ScientificRelevance)
+  
+  data$Suitability <- revalue(data$Suitability, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+  data$Suitability <- as.numeric(data$Suitability)
+  
+  data$OverallGrade <- revalue(data$OverallGrade, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+  data$OverallGrade <- as.numeric(data$OverallGrade)
+  
+  # Create a vector of unique IDs
+  projID <- unique(data$ProjectID)
+  
+  # Create matrix to store the data
+  average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=5)
+  
+  j <- 1
+  for (i in projID) {
+    
+    # Count number of reviewers per project ID
+    number_reviewers <- dim(data[which(data$ProjectID == i),])[1] 
+    
+    # Input the project id into the matrix
+    average_review_matrix[j,1] <- i 
+    
+    # Get a vector of just the vote for each variable
+    reviewer_vote_per_projectID_ApplicantTrack <- data[which(data$ProjectID == i),]$ApplicantTrack
+    reviewer_vote_per_projectID_ScientificRelevance <- data[which(data$ProjectID == i),]$ScientificRelevance
+    reviewer_vote_per_projectID_Suitability <- data[which(data$ProjectID == i),]$Suitability
+    reviewer_vote_per_projectID_OverallGrade <- data[which(data$ProjectID == i),]$OverallGrade
+    
+    # Count number of females and divide by number of reviewers
+    average_ApplicantTrack <- round(mean(reviewer_vote_per_projectID_ApplicantTrack, na.rm = TRUE),0)
+    average_ScientificRelevance <-round( mean(reviewer_vote_per_projectID_ScientificRelevance, na.rm = TRUE),0)
+    average_Suitability <- round(mean(reviewer_vote_per_projectID_Suitability, na.rm = TRUE),0)
+    average_OverallGrade <- round(mean(reviewer_vote_per_projectID_OverallGrade, na.rm = TRUE),0)
+    
+    # Put percent female into the matrix
+    average_review_matrix[j,2] <- average_ApplicantTrack
+    average_review_matrix[j,3] <- average_ScientificRelevance
+    average_review_matrix[j,4] <- average_Suitability
+    average_review_matrix[j,5] <- average_OverallGrade
+    
+    # Increment j
+    j <- j+1
+  }
+  
+  colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ScientificRelevance","Suitability", "OverallGrade")
+  return(as.data.frame(average_review_matrix))
+}
