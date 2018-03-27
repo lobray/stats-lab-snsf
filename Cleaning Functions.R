@@ -225,3 +225,46 @@ test <- selection.function(apps,external_reviews,internal_reviews,2016)
 # f.apps <- test$final.apps
 # f.reviews <- test$final.reviews
 # f.referees <- test$final.referees
+
+
+
+calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender") {
+  ### Function to calculate the percent of females evaluating a given proposal.
+  ### Returns a matrix with projectID and % female reviewers.
+  ### Works with both internal & external reviewer data sets, but requires
+  ### the column name of ReviewerGender / RefereeGender to be specified 
+  ### since they aren't the same.
+  
+  
+  # Get vector of unique Project IDs
+  projID <- unique(data$ProjectID)
+  
+  # Create empty matrix to store % female
+  percent_female_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=2)
+  
+  # Initialize j
+  j <- 1
+  
+  for (i in projID) {
+    
+    # Count number of reviewers per project ID
+    number_reviewers <- dim(data[which(data$ProjectID == i),])[1] 
+    
+    # Input the project id into the % female matrix
+    percent_female_matrix[j,1] <- i 
+    
+    # Get a vector of just the genders
+    reviewer_genders_per_projectID <- data[which(data$ProjectID == i),ReviewerTypeGender] 
+    
+    # Count number of females and divide by number of reviewers
+    percent_female <- sum(reviewer_genders_per_projectID=="f") / number_reviewers 
+    
+    # Put percent female into the matrix
+    percent_female_matrix[j,2] <- percent_female 
+    
+    # Increment j
+    j <- j+1
+  }
+  
+  return(percent_female_matrix)
+}
