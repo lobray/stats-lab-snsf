@@ -192,4 +192,38 @@ d.referee<-function(data){
   }
 
 
-apps2016 <- d.apps(applications)
+apps <- d.apps(applications)
+external_reviews <- d.reviews(reviews)
+internal_reviews <- d.referee(referee_grades)
+
+
+# SELECT THE YEAR ------------------------------------------------------------
+
+apps2016<-subset(apps, year(apps$Year)==2016)
+
+## Merging apps with referees to add Gender, Year to internal reviews
+Internal2016<-merge(internal_reviews, apps2016[,c("ProjectID","Gender","Year")],
+                    by="ProjectID")
+
+## Merging apps with reviews to add Gender, Year to internal reviews
+External2016<-merge(external_reviews, apps2016[,c("ProjectID","Gender","Year")],
+                    by="ProjectID")
+
+# SELECT ONLY COMPLETE OBSERVATIONS (in all 3 datasets) -----------------------
+
+selection.f <- function(data1,data2) {
+  rows.1 <- match(data2$ProjectID, data1$ProjectID) # get apps rows corresponding to reviews
+  rows.2 <- which(is.na(rows.1)==FALSE)  # get rows number of reviews that are in apps2016
+  data2 <- data2[rows.2,] # select rows 
+  return(data2)
+}
+
+complete.apps <- selection.f(External2016, apps2016)
+complete.External <- selection.f(External2016, Internal2016)
+complete.Internal <- internal_reviews
+
+# Check that now we have the same IDs unique number:
+# length(unique(complete.apps$ProjectID))
+# length(unique(External2016$ProjectID))
+# length(unique(complete.ref$ProjectID))
+
