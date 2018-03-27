@@ -58,7 +58,7 @@ d.apps<- function(data){
   
   
   # Drop unnecesary variables   
-  drops <- c("MainDiscipline","CallTitle", "MD Code")
+  drops <- c("MainDiscipline","CallTitle", "MD Code", "Professorship", "AcademicAge")
   apps <- apps[ , !(names(apps) %in% drops)]
   
   # Removed NAs for gender since we are interested in it
@@ -66,7 +66,7 @@ d.apps<- function(data){
   apps <- apps[-id.g,]
   
   # Reorder data set
-  apps<- apps[,c("ProjectID","Gender","Age","Nationality","AcademicAge","Professorship", "IsApproved","Year", "AmountRequested" ,
+  apps<- apps[,c("ProjectID","Gender","Age","Nationality", "IsApproved","Year", "AmountRequested" ,
                  "AmountGranted", "GradeFinal","Division","MD Name","InstType",
                  "PreviousRequest","IsContinuation")]
   
@@ -184,5 +184,5 @@ d.referee<-function(data){
   }
 
 apps2016 <- d.apps(applications)
-
-# Comment at the end 
+external2016 <- d.reviews(reviews)
+internal2016 <- d.referee(referee_grades)
