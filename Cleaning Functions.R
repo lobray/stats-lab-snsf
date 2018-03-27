@@ -55,6 +55,7 @@ d.apps<- function(data){
   apps<-separate(apps, MainDisciplineLevel2, c("MD Code", "MD Name"),
                  sep=" ",extra = "merge", fill = "right") 
   apps$`MD Code`<-as.factor(apps$`MD Code`) 
+  apps$`MD Name`<-as.factor(apps$`MD Name`) 
   
   
   # Drop unnecesary variables   
@@ -87,10 +88,12 @@ d.reviews <- function(data){
   id <- which(external_reviews$QuestionRating=="-outstanding")
   external_reviews$QuestionRating[id]<-"outstanding"
   
-  ### Following Flabio recomendation. Ignore the "0", what do you think?
+  ### Following Flabio recomendation. Ignore the "0" and "not considered", what do you think?
   
-  #id.o<-which(external_reviews$QuestionRating=="0")
-  #external_reviews<-external_reviews[-id.o,]
+  id.o<-which(external_reviews$QuestionRating=="0")
+  external_reviews<-external_reviews[-id.o,]
+  id.o2<-which(external_reviews$OverallGrade=="not considered")
+  external_reviews<-external_reviews[-id.o2,]
   
   
   ### Convert categorical variables to factors
@@ -183,6 +186,3 @@ d.referee<-function(data){
   return(internal_reviews)
   }
 
-apps2016 <- d.apps(applications)
-external2016 <- d.reviews(reviews)
-internal2016 <- d.referee(referee_grades)
