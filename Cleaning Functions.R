@@ -183,6 +183,13 @@ d.referee<-function(data){
                                       "RefereeID" ,"RefereeRole","RefereeGender","RecommendationID",
                                       "ApplicantTrack","ProjectAssesment")]
   
+  ### Remove variables we don't care about
+  
+  useless_variables <- colnames(internal_reviews) %in% c("RefereeRole")
+  reduced_data <- internal_reviews[,!useless_variables]
+  
   return(internal_reviews)
   }
 
+
+apps2016 <- d.apps(applications)
