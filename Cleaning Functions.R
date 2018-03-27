@@ -206,15 +206,15 @@ select.f <- function(data1,data2) {
   return(data2)
 }
 
-selection.function <- function(app,reviews,referee,year){
+selection.function <- function(apps,reviews,referee,year){
   apps2016<-subset(apps, year(apps$Year)==year)
-  Internal2016<-merge(reviews, apps2016[,c("ProjectID","Gender","Year")],
+  Internal2016<-merge(referee, apps2016[,c("ProjectID","Gender","Year")],
                       by="ProjectID")
   External2016<-merge(reviews, apps2016[,c("ProjectID","Gender","Year")],
                       by="ProjectID")
   complete.apps <- select.f(External2016, apps2016)
-  complete.External <- select.f(External2016, Internal2016)
-  complete.Internal <- internal_reviews
+  complete.Internal <- select.f(External2016, Internal2016)
+  complete.External <- External2016
   return(list(final.apps=complete.apps, final.reviews=complete.External, 
               final.referees=complete.Internal))
 }
@@ -222,6 +222,6 @@ selection.function <- function(app,reviews,referee,year){
 test <- selection.function(apps,external_reviews,internal_reviews,2016)
 
 # To access one single dataset:
-# test$final.apps
-# test$final.reviews
-# test$final.referees
+# f.apps <- test$final.apps
+# f.reviews <- test$final.reviews
+# f.referees <- test$final.referees
