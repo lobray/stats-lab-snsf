@@ -225,7 +225,7 @@ test <- selection.function(apps,external_reviews,internal_reviews,2016)
 # f.apps <- test$final.apps
 # f.reviews <- test$final.reviews
 # f.referees <- test$final.referees
-
+  
 
 
 calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender") {
@@ -265,6 +265,7 @@ calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender")
     # Increment j
     j <- j+1
   }
-  
+  percent_female_matrix <- as.data.frame(percent_female_matrix)
+  colnames(percent_female_matrix) <- c("ProjectID", "PercentFemale")
   return(percent_female_matrix)
 }
