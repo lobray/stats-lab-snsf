@@ -1,0 +1,130 @@
+---
+title: "SNSF Report"
+author: "Chiara Gilardi, Leslie O’Bray, Carla Schärer  and Tommaso Portaluri"
+date: "5 April 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
+```
+```{r Load Functions and Data }
+load("SNFS Data/snsf_data.RData")
+source("Cleaning Functions.R")
+source("Regressions.R")
+
+```
+
+
+## Introduction
+
+## Data Description
+
+We have three data sets: Applications, External reviewers and Internal referees.
+
+### Applications
+  * AmountRequested: Rounded to the next 10k CHF
+  * AmountGranted: Rounded to the next 10k CHF
+  * IsApproved: 1 if the application was approved, 0 if it was rejected
+  * GradeFinal: Comparative ranking of the application as determined by the evaluation body (the division of the National Research Council). A: "belongs to the 10% best percent"; AB: "10% are worse, 75% are better"; B: "50% are worse, 25% are better"; BC: " 25% are worse, 50% are better"; C "10% are worse, 75% are better"; D: "90% of the applications are better"
+  
+  * Division: Evaluation Body in which the application was evaluated. Division 1 evaluates Social Sciences and Humanities; Division 2 Mathematics, Natural Sciences and Engineering; Division 3 Biology and Medicine
+  
+  * MainDiscipline: as chosen by the applicant from the SNSF discipline list
+  * MainDisciplineLevel2: category in the SNF discipline list grouping disciplines into fields of research
+  * CallTitle: Call for proposals under which the application was submitted. Applications from the same Call are evaluated together, i.e. in competition to each other
+  * CallEndDate: Submission deadline of the Call
+  * ResponsibleApplicantAcademicAgeAtSubmission: Years since the applicant's PhD at time of submission; data only available since mid 2016
+  * ResponsibleApplicantAgeAtSubmission: Biological age of the applicant at time of submission; data only available since mid 2016
+  * ResponsibleApplicantProfessorshipType: employment situation of the applicant at time of submission; data only available since mid 2016
+  * Gender: of the main applicant
+  * NationalityIsoCode: Nationality of the main applicant
+  * IsHasPreviousProjectRequested: 0 if it is the applicant's first application at the SNSF, 1 if not
+  * InstType: Type of institution where the applicant is employed
+  * IsContinuation: 1 if the project is a thematic continuation of a previously approved project, 0 if not
+  * ProjectID: Anonymized identifier of the application
+
+### Referee Grades
+  * Question: Evaluation criterion
+  * QuestionRating: The (co-)referee's assessment of the evaluation criterion
+  * OverallRanking: The (co-)referee's overall comparative ranking of the application. A: "belongs to the 10% best percent"; same scale as the GradeFinal
+  * RefereeRole: Some applications have one referee evaluation, some have two. The role indicates who was the primary and who was the secondary referee (also called co-referee) 
+  * RefereeGender
+  * IDs: Anonymized identifiers of the application, the referee and the evaluation by the referee
+
+### Reviews
+  * Question: Evaluation criterion
+  * QuestionRating: The external reviewer's assessment of the evaluation criterion
+  * OverallGrade: The external reviewer's overall assessment of the application
+  * SourcePerson: Who suggested the reviewer?
+  * Gender
+  * Country: where the reviewer is located. Not always known
+  * EmailEnding: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
+  * IDs: Anonymized identifiers of the application, the reviewer and the review
+
+
+
+## Cleaning the Data
+
+We decide to work with only complete applications, i.e. project for which we have information from the three data sets.
+
+As we have only information from reviewers and referees since 2016, we are considering applications only from that year. 
+
+Specific to each data set this are the detailed considerations:
+
+### Applications
+
+We decide to consider only the MainDiscipline2 because for MainDiscipline we have 118 levels, while for the other only 21. 
+
+There is one application for which we do not know the gender of the applicant, and therefore we decided to omit that observation from the analysis.
+
+We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables.
+
+```{r Table Professorship and AcademicAge}
+# For Professorship
+table(applications$ResponsibleApplicantProfessorshipType, useNA = "always")
+
+# For AcademicAge
+sum(is.na(applications$ResponsibleApplicantAcademicAgeAtSubmission))/dim(applications)[1]
+```
+
+
+### Internal Referees
+
+There were 22 observations (1 for the time frame we are dealing with) for which only demographic information was available, no grades were given. We decide to omit those observations.
+
+Also we decide to not consider the Referee role as a variable in our model, as the majority of the evaluations has only one referee.
+
+```{r Table RefereeRole}
+table(referee_grades$RefereeRole, useNA = "always")
+```
+
+
+### External Reviewers
+
+Reviewers always have the option to choose “not considered” or "0" when reviewing an application. Some might be by mistake, others might have a conflict of interest, or they might be very ambivalent about the project. Therefore, we did not considered observations with this grades.One of the questions evaluated in the applications is 
+"Broader impact (forms part of the assessment of scientific relevance, originality and topicality)". 
+
+For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
+
+
+
+## Analysis
+
+### Internal Review regression 
+
+```{r Internal Logistic Regression}
+summary(internal_log_regression)
+```
+
+### External review analysis
+
+```{r External Logistic Regression}
+summary(external_log_regression)
+```
+
+
+
+## Results
+
+## Conclusion
