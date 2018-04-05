@@ -107,7 +107,7 @@ Reviewers always have the option to choose “not considered” or "0" when revi
 
 For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
 
-
+## Exploratory Analysis
 
 ## Analysis
 
