@@ -1,3 +1,5 @@
+library(car)
+
 ### Get the data from the Cleaning Functions
 test <- selection.function(apps,external_reviews,internal_reviews,2016)
 final.apps <- test$final.apps
@@ -57,4 +59,28 @@ prepare_data_internal_log_regression <- function(apps, internal, external) {
 internal_log_regression <- prepare_data_external_log_regression(applications, final.internal, final.external)
 summary(internal_log_regression)
 
+### Logistic Regression for Final Board Deicision
+
+
+prepare_data_board_log_regression <- function(apps, internal, external) {
+  
+  # Extract columns from applications data
+  board_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested")]
+  
+  # Calculate average ratings for internal and external reviews
+  average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
+  average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
+    
+  # Merge with external reviews & referee data
+  board_regression_data <- merge(board_regression_data, average_internal_ratings, by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, average_ratings, by = "ProjectID")
+  
+  # Create logistic regression & return object
+  board_log_regression <- glm(board_regression_data$IsApproved ~ .-(ProjectID), family="binomial", data = board_regression_data)
+  
+}
+
+board_log_regression <- prepare_data_board_log_regression(final.apps, final.internal, final.external)
+summary(board_log_regression)
+vif(board_log_regression)
 
