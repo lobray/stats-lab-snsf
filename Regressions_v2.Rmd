@@ -1,0 +1,174 @@
+---
+title: "Untitled"
+author: "Chiara Gilardi, Leslie O’Bray, Carla Schärer  and Tommaso Portaluri"
+date: "6 April 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+Load the functions and final data sets
+
+```{r Load Functions and Data }
+load("~/MSc Statistics/StatsLab/Analysis/SNFS Data/snsf_data.RData")
+source("Cleaning Functions.R")
+source("Regressions.R")
+
+library(caTools)
+library(ROCR)
+library(pROC)
+
+```
+
+Exploratory for apps
+
+```{r}
+summary(final.apps)
+
+
+```
+
+```{r Boxplots of Applications}
+boxplot(final.apps[,"AmountRequested"]~final.apps$Gender+final.apps$Division)
+boxplot(final.apps[final.apps$IsApproved==1,"AmountGranted"]~
+          final.apps[final.apps$IsApproved==1, "Gender"]+final.apps[final.apps$IsApproved==1,"Division"])
+
+plot(final.apps$IsApproved~final.apps$Division+final.apps$Gender, col=c(2,3))
+
+```
+### Regression with External Review Data set
+
+Fit logistic regression using external criteria: goal is relevant importance of each criteria in this step
+
+
+```{r Logistic Regression External}
+
+# Calculate % female reviewers
+  external_reviews_gender <- calculate_percent_female(final.external, "ReviewerGender")
+  
+  # Select applications data we want to use
+  external_regression_data <- final.apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID")]
+  
+  # add in grades & Interaction
+  average_ratings <- calculate_average_reviewers(final.external)
+  
+  # Merge applications data with external % females & average reviews
+  external_regression_data <- merge(external_reviews_gender, external_regression_data, by="ProjectID")
+  external_regression_data <- merge(average_ratings, external_regression_data, by="ProjectID")
+
+  # Division 1
+  external_div<- subset(external_regression_data,Division=="Div 3", select = -Division)
+   
+  #spliting the data into train and test set
+  split<-sample.split(external_div$IsApproved, SplitRatio = 0.8)
+  Train<-subset(external_div,split=="TRUE")
+  Test <-subset(external_div, split=="FALSE") 
+   
+  # fitting the model
+  
+  ExternalModel<-function(Train,Test,cutoff=0.5){
+    
+      # Cutoff
+        cutoff<-cutoff
+    
+      # Optimize the model
+        full<- glm(IsApproved ~ (.-(ProjectID))^2, data=Train, family="binomial")
+        Model  <-step(full, direction = "backward", trace=0)
+  
+      #anova(ModelStep, test = "Chisq")
+      #drop1(full, test = "Chisq")
+  
+     # Testing the Treshold
+        par(mfrow=c(1,2))
+        predictor<-predict(Model, Test, type="response")
+        ROCRPred<- prediction(predictor,Test$IsApproved)
+        ROCRPerf<- performance(ROCRPred,"tpr","fpr")
+        plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
+  
+      # with respect to accuracy
+        ROCRACC<- performance(ROCRPred,"acc")
+        plot(ROCRACC)  # Treshold at 0.5 is better
+  
+     # Confusion Matrices
+        Yhat<-predict(Model,Test, type = "response")
+        AccTable<-table(ActualValue=Test$IsApproved,Prediction=Yhat>cutoff)
+        accuracy<-(sum(diag(AccTable))/sum(AccTable))
+      
+      # Return
+        
+        return(list(Model= summary(Model), `Confidence Intervals`=confint(Model), `Confusion Matrix`=AccTable, Accuracy=paste(round(accuracy,2)*100,"%")))
+  
+  }
+ 
+  
+  ExternalReg<-ExternalModel(Train = Train, Test=Test, cutoff=0.4)
+  ExternalReg
+```
+
+With the function of Leslie
+
+```{r}
+prepare_data_external_log_regression <- function(apps, internal, external) {
+  
+  # Calculate % female reviewers
+  external_reviews_gender <- calculate_percent_female(final.external, "ReviewerGender")
+  
+  # Select applications data we want to use
+  external_regression_data <- final.apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID")]
+  
+  # add in grades & Interaction
+  average_ratings <- calculate_average_reviewers(external)
+  
+  # Merge applications data with external % females & average reviews
+  external_regression_data <- merge(external_reviews_gender, external_regression_data, by="ProjectID")
+  external_regression_data <- merge(average_ratings, external_regression_data, by="ProjectID")
+  
+  # Create regression object, and return it 
+  external_log_regression <- glm(external_regression_data$IsApproved ~ .-(ProjectID), data=external_regression_data, family="binomial")
+  
+}
+
+external_log_regression <- prepare_data_external_log_regression(final.apps, final.internal, final.external)
+summary(external_log_regression)
+```
+
+Gender is not significant, which is a good sign. It shouldn't matter your gender in order to be accepted or not.
+
+
+
+```{r}
+
+beta_hat<-coefficients(external_log_regression)
+beta_hat
+CI <- confint(external_log_regression)
+CI
+
+# probability
+pfemale<- exp(beta_hat["Genderm"])/(1+exp(beta_hat["Genderm"])) # 53.4%
+pmale<- exp(beta_hat["Genderm"]*2)/(1+exp(beta_hat["Genderm"]*2)) #56.7%
+
+```
+There is not enough evidence in the thata to reject the null hypotesis that gender is not significant.
+
+What appears to be more significant is the ApplicantTrack, negative significant. The higher the califications in the Applicant track, the smaller the probability of being chosen. This appear to be good news to young reserchers who hasn't have the time to build up its track.
+
+Division is also an influence.
+```{r}
+AppTrack<-1:6
+pAppTrack<-exp(beta_hat["ApplicantTrack"]*AppTrack)/(1+exp(beta_hat["ApplicantTrack"]*AppTrack))
+plot(AppTrack,pAppTrack, type="l")
+
+```
+
+
+
+### Regression with External Review Data set
+
+Fit logistic regression using external criteria: goal is relevant importance of each criteria in this step
+
+```{r}
+
+```
+
