@@ -182,7 +182,6 @@ beta_hat
 # probability
 pfemale<- exp(beta_hat["Genderm"])/(1+exp(beta_hat["Genderm"])) # 56.8%
 pmale<- exp(beta_hat["Genderm"]*2)/(1+exp(beta_hat["Genderm"]*2)) #63.4%
-
 ```
 
 Division is also an influence.
@@ -191,4 +190,170 @@ AppTrack<-1:6
 pAppTrack<-exp(beta_hat["ApplicantTrack"]*AppTrack)/(1+exp(beta_hat["ApplicantTrack"]*AppTrack))
 plot(AppTrack,pAppTrack, type="l")
 
+```
+
+
+
+### Regression with Internal Review Data set
+
+Fit logistic regression using internal criteria: goal is relevant importance of each criteria in this step.
+
+
+```{r Logistic Regression Internal}
+
+  # Calculate % female reviewers
+    internal_reviews_gender <- calculate_percent_female(final.internal, "RefereeGender")
+  
+  # Select applications columns we want to use
+    internal_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender",
+                                            "Division","Age")]
+  
+  # add in grades & Interaction
+    average_internal_ratings <- calculate_average_referee(final.internal)
+  
+  # Merge applications data with external % females & average reviews
+    internal_regression_data <- merge(internal_regression_data, internal_reviews_gender, 
+                                      by = "ProjectID")
+    internal_regression_data <- merge(internal_regression_data, average_internal_ratings,
+                                      by = "ProjectID")
+
+  
+  # changing variables to factors:
+  internal_regression_data$Ranking <- factor(internal_regression_data$Ranking)
+  internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment)
+  internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack)
+
+
+  # Function to fit a logistic Regression. Need to specify the data and Division
+    # Options for divitions: "Div 1", "Div 2", "Div 3" and "All".
+    # Split Ratio (default =0.8) If == 1 Then no Data will be split
+    # cutoff (default 0.5)
+    InternalReviewModel<- function(data=internal_regression_data,Div="All",
+                                 SplitRatio=0.8, cutoff=0.5 ){ 
+  
+        if (Div == "All"){ 
+          final.data<- data
+        }
+        else {
+          final.data<- subset(data,Division==Div, select = -(Division)) 
+        }
+   
+   
+    #spliting the data into train and test set
+      
+      if (SplitRatio<1){
+        split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
+        Train<-subset(final.data, split=="TRUE")
+        Test <-subset(final.data, split=="FALSE") 
+      } else {
+        Test<-Train<-final.data
+      }
+   
+    # fitting the model
+  
+    #ExternalModel<-function(Train,Test,cutoff){
+    
+      # Cutoff
+        cutoff<-cutoff
+    
+      # Optimize the model
+        
+        # full<- glm(IsApproved ~ .-(ProjectID), data=Train, family="binomial")
+        # Model  <-step(full, direction = "backward", trace=0)
+        # Model <- step(empty,scope=list(lower=empty,upper=full), direction="both",
+        #     trace=0)
+        Model <- glm(Train$IsApproved ~ .-(ProjectID),data=Train, 
+                     family="binomial")
+        
+    
+     # Testing the Treshold
+        par(mfrow=c(1,2))
+        predictor<-predict(Model, Test, type="response")
+        ROCRPred<- prediction(predictor,Test$IsApproved)
+        ROCRPerf<- performance(ROCRPred,"tpr","fpr")
+        plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
+  
+      # with respect to accuracy
+        ROCRACC<- performance(ROCRPred,"acc")
+        plot(ROCRACC)  
+  
+     # Confusion Matrices
+        AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
+        accuracy<-(sum(diag(AccTable))/sum(AccTable))
+      
+      # Return
+        print(paste("Regresion for External Reviews.   ", "Division: ", Div))
+        return(list(Model= summary(Model), 
+                    #`Confidence Intervals`=confint(Model),
+                    `Confusion Matrix`=AccTable,
+                    `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+                    `Accuracy`=paste(round(accuracy,2)*100,"%")))
+ 
+  
+   }
+  
+```
+
+
+## Internal Review
+
+### All Divisions together
+
+```{r All divisions}
+Int.all <- InternalReviewModel(data=internal_regression_data, Div="All",cutoff=0.5,
+                    SplitRatio=1) 
+Int.all
+```
+
+
+### Division 1
+
+```{r Internal Div1}
+Int_Model1<-InternalReviewModel(data=internal_regression_data, Div="Div 1",
+                    SplitRatio=1,cutoff=0.5)
+Int_Model1
+```
+### Division 2
+
+
+```{r External Div2}
+Int_Model2 <- InternalReviewModel(internal_regression_data, Div="Div 2",
+                    SplitRatio=1,cutoff=0.5)
+Int_Model2
+
+```
+
+### Division 3
+
+
+```{r External Div3}
+Int_Model3 <- InternalReviewModel(internal_regression_data, Div="Div 3", 
+                    SplitRatio=1, cutoff=0.5)
+Int_Model3
+```
+
+* All divisions: the odds of the project being approved decrease by 5.79% when the applicant is a male, assuming all the other variables to be constant.
+* Division 1: the odds of the project being approved increase by 1.11% when the applicant is a male, assuming all the other variables to be constant.
+* Division 2: the odds of the project being approved increase by 50.34% when the applicant is a male, assuming all the other variables to be constant.
+* Divison 3: the odds of the project being approved decrease by 24.12% when the applicant is a male, assuming all the other variables to be constant.
+
+(I got this results using grades as numeric, I'll change them later if needed)
+
+```{r}
+# All
+beta_hat_all <- coefficients(Int.all$Model)["Genderm",1]
+1-exp(beta_hat_all)
+
+# Division 1
+beta_hat_div1 <- coefficients(Int_Model1$Model)["Genderm",1]
+exp(beta_hat_div1)
+
+# Division 2
+beta_hat_div2 <- coefficients(Int_Model2$Model)["Genderm",1]
+exp(beta_hat_div2)
+
+# Division 3
+beta_hat_div3 <- coefficients(Int_Model3$Model)["Genderm",1]
+1-exp(beta_hat_div3)
+```
 ```
