@@ -356,4 +356,106 @@ exp(beta_hat_div2)
 beta_hat_div3 <- coefficients(Int_Model3$Model)["Genderm",1]
 1-exp(beta_hat_div3)
 ```
+
+
+### Regression with Internal Review Data set
+
+Fit logistic regression using cross-step criteria: goal is relevant importance of each step.
+
+
+```{r Logistic Regression Board}
+
+
+prepare_data_board_log_regression <- function(apps, internal, external) {
+  
+  # Extract columns from applications data
+  board_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested")]
+  
+  # Calculate average ratings for internal and external reviews
+  average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
+  average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
+    
+  # Merge with external reviews & referee data
+  board_regression_data <- merge(board_regression_data, average_internal_ratings, by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, average_ratings, by = "ProjectID")
+  board_regression_data$Ranking <- as.factor(board_regression_data$Ranking)
+  board_regression_data$OverallGrade <- as.factor(board_regression_data$OverallGrade)
+  
+  # Select Division
+  board_div<- subset(board_regression_data,Division=="Div 1", select = -Division)
+  
+}
+
+board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
+
+board_log_regression <- glm(board_data$IsApproved ~ .-(ProjectID), family="binomial", data = board_data)
+
+BoardModel<- function(data=board_data,Div="All",
+                                 SplitRatio=0.8, cutoff=0.5 ){ 
+  
+        if (Div == "All"){ 
+          final.data <- data
+        }
+        else {
+          final.data<- subset(data,Division==Div, select = -(Division)) 
+        }
+   
+   
+    #spliting the data into train and test set
+      
+      if (SplitRatio<1){
+        split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
+        Train<-subset(final.data, split=="TRUE")
+        Test <-subset(final.data, split=="FALSE") 
+      } else {
+        Test<-Train<-final.data
+      }
+   
+    # fitting the model
+  
+    #ExternalModel<-function(Train,Test,cutoff){
+    
+      # Cutoff
+        cutoff <- cutoff
+    
+      # Optimize the model
+        
+        # full<- glm(IsApproved ~ .-(ProjectID), data=Train, family="binomial")
+        # Model  <-step(full, direction = "backward", trace=0)
+        # Model <- step(empty,scope=list(lower=empty,upper=full), direction="both",
+        #     trace=0)
+        Model <- glm(Train$IsApproved ~ .-(ProjectID),data=Train, 
+                     family="binomial")
+        
+    
+     # Testing the Treshold
+        par(mfrow=c(1,2))
+        predictor<-predict(Model, Test, type="response")
+        ROCRPred<- prediction(predictor,Test$IsApproved)
+        ROCRPerf<- performance(ROCRPred,"tpr","fpr")
+        plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
+  
+      # with respect to accuracy
+        ROCRACC<- performance(ROCRPred,"acc")
+        plot(ROCRACC)  
+  
+     # Confusion Matrices
+        AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
+        accuracy<-(sum(diag(AccTable))/sum(AccTable))
+      
+      # Return
+        print(paste("Regresion for External Reviews.   ", "Division: ", Div))
+        return(list(Model= summary(Model), 
+                    #`Confidence Intervals`=confint(Model),
+                    `Confusion Matrix`=AccTable,
+                    `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+                    `Accuracy`=paste(round(accuracy,2)*100,"%")))
+ 
+  
+   }
+ 
+  
+board.all <- BoardModel(data=board_data, Div="All",
+                    SplitRatio=1,cutoff=0.5)
+
 ```

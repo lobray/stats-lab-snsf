@@ -398,3 +398,5 @@ calculate_average_reviewers<- function(data) {
   colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ScientificRelevance","Suitability", "OverallGrade")
   return(as.data.frame(average_review_matrix))
 }
+
+
