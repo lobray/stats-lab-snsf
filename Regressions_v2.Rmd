@@ -459,3 +459,62 @@ board.all <- BoardModel(data=board_data, Div="All",
                     SplitRatio=1,cutoff=0.5)
 
 ```
+
+
+```{r Janine External Regression}
+
+head(final.external)
+
+# Calculate % female reviewers
+    external_reviews_gender <- calculate_percent_female(final.external,
+                                                        "ReviewerGender")
+  
+  # Select applications data we want to use
+    external_regression_data <- final.apps[,c("IsApproved", "Age", "Gender", 
+                                            "Division", "ProjectID")]
+  
+  # add in grades & Interaction
+    average_ratings <- calculate_average_reviewers(final.external)
+  
+  # Merge applications data with external % females & average reviews
+    external_regression_data <- merge(external_reviews_gender, 
+                                    external_regression_data, by="ProjectID")
+    external_regression_data <- merge(average_ratings, external_regression_data,
+                                      by="ProjectID")
+    
+    # combine suitability & project proposal
+    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+                                                            external_regression_data$Suitability)/2, 0)
+    
+
+    # Simple first regression: Overall Grade 4-6 >- "Good", 1-3 -> bad
+    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+
+    
+    # Janine regression 
+        
+    janine_reg_proposal <- glm(SimplifiedProposal ~ Age + Gender + Division + 
+                                  PercentFemale + Gender:PercentFemale, data=external_regression_data)
+    
+    summary(janine_reg_proposal)
+
+    janine_reg_applicant <- glm(SimplifiedApplicant ~ Age + Gender + Division + 
+                                  PercentFemale + Gender:PercentFemale, data=external_regression_data)
+  
+
+
+        
+    # Leslie's probably wrong interpretation of Janine's idea
+    leslie_reg_proposal <- glm(SimplifiedOverallGrade ~ Age + Gender + Division + 
+                                 ProposalCombined + PercentFemale, data=external_regression_data)
+    
+    leslie_reg_applicant <- glm(SimplifiedOverallGrade ~ Age + Gender + Division + 
+                                 ApplicantTrack + PercentFemale, data=external_regression_data)
+      
+    
+
+    
+
+```

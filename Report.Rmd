@@ -109,6 +109,24 @@ For the time frame we are considering, in all the applications this grade was NA
 
 ## Exploratory Analysis
 
+```{r}
+# Look at the overall grades given to external reviewers and whether candidate is approved - like 50% 
+(table(external_regression_data$OverallGrade, external_regression_data$IsApproved))
+
+# External review of track record inversely used! 
+(table(external_regression_data$ApplicantTrack, external_regression_data$IsApproved))
+
+# External review of suitability and whether candidate is approved
+(table(external_regression_data$Suitability, external_regression_data$IsApproved))
+
+# External review of relevance and whether candidate is approved -- again like negatively used
+(table(external_regression_data$ScientificRelevance, external_regression_data$IsApproved))
+
+# Lets look at the internal data
+
+```
+
+
 ## Analysis
 
 ### Internal Review regression 
