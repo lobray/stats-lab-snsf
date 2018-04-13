@@ -20,7 +20,7 @@ source("Regressions.R")
 
 ## Data Description
 
-We have three data sets: Applications, External reviewers and Internal referees.
+We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available).
 
 ### Applications
   * AmountRequested: Rounded to the next 10k CHF
@@ -66,11 +66,11 @@ We have three data sets: Applications, External reviewers and Internal referees.
 
 ## Cleaning the Data
 
-We decide to work with only complete applications, i.e. project for which we have information from the three data sets.
+We decide to work with only complete applications, i.e. project for which we have information from all the three data sets.
 
 As we have only information from reviewers and referees since 2016, we are considering applications only from that year. 
 
-Specific to each data set this are the detailed considerations:
+Specific to each data set, this are the detailed considerations:
 
 ### Applications
 
@@ -78,16 +78,22 @@ We decide to consider only the MainDiscipline2 because for MainDiscipline we hav
 
 There is one application for which we do not know the gender of the applicant, and therefore we decided to omit that observation from the analysis.
 
-We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables.
+We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables (around 93% of the observations).
 
 ```{r Table Professorship and AcademicAge}
 # For Professorship
 table(applications$ResponsibleApplicantProfessorshipType, useNA = "always")
+sum(is.na(applications$ResponsibleApplicantProfessorshipType))/dim(applications)[1]
 
 # For AcademicAge
 sum(is.na(applications$ResponsibleApplicantAcademicAgeAtSubmission))/dim(applications)[1]
 ```
 
+### External Reviewers
+
+Reviewers always have the option to choose not to considereder or to give the grade "0" when reviewing an application. Some might be mistakes, in others cases there might be a conflict of interest, or they might be very ambivalent about the project. Therefore, we did not considered observations with this grades. 
+
+One of the questions evaluated in the applications is "Broader impact (forms part of the assessment of scientific relevance, originality and topicality)". For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
 
 ### Internal Referees
 
@@ -100,12 +106,7 @@ table(referee_grades$RefereeRole, useNA = "always")
 ```
 
 
-### External Reviewers
 
-Reviewers always have the option to choose “not considered” or "0" when reviewing an application. Some might be by mistake, others might have a conflict of interest, or they might be very ambivalent about the project. Therefore, we did not considered observations with this grades.One of the questions evaluated in the applications is 
-"Broader impact (forms part of the assessment of scientific relevance, originality and topicality)". 
-
-For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
 
 ## Exploratory Analysis
 
@@ -172,9 +173,54 @@ in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 (table(in.div2$ProjectAssessment, in.div2$IsApproved))
 (table(in.div3$ProjectAssessment, in.div3$IsApproved))
 
+```
 
+```{r Visual analysis}
+library(vcd)
+cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
+# Apparently there is no association between gender and approval (generally + in each division)
 
+cotabplot(~ Gender + Division, data=final.apps, shade=T)
+# There are more women then men applying for Division 1 and the opposite for Division 2
 
+cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
+# If the project is a continuation it is more likely to be approved
+
+id.approved <- which(final.apps$IsApproved==1)
+perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
+boxplot(perc.f~final.apps$Division[id.approved])
+# Percentage of amount granted of the amount requested:
+# On average in Division1 applicants receive almost all the amount of money requested, 
+# even if there are lots of outliers. Division 2 is the one with the smallest percentage of
+# money granted.
+
+boxplot(final.apps$AmountRequested~final.apps$Division)
+# Probably the previous result is due to the fact that in Division1, the AmountRequested
+# on average is smaller than in all the other divisions.
+
+# EXTERNAL REVIEWERS
+cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
+cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
+# No gender bias for any criteria
+
+    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+    
+# Even using the simplified version with 0 and 1 there is no bias
+cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
+cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
+cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+
+# INTERNAL REVIEWERS
+# Here it seem that is more likely to get an high grade for the TrackRecord if 
+# the applicant is male!
+cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
+cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
+cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 ```
 
 
