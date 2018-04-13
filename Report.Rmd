@@ -110,19 +110,70 @@ For the time frame we are considering, in all the applications this grade was NA
 ## Exploratory Analysis
 
 ```{r}
-# Look at the overall grades given to external reviewers and whether candidate is approved - like 50% 
+# Look at the overall grades given to external reviewers and whether candidate is approved - like 50%. Then split by gender (Second line).
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
 (table(external_regression_data$OverallGrade, external_regression_data$IsApproved))
+(table(ex.f$OverallGrade, ex.f$IsApproved))
+(table(ex.div1$OverallGrade, ex.div1$IsApproved))
+(table(ex.div2$OverallGrade, ex.div2$IsApproved))
+(table(ex.div3$OverallGrade, ex.div3$IsApproved))
 
 # External review of track record inversely used! 
 (table(external_regression_data$ApplicantTrack, external_regression_data$IsApproved))
+(table(ex.f$ApplicantTrack, ex.f$IsApproved))
+(table(ex.div1$ApplicantTrack, ex.div1$IsApproved))
+(table(ex.div2$ApplicantTrack, ex.div2$IsApproved))
+(table(ex.div3$ApplicantTrack, ex.div3$IsApproved))
+
 
 # External review of suitability and whether candidate is approved
 (table(external_regression_data$Suitability, external_regression_data$IsApproved))
+(table(ex.f$Suitability, ex.f$IsApproved))
+(table(ex.div1$Suitability, ex.div1$IsApproved))
+(table(ex.div2$Suitability, ex.div2$IsApproved))
+(table(ex.div3$Suitability, ex.div3$IsApproved))
 
 # External review of relevance and whether candidate is approved -- again like negatively used
 (table(external_regression_data$ScientificRelevance, external_regression_data$IsApproved))
+(table(ex.f$ScientificRelevance, ex.f$IsApproved))
+(table(ex.div1$ScientificRelevance, ex.div1$IsApproved))
+(table(ex.div2$ScientificRelevance, ex.div2$IsApproved))
+(table(ex.div3$ScientificRelevance, ex.div3$IsApproved))
 
 # Lets look at the internal data
+
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+(table(internal_regression_data$Ranking, internal_regression_data$IsApproved))
+(table(in.f$Ranking, in.f$IsApproved))
+(table(in.div1$Ranking, in.div1$IsApproved))
+(table(in.div2$Ranking, in.div2$IsApproved))
+(table(in.div3$Ranking, in.div3$IsApproved))
+
+# Internal review of track record inversely used! 
+(table(internal_regression_data$ApplicantTrack, internal_regression_data$IsApproved))
+(table(in.f$ApplicantTrack, in.f$IsApproved))
+(table(in.div1$ApplicantTrack, in.div1$IsApproved))
+(table(in.div2$ApplicantTrack, in.div2$IsApproved))
+(table(in.div3$ApplicantTrack, in.div3$IsApproved))
+
+
+# Internal review of proposal and whether candidate is approved -- again like negatively used
+(table(internal_regression_data$ProjectAssessment, internal_regression_data$IsApproved))
+(table(in.f$ProjectAssessment, in.f$IsApproved))
+(table(in.div1$ProjectAssessment, in.div1$IsApproved))
+(table(in.div2$ProjectAssessment, in.div2$IsApproved))
+(table(in.div3$ProjectAssessment, in.div3$IsApproved))
+
+
+
 
 ```
 

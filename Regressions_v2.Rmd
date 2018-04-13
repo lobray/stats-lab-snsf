@@ -21,6 +21,7 @@ source("Cleaning Functions.R")
     final.apps <- test$final.apps
     final.external <- test$final.reviews
     final.referees <- test$final.referees
+    final.internal <- test$final.referees
 
 library(caTools)
 library(ROCR)
