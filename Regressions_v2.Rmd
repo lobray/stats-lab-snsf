@@ -519,3 +519,45 @@ head(final.external)
     
 
 ```
+
+```{r Janine Internal Regression}
+
+# Calculate % female reviewers
+    internal_reviews_gender <- calculate_percent_female(final.internal,
+                                                        "RefereeGender")
+  
+  # Select applications data we want to use
+    internal_regression_data <- final.apps[,c("IsApproved", "Age", "Gender", 
+                                            "Division", "ProjectID")]
+  
+  # add in grades & Interaction
+    average_ratings <- calculate_average_referee(final.internal)
+  
+  # Merge applications data with external % females & average reviews
+    internal_regression_data <- merge(internal_reviews_gender, 
+                                    internal_regression_data, by="ProjectID")
+    internal_regression_data <- merge(average_ratings, internal_regression_data,
+                                      by="ProjectID")
+    
+
+    # Simple first regression: Overall Grade 4-6 >- "Good", 1-3 -> bad
+    internal_regression_data$SimplifiedApplicantTrack <- ifelse(internal_regression_data$ApplicantTrack < 4, 0, 1)
+    internal_regression_data$SimplifiedProjectAssessment <- ifelse(internal_regression_data$ProjectAssessment < 4, 0, 1)
+
+
+    
+    # Janine regression 
+        
+    janine_reg_project <- glm(SimplifiedProjectAssessment ~ Age + Gender + Division + 
+                                  PercentFemale + Gender:PercentFemale + Gender:Division, data=internal_regression_data)
+    
+    summary(janine_reg_project)
+    confint(janine_reg_project)
+
+    janine_reg_track <- glm(SimplifiedApplicantTrack ~ Age + Gender + Division +
+                              Gender:Division+PercentFemale + Gender:PercentFemale, data=internal_regression_data)
+    
+    summary(janine_reg_track)
+    confint(janine_reg_track)
+
+```
