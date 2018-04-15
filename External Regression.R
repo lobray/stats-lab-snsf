@@ -3,7 +3,7 @@
 ###########  Regression Analysis - External reviews  ############
 #################################################################
 
-library(vcd)
+library(vcd) 
 library(corrplot)
 
 # Initialize data
@@ -12,6 +12,8 @@ source("Cleaning Functions.R")
 source("Data for Regression.R")
 
 rm(applications,reviews,referee_grades)
+
+
 
 # Obtain Regression Data
 external_regression_data<-prepare_data_external_log_regression(final.external)
