@@ -317,12 +317,12 @@ calculate_average_referee <- function(data) {
         reviewer_vote_per_projectID_ProjectAssessment <- data[which(data$ProjectID == i),]$ProjectAssessment
         reviewer_vote_per_projectID_Ranking <- data[which(data$ProjectID == i),]$Ranking
         
-        # Count number of females and divide by number of reviewers
+        # Average grade
         average_ApplicantTrack <- round(mean(reviewer_vote_per_projectID_ApplicantTrack, na.rm = TRUE),0)
         average_ProjectAssessment <-round( mean(reviewer_vote_per_projectID_ProjectAssessment, na.rm = TRUE),0)
         average_Ranking <- round(mean(reviewer_vote_per_projectID_Ranking, na.rm = TRUE),0)
         
-        # Put percent female into the matrix
+        # Put average into the matrix and turn into factors
         average_review_matrix[j,2] <- average_ApplicantTrack
         average_review_matrix[j,3] <- average_ProjectAssessment
         average_review_matrix[j,4] <- average_Ranking
@@ -330,6 +330,8 @@ calculate_average_referee <- function(data) {
         # Increment j
         j <- j+1
       }
+      
+      
       
       colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ProjectAssessment", "Ranking")
       return(as.data.frame(average_review_matrix))
@@ -379,13 +381,13 @@ calculate_average_reviewers<- function(data) {
     reviewer_vote_per_projectID_Suitability <- data[which(data$ProjectID == i),]$Suitability
     reviewer_vote_per_projectID_OverallGrade <- data[which(data$ProjectID == i),]$OverallGrade
     
-    # Count number of females and divide by number of reviewers
+    # Average grade
     average_ApplicantTrack <- round(mean(reviewer_vote_per_projectID_ApplicantTrack, na.rm = TRUE),0)
     average_ScientificRelevance <-round( mean(reviewer_vote_per_projectID_ScientificRelevance, na.rm = TRUE),0)
     average_Suitability <- round(mean(reviewer_vote_per_projectID_Suitability, na.rm = TRUE),0)
     average_OverallGrade <- round(mean(reviewer_vote_per_projectID_OverallGrade, na.rm = TRUE),0)
     
-    # Put percent female into the matrix
+    # Put average grade into the matrix
     average_review_matrix[j,2] <- average_ApplicantTrack
     average_review_matrix[j,3] <- average_ScientificRelevance
     average_review_matrix[j,4] <- average_Suitability
@@ -398,5 +400,3 @@ calculate_average_reviewers<- function(data) {
   colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ScientificRelevance","Suitability", "OverallGrade")
   return(as.data.frame(average_review_matrix))
 }
-
-
