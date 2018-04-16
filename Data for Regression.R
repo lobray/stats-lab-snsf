@@ -18,16 +18,16 @@ final.internal <- test$final.referees
 
 ### Logistic Regression for External Criteria
 
-prepare_data_external_log_regression <- function(apps, internal, external) {
+prepare_data_external_log_regression <- function(apps, external) {
   
   # Calculate % female reviewers
-  external_reviews_gender <- calculate_percent_female(final.external, "ReviewerGender")
+  external_reviews_gender <- calculate_percent_female(external, "ReviewerGender")
   
   # Select applications data we want to use
-  external_regression_data <- final.apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID")]
+  external_regression_data <- apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID")]
   
   # add in grades & Interaction
-  average_ratings <- calculate_average_reviewers(final.external)
+  average_ratings <- calculate_average_reviewers(external)
   
   # Merge applications data with external % females & average reviews
   external_regression_data <- merge(external_reviews_gender, external_regression_data, by="ProjectID")
@@ -48,13 +48,13 @@ prepare_data_external_log_regression <- function(apps, internal, external) {
 ### Logistic Regression data for Internal Criteria
 
 
-prepare_data_internal_log_regression <- function(apps, internal, external) {
+prepare_data_internal_log_regression <- function(apps, internal) {
 
   # Calculate % female reviewers
-  internal_reviews_gender <- calculate_percent_female(final.internal, "RefereeGender")
+  internal_reviews_gender <- calculate_percent_female(internal, "RefereeGender")
   
   # Extract columns from applications data
-  internal_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age")]
+  internal_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age")]
   
   # add later: ranking, track, project assessment
   average_internal_ratings <- calculate_average_referee(internal)
