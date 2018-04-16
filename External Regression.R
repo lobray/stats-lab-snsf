@@ -5,6 +5,10 @@
 
 library(vcd) 
 library(corrplot)
+library(caTools)
+library(ROCR)
+library(pROC)
+library(car)
 
 # Initialize data
 load("~/MSc Statistics/StatsLab/Analysis/SNFS Data/snsf_data.RData")
@@ -16,7 +20,7 @@ rm(applications,reviews,referee_grades)
 
 
 # Obtain Regression Data
-external_regression_data<-prepare_data_external_log_regression(final.external)
+external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
 
 # Regression function -----------------------------------------------------
@@ -54,7 +58,7 @@ ExternalReviewModel<- function(data=external_regression_data,Div="All",
   # Model  <-step(full, direction = "backward", trace=0)
   # Model <- step(empty,scope=list(lower=empty,upper=full), direction="both",
   #     trace=0)
-  Model <- glm(Train$IsApproved ~ .,data=Train, 
+  Model <- glm(Train$IsApproved ~. -OverallGrade,data=Train, 
                family="binomial")
   
   
@@ -99,14 +103,16 @@ fit   # There are still NA's in the conf. intervals
   Model<-fit$Regression 
   
 # Are covariates correlated
-  vif(Model)  #seems ok
+  vif(Model)  
+  # I removed OverallGrade because it had a VIF of 28 
+  # and we already supposed it was correlated to single criteria
   # Model matrix, to spread factors into dummy variables
   X<-model.matrix(Model)
   X<-X[,-1]   # Eliminate the intercept
   Xc<-cor(X)   # Compute correlation matrix
   
   # Plot the correlation matrix  
-  
+
   # correlation test
   # mat : is a matrix of data
   # ... : further arguments to pass to the native R cor.test function
@@ -176,10 +182,13 @@ fit   # There are still NA's in the conf. intervals
   #from the script "Applied Statistical Regression - AS 2017" from Dr. Marcel Dettling
   #coeficient of determination
    1-Model$dev/Model$null # ?? This does not look nice
+   #[1] 0.2604373 removing OverallGrade I got this result... looks a bit better...
    #[1] 0.0505608
    #or
    (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+   # [1] 0.4036681 again I got this remving OverallGrade
    # [1] 0.09013418
+
    
   #optimize model
    drop1(Model, test="Chisq")
