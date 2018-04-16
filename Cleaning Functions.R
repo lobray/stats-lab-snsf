@@ -98,11 +98,12 @@ d.reviews <- function(data){
   
   
   ### Convert categorical variables to factors
+  d.levels<-c("poor","average","good","very good","excellent","outstanding")
   
-  external_reviews$Gender<-as.factor(external_reviews$Gender) # Gender
-  external_reviews$OverallGrade<-as.factor(external_reviews$OverallGrade) #OverallGrade
-  external_reviews$QuestionRating<-as.factor(external_reviews$QuestionRating) #QuestionRating
-  external_reviews$SourcePerson<-as.factor(external_reviews$SourcePerson) #Source Person -- Who suggested the reviewer?
+  external_reviews$Gender<-factor(external_reviews$Gender) # Gender
+  external_reviews$OverallGrade<-factor(external_reviews$OverallGrade, levels = d.levels) #OverallGrade
+  external_reviews$QuestionRating<-factor(external_reviews$QuestionRating, levels = d.levels) #QuestionRating
+  external_reviews$SourcePerson<-factor(external_reviews$SourcePerson) #Source Person -- Who suggested the reviewer?
  
   
   ### Simplify a few variable names in reviewers data set
@@ -177,12 +178,14 @@ d.referee<-function(data){
   internal_reviews<-internal_reviews[-id,]
   
   # Turning variables to factors
+  d.levels<-c("poor","average","good","very good","excellent","outstanding")
   
-  internal_reviews$Ranking<-as.factor( internal_reviews$Ranking)#Ranking
-  internal_reviews$RefereeRole<-as.factor(internal_reviews$RefereeRole)#Referee Role
-  internal_reviews$RefereeGender<-as.factor(internal_reviews$RefereeGender)#RefereeGender
-  internal_reviews$ApplicantTrack<-as.factor((internal_reviews$ApplicantTrack)) #ApplicantTrack
-  internal_reviews$ProjectAssessment<-as.factor(internal_reviews$ProjectAssessment)#Project assesmet
+  internal_reviews$Ranking<-factor( internal_reviews$Ranking)#Ranking
+  internal_reviews$Ranking <- factor(internal_reviews$Ranking, levels=rev(levels(internal_reviews$Ranking)))
+  internal_reviews$RefereeRole<-factor(internal_reviews$RefereeRole)#Referee Role
+  internal_reviews$RefereeGender<-factor(internal_reviews$RefereeGender)#RefereeGender
+  internal_reviews$ApplicantTrack<-factor(internal_reviews$ApplicantTrack,levels = d.levels) #ApplicantTrack
+  internal_reviews$ProjectAssessment<-factor(internal_reviews$ProjectAssessment,levels = d.levels)#Project assesmet
   
   #Rearrenging columns
   internal_reviews<-internal_reviews[,c("ProjectID","Ranking",
@@ -288,13 +291,13 @@ calculate_average_referee <- function(data) {
   # Revalue factors on a 1:6 scale and set the variable as numeric for ApplicantTrack, 
   # ProjectAssessment and Ranking
   
-    data$ApplicantTrack <- revalue(data$ApplicantTrack, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+    #data$ApplicantTrack <- revalue(data$ApplicantTrack, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
     data$ApplicantTrack <- as.numeric(data$ApplicantTrack)
     
-    data$ProjectAssessment <- revalue(data$ProjectAssessment, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+    #data$ProjectAssessment <- revalue(data$ProjectAssessment, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
     data$ProjectAssessment <- as.numeric(data$ProjectAssessment)
     
-    data$Ranking <- revalue(data$Ranking, c("D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6))
+    #data$Ranking <- revalue(data$Ranking, c("D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6))
     data$Ranking <- as.numeric(data$Ranking)
     
   # Create a vector of unique IDs
