@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    
 ```{r Load Functions and Data }
 load("SNFS Data/snsf_data.RData")
 source("Cleaning Functions.R")
-source("Regressions.R")
+source("Data for Regression.R")
 
 ```
 
@@ -64,7 +64,7 @@ We have three data sets: Applications, External Reviewers and Internal Referees.
 
 
 
-## Cleaning the Data
+# Cleaning the Data
 
 We decide to work with only complete applications, i.e. project for which we have information from all the three data sets.
 
@@ -91,7 +91,7 @@ sum(is.na(applications$ResponsibleApplicantAcademicAgeAtSubmission))/dim(applica
 
 ### External Reviewers
 
-Reviewers always have the option to choose not to considereder or to give the grade "0" when reviewing an application. Some might be mistakes, in others cases there might be a conflict of interest, or they might be very ambivalent about the project. Therefore, we did not considered observations with this grades. 
+Reviewers always have the option to choose not to consider or to give the grade "0" when reviewing an application. Some might be mistakes, in others cases there might be a conflict of interest, or they might be very ambivalent about the project. Therefore, we did not considered observations with this grades. 
 
 One of the questions evaluated in the applications is "Broader impact (forms part of the assessment of scientific relevance, originality and topicality)". For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
 
@@ -108,9 +108,12 @@ table(referee_grades$RefereeRole, useNA = "always")
 
 
 
-## Exploratory Analysis
+# Exploratory Analysis
 
 ```{r}
+
+external_regression_data<-prepare_data_external_log_regression(external=final.external)
+
 # Look at the overall grades given to external reviewers and whether candidate is approved - like 50%. Then split by gender (Second line).
 ex.f <- external_regression_data[external_regression_data$Gender=="f",]
 ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
@@ -147,6 +150,7 @@ ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
 
 # Lets look at the internal data
 
+internal_regression_data<-prepare_data_internal_log_regression(internal=final.internal)
 in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
 in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
 in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
@@ -174,6 +178,83 @@ in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 (table(in.div3$ProjectAssessment, in.div3$IsApproved))
 
 ```
+
+Alternative way of displaying the tables above to save space in report:
+
+#### External Reviewers
+```{r}
+# External Reviewers
+library(expss)
+ER<-apply_labels(external_regression_data,
+                                   ProjectID="ProjectID",
+                                   ApplicantTrack="Main Applicant Track",
+                                   ApplicantTrack=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                              "excellent" = 5, "outstanding" = 6 ),  
+                                   ScientificRelevance="ScientificRelevance",
+                                   ScientificRelevance=c( "poor"= 1, "average"= 2, "good" = 3, 
+                                                          "very good" = 4,"excellent" = 5, "outstanding" = 6 ),
+                                   Suitability="Suitability",
+                                   Suitability=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                   OverallGrade="Overall Reviewer grade",
+                                   OverallGrade=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                   PercentFemale="Percentage of females in the reviewers",
+                                   IsApproved="Result",
+                                   IsApproved=c("Accepted"=1,"Rejected"=0),
+                                   Age= "Age",
+                                   Gender="Gender",
+                                   Division="Division"
+                                   )
+
+# This only work if you knit to HTML
+
+expss_output_rnotebook()
+drop_empty_columns(calculate(ER,cro(OverallGrade, list(total(),
+                                                       Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(ApplicantTrack,list(total(),
+                                                        Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(ScientificRelevance, list(total(),
+                                                              Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(Suitability, list(total(),
+                                                      Gender%nest%IsApproved,Division%nest%IsApproved))))
+
+```
+#### Internal Reviewers
+
+```{r}
+# Internal Reviewers
+library(expss)
+IR<-apply_labels(internal_regression_data,
+                                       ProjectID="ProjectID",
+                                       IsApproved="Result",
+                                       IsApproved=c("Accepted"=1,"Rejected"=0),
+                                       Gender="Gender",
+                                       Division="Division",
+                                       Age= "Age",
+                                       PercentFemale="Percentage of females in the reviewers",
+                                       ApplicantTrack="Main Applicant Track",
+                                       ApplicantTrack=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                       ProjectAssessment= "Project Assessment",
+                                       ProjectAssessment=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                       Ranking="Overall Comparative Ranking",
+                                       Ranking=c( "D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6 )  
+                                       )
+
+# This only work if you knit to HTML
+
+expss_output_rnotebook()
+calculate(IR,cro(Ranking,IsApproved))
+drop_empty_columns(calculate(IR,cro(Ranking, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(IR,cro(ApplicantTrack,list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+
+
+```
+
+
 
 ```{r Visual analysis}
 library(vcd)
@@ -225,19 +306,6 @@ cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 
 
 ## Analysis
-
-### Internal Review regression 
-
-```{r Internal Logistic Regression}
-summary(internal_log_regression)
-```
-
-### External review analysis
-
-```{r External Logistic Regression}
-summary(external_log_regression)
-```
-
 
 
 ## Results
