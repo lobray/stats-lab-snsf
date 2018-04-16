@@ -497,22 +497,22 @@ head(final.external)
     # Janine regression 
         
     janine_reg_proposal <- glm(SimplifiedProposal ~ Age + Gender + Division + 
-                                  PercentFemale + Gender:PercentFemale, data=external_regression_data)
+                                  PercentFemale + Gender:PercentFemale, data=external_regression_data, family="binomial")
     
     summary(janine_reg_proposal)
 
     janine_reg_applicant <- glm(SimplifiedApplicant ~ Age + Gender + Division + 
-                                  PercentFemale + Gender:PercentFemale, data=external_regression_data)
+                                  PercentFemale + Gender:PercentFemale, data=external_regression_data,  family="binomial")
   
 
 
         
     # Leslie's probably wrong interpretation of Janine's idea
     leslie_reg_proposal <- glm(SimplifiedOverallGrade ~ Age + Gender + Division + 
-                                 ProposalCombined + PercentFemale, data=external_regression_data)
+                                 ProposalCombined + PercentFemale, data=external_regression_data, family="binomial")
     
     leslie_reg_applicant <- glm(SimplifiedOverallGrade ~ Age + Gender + Division + 
-                                 ApplicantTrack + PercentFemale, data=external_regression_data)
+                                 ApplicantTrack + PercentFemale, data=external_regression_data, family="binomial")
       
     
 
