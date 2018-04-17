@@ -33,6 +33,7 @@ d.apps<- function(data){
   
   apps$IsApproved<-as.factor(apps$IsApproved) # For Approvals
   apps$Gender<-as.factor(apps$Gender) # For Gender
+  apps$Gender<-relevel(apps$Gender, ref="m")
   apps$Division<-as.factor(apps$Division) # For Division
   apps$IsContinuation<-as.factor(apps$IsContinuation) # Continuation
   apps$InstType<-as.factor(apps$InstType) # Institution   
