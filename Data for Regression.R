@@ -24,7 +24,8 @@ prepare_data_external_log_regression <- function(apps, external) {
   external_reviews_gender <- calculate_percent_female(external, "ReviewerGender")
   
   # Select applications data we want to use
-  external_regression_data <- apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID")]
+  external_regression_data <- apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID",
+                                            "IsContinuation","PreviousRequest","InstType","AmountRequested")]
   
   # add in grades & Interaction
   average_ratings <- calculate_average_reviewers(external)
@@ -34,10 +35,10 @@ prepare_data_external_log_regression <- function(apps, external) {
   external_regression_data <- merge(average_ratings, external_regression_data, by="ProjectID")
   
   # changing variables to factors
-  external_regression_data$ApplicantTrack<-as.factor(external_regression_data$ApplicantTrack)
-  external_regression_data$ScientificRelevance<-as.factor(external_regression_data$ScientificRelevance)
-  external_regression_data$Suitability<-as.factor(external_regression_data$Suitability)
-  external_regression_data$OverallGrade<-as.factor(external_regression_data$OverallGrade)
+  # external_regression_data$ApplicantTrack<-as.factor(external_regression_data$ApplicantTrack)
+  # external_regression_data$ScientificRelevance<-as.factor(external_regression_data$ScientificRelevance)
+  # external_regression_data$Suitability<-as.factor(external_regression_data$Suitability)
+  # external_regression_data$OverallGrade<-as.factor(external_regression_data$OverallGrade)
   
   # Create regression object, and return it 
   #external_log_regression <- glm(external_regression_data$IsApproved ~ .-(ProjectID), data=external_regression_data, family="binomial")
@@ -54,7 +55,9 @@ prepare_data_internal_log_regression <- function(apps, internal) {
   internal_reviews_gender <- calculate_percent_female(internal, "RefereeGender")
   
   # Extract columns from applications data
-  internal_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age")]
+
+  internal_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age",
+                                      "IsContinuation","PreviousRequest","InstType","AmountRequested")]
   
   # add later: ranking, track, project assessment
   average_internal_ratings <- calculate_average_referee(internal)
@@ -64,9 +67,9 @@ prepare_data_internal_log_regression <- function(apps, internal) {
   internal_regression_data <- merge(internal_regression_data, average_internal_ratings, by = "ProjectID")
   
   # changing variables to factors:
-  internal_regression_data$Ranking <- factor(internal_regression_data$Ranking)
-  internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment)
-  internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack)
+  # internal_regression_data$Ranking <- factor(internal_regression_data$Ranking)
+  # internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment)
+  # internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack)
   
   # Create logistic regression & return object
   #internal_log_regression <- glm(internal_regression_data$IsApproved ~ .-(ProjectID), family="binomial", data = internal_regression_data)
@@ -79,7 +82,8 @@ prepare_data_internal_log_regression <- function(apps, internal) {
 prepare_data_board_log_regression <- function(apps, internal, external) {
   
   # Extract columns from applications data
-  board_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested","IsContinuation")]
+  board_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested","IsContinuation",
+                                         "InstType","PreviousRequest")]
   
   # Calculate average ratings for internal and external reviews
   average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
