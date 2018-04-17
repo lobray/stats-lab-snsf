@@ -3,26 +3,26 @@
 ###########  Regression Analysis - External reviews  ############
 #################################################################
 
-library(vcd) 
+library(grid)
+library(vcd)
 library(corrplot)
-library(caTools)
 library(ROCR)
-library(pROC)
 library(car)
 
 # Initialize data
-load("~/MSc Statistics/StatsLab/Analysis/SNFS Data/snsf_data.RData")
+load("SNFS Data/snsf_data.RData")
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
-rm(applications,reviews,referee_grades)
-
-
+rm(applications,reviews,referee_grades, test)
 
 # Obtain Regression Data
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
-
-
+# external_regression_data$AppProp<-external_regression_data$ApplicantTrack/external_regression_data$OverallGrade
+# external_regression_data$SciProp<-external_regression_data$ScientificRelevance/external_regression_data$OverallGrade
+# external_regression_data$SuiProp<-external_regression_data$Suitability/external_regression_data$OverallGrade
+# colnames(external_regression_data)
+# external_regression_data<-external_regression_data[,-c(2:5)]
 # Regression function -----------------------------------------------------
 
 
@@ -58,7 +58,7 @@ ExternalReviewModel<- function(data=external_regression_data,Div="All",
   # Model  <-step(full, direction = "backward", trace=0)
   # Model <- step(empty,scope=list(lower=empty,upper=full), direction="both",
   #     trace=0)
-  Model <- glm(Train$IsApproved ~. -OverallGrade,data=Train, 
+  Model <- glm(Train$IsApproved ~ .-OverallGrade+ApplicantTrack:Age-PreviousRequest,data=Train, 
                family="binomial")
   
   
@@ -103,16 +103,14 @@ fit   # There are still NA's in the conf. intervals
   Model<-fit$Regression 
   
 # Are covariates correlated
-  vif(Model)  
-  # I removed OverallGrade because it had a VIF of 28 
-  # and we already supposed it was correlated to single criteria
+  vif(Model)  #overall Grade can be potentially removed
   # Model matrix, to spread factors into dummy variables
   X<-model.matrix(Model)
   X<-X[,-1]   # Eliminate the intercept
   Xc<-cor(X)   # Compute correlation matrix
   
   # Plot the correlation matrix  
-
+  
   # correlation test
   # mat : is a matrix of data
   # ... : further arguments to pass to the native R cor.test function
@@ -130,6 +128,7 @@ fit   # There are still NA's in the conf. intervals
     colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
     p.mat
   }
+  
   # matrix of the p-value of the correlation
   p.mat <- cor.mtest(X,method="spearman")
   head(p.mat[, 1:5])
@@ -152,43 +151,24 @@ fit   # There are still NA's in the conf. intervals
     lines(sort(fvl+1), sort(fpr+1), lty=3)
     title("Result vs. Linear Predictor")   # Confirms what Leslie found
 
-# there are some outliers
-    id<-which(fvl<(-5))
 
-# Ignore outliers to better visualize the residual plot
+# Residual plot
     #It looks fine to me, what do you think
-    xx <- fvl[-id]
-    yy <- residuals(Model, type="deviance")[-id]
+    xx <- fvl
+    yy <- residuals(Model, type="deviance")
     
     plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
     lines(loess.smooth(xx, yy, family="gaussian"), col="red")
     abline(h=0, lty=3, col="grey")
 
- # Analysing outliers
-    obs<-external_regression_data[id,]
-    obs<-obs$ProjectID
-  
-  #This are observations for which residuals are greater than 2 and need a closer look
-  dat<-subset(apps, ProjectID%in%obs)
-  dat<-merge(dat,external_reviews, by="ProjectID")
-  
-  # Tables 
-  structable(~ Gender+Division+IsApproved, data = dat) # all rejected
-  structable(~ InstType+PreviousRequest+IsContinuation,data=dat) # all Previous Request
-  cotabplot(~Gender+GradeFinal, data=dat) # 
-  
-  
  #Inference
   #from the script "Applied Statistical Regression - AS 2017" from Dr. Marcel Dettling
   #coeficient of determination
    1-Model$dev/Model$null # ?? This does not look nice
-   #[1] 0.2604373 removing OverallGrade I got this result... looks a bit better...
-   #[1] 0.0505608
+   #[1] 0.2762398
    #or
    (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
-   # [1] 0.4036681 again I got this remving OverallGrade
-   # [1] 0.09013418
-
+   # [1] 0.4237952
    
   #optimize model
    drop1(Model, test="Chisq")
@@ -206,11 +186,22 @@ fit   # There are still NA's in the conf. intervals
    #This are observations for which residuals are greater than 2 and need a closer look
    dat<-subset(apps, ProjectID%in%obs)
    dat<-merge(dat,external_reviews, by="ProjectID")
+   dat<-merge(dat,internal_reviews, by="ProjectID")
    
    
    structable(~ Gender+Division+IsApproved, data = dat) 
    structable(~ InstType+PreviousRequest+IsContinuation,data=dat) 
-   cotabplot(~Gender+GradeFinal, data=dat) # All B adn B+
+   structable(~GradeFinal+OverallGrade+Ranking, data=dat)
+   
+   # Interesting: there are 14 application fro which the External Reviewers gave an 
+   # Overall Grade = "outstanding", the Referees gave "B-" and the final Ranking was "B"
+   # Also, 19 for which Reviewers= "outstanding" , final ranking="BC"
+   
+   #lets see:
+   #No apparent pattern
+   Revi.outstanding<-subset(dat,OverallGrade=="outstanding")
+   
+   cotabplot(~Gender+GradeFinal, data=dat) 
   
   # I do not see anithing special      
     
