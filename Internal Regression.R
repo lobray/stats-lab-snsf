@@ -156,28 +156,28 @@ lines(sort(fvl+1), sort(fpr+1), lty=3)
 title("Result vs. Linear Predictor")   # Confirms what Leslie found
 
 # there are some outliers
-id<-which(fvl<(-5))
+# id<-which(fvl<(-5))
 
 # Ignore outliers to better visualize the residual plot
 #It looks fine to me, what do you think
-xx <- fvl[-id]
-yy <- residuals(Model, type="deviance")[-id]
+xx <- fvl
+yy <- residuals(Model, type="deviance")
 
 plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
 lines(loess.smooth(xx, yy, family="gaussian"), col="red")
 abline(h=0, lty=3, col="grey")
 
 # Analysing outliers
-obs<-internal_regression_data[id,]
-obs<-obs$ProjectID
+# obs<-internal_regression_data[id,]
+# obs<-obs$ProjectID
 
 #This are observations for which residuals are greater than 2 and need a closer look
-dat<-subset(apps, ProjectID%in%obs)
-dat<-merge(dat,internal_reviews, by="ProjectID")
+# dat<-subset(apps, ProjectID%in%obs)
+# dat<-merge(dat,internal_reviews, by="ProjectID")
 
 # Tables 
-structable(~ Gender+Division+IsApproved, data = dat) # all rejected
-cotabplot(~Gender+GradeFinal, data=dat) # Grade C and D
+# structable(~ Gender+Division+IsApproved, data = dat) # all rejected
+# cotabplot(~Gender+GradeFinal, data=dat) # Grade C and D
 
 
 #Inference
@@ -212,6 +212,6 @@ dat<-subset(apps, ProjectID%in%obs)
 dat<-merge(dat,internal_reviews, by="ProjectID")
 
 
-structable(~ Gender+Division+IsApproved, data = dat) 
+structable(~ Gender+Division+IsApproved, data = dat) # males
 cotabplot(~Gender+GradeFinal, data=dat) 
 
