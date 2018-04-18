@@ -56,6 +56,8 @@ d.apps<- function(data){
   
   apps$CallEndDate<-ymd(apps$CallEndDate)
   colnames(apps)[colnames(apps)=="CallEndDate"]<- "Year"
+  apps$Semester <- months(apps$Year)
+  apps$Semester <- factor(apps$Semester)
   
   
   ### Simplyfy Main Disipline 2
@@ -74,7 +76,7 @@ d.apps<- function(data){
   apps <- apps[-id.g,]
   
   # Reorder data set
-  apps<- apps[,c("ProjectID","Gender","Age","Nationality", "IsApproved","Year", "AmountRequested" ,
+  apps<- apps[,c("ProjectID","Gender","Age","Nationality", "IsApproved","Year","Semester", "AmountRequested" ,
                  "AmountGranted", "GradeFinal","Division","MD Name","InstType",
                  "PreviousRequest","IsContinuation")]
   
