@@ -3,6 +3,11 @@
 ########################################################
 
 
+# This file contains three functions (one for every data set).
+# It calculates de Percentage of females that evaluates each application.
+# Also the average grade given to each application 
+
+
 source("Cleaning Functions.R")
 
 
