@@ -116,7 +116,9 @@ library(caret)
     # Uses bootstrap to estimate the out of sample miss classification error
     # instead of only one split.
     # M: number of bootstraps
-    ModelDiagnostic<- function(TestModel=fit7,data=external_regression_data,Div="All",M=30) { 
+    ModelDiagnostic<- function(TestModel=PrAssModel,
+                               outcomeName = 'ProposalCombined',
+                               data=external_regression_data,Div="All",M=30) { 
       
       # Model formula and final data
         
@@ -143,7 +145,7 @@ library(caret)
           for ( i in 1:M){
             
               # Resample the data with replacement and obtained In Bag indices
-                ind<-createResample(final.data$ProposalCombined,1)[[1]]
+                ind<-createResample(final.data[,outcomeName],1)[[1]]
                 InBag <- unique(ind)
                 
               # Split the data
@@ -151,11 +153,15 @@ library(caret)
                 Test<- final.data[-InBag,]
           
               # Fit the model in the Train data
-                B.Model <- update(Model,.~.,data=Train)
+                B.Model <- polr(formula, 
+                                method="logistic",
+                                data=Train,
+                                Hess = TRUE)
+                #B.Model <- update(Model,.~.,data=Train)
                 
               # Confusion Matrix Out of Bag 
                 pred<-predict(B.Model,Test) # class prediction
-                tab<- table(pred,Test$ProposalCombined)
+                tab<- table(pred,Test[,outcomeName])
                 
               # Miss Clasification Error  MCE
                 MCE[i] <- 1- sum(diag(tab))/sum(tab)
@@ -175,7 +181,7 @@ library(caret)
       
           # Confusion Matrices 
             pred<-predict(Model,data) # class prediction
-            tab<- table(pred,data$ProposalCombined)
+            tab<- table(pred,data[,outcomeName])
             
           # Miss Clasification Error  MCE
             mce <- 1- sum(diag(tab))/sum(tab)
@@ -213,7 +219,7 @@ library(caret)
       
           }
     
-  ProposalCombinedfit<-ModelDiagnostic(TestModel = PrAssModel)  
+  ProposalCombinedfit<-ModelDiagnostic(TestModel = PrAssModel,outcomeName = 'ProposalCombined')  
   ProposalCombinedfit
   # $`Average out of sample MCE`
   # [1] "46 %"
@@ -292,25 +298,27 @@ library(caret)
       pchisq(0.02199118, fit7$edf-fit5$edf, lower=FALSE)
       # 1] 0.9991384 -> don't include PreviousRequest
       
-      AppTrModel<-fit8
+      #best Model is then fit6
+      
+      AppTrModel<-fit6
       
       
 # Model Diagnostic Applicant Track ----------------------------------------
 
-      ApplicantTrackfit<-ModelDiagnostic(TestModel = AppTrModel)  
+      ApplicantTrackfit<-ModelDiagnostic(TestModel = AppTrModel,outcomeName = 'ApplicantTrack',M=30)  
       ApplicantTrackfit
       
       # $`Average out of sample MCE`
-      # [1] "69 %"
+      # [1] "55 %"
       # 
       # $`Average Accuracy`
-      # [1] "31 %"
+      # [1] "45 %"
       # 
       # $`Miss Classification Error`
-      # [1] "69 %"
+      # [1] "54 %"
       # 
       # $Accuracy
-      # [1] "31 %"
+      # [1] "46 %"
       
       
       
@@ -374,5 +382,69 @@ library(caret)
       
 # Model Diagnostic OG ~ ApplTrck ------------------------------------------
 
-OvGrApplicTrackfit<- ModelDiagnostic(TestModel = OvGrAppMod)
+      coef(summary(OvGrAppMod))
+      
+      # p value calculation
+      ctable<-coef(summary(OvGrAppMod))
+      p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+      (ctable<-cbind(ctable,"p value"=p)) 
+      
+      # Probalilities
+      (prob<-exp(cbind(OR=coef(OvGrAppMod), confint(OvGrAppMod))))
+      
+      # Confusion Matrices 
+      pred<-predict(OvGrAppMod,external_regression_data) # class prediction
+      tab<- table(pred,external_regression_data$OverallGrade)
+      
+      # Miss Clasification Error  MCE
+      (mce <- 1- sum(diag(tab))/sum(tab)) #[1] 0.4109673
+      
+      MCE<-c()
+      ACC<-c()
+      M=4
+      for ( i in 1:M){
+        
+        # Resample the data with replacement and obtained In Bag indices
+        ind<-createResample(external_regression_data[,'OverallGrade'],1)[[1]]
+        InBag <- unique(ind)
+        
+        # Split the data
+        Train<-final.data[ind,]
+        Test<- final.data[-InBag,]
+        
+        # Fit the model in the Train data
+        #B.Model <- polr(formula, 
+                        # method="logistic",
+                        # data=Train,
+                        # Hess = TRUE)
+        B.Model <- update(OvGrAppMod,.~.,data=Train)
+        
+        # Confusion Matrix Out of Bag 
+        pred<-predict(B.Model,Test) # class prediction
+        tab<- table(pred,Test[,'OverallGrade'])
+        
+        # Miss Clasification Error  MCE
+        MCE[i] <- 1- sum(diag(tab))/sum(tab)
+        
+        # Out of Sample Accuracy
+        ACC[i] <- sum(diag(tab))/sum(tab)
+      } 
+      
+      # Average out of sample MCE
+      BOOTMCE<- mean(MCE)
+      
+      # Average Accuracy
+      AveAcc<- mean(ACC)
+      
+     
+      hist(MCE,col="springgreen2", 
+           main= "Out of Sample Missclassification Error",
+           cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
+      hist(ACC,col="springgreen2", 
+           main= "Out of Sample Accuracy ",
+           cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
+      
+      
+      
+      OvGrApplicTrackfit<- ModelDiagnostic(TestModel = OvGrAppMod,outcomeName = 'OverallGrade', M=10)
       
