@@ -401,8 +401,7 @@ library(caret)
       
       MCE<-c()
       ACC<-c()
-      M=4
-      for ( i in 1:M){
+      for ( i in 1:5){
         
         # Resample the data with replacement and obtained In Bag indices
         ind<-createResample(external_regression_data[,'OverallGrade'],1)[[1]]
