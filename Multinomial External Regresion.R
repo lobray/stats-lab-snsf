@@ -25,7 +25,6 @@ library(MASS)
 library(grid)
 library(vcd)
 library(corrplot)
-library(ROCR)
 library(car)
 library(caTools)
 library(caret)
@@ -47,6 +46,12 @@ library(caret)
 
 # Fitting the Model for the project evaluation-------------------------------------------------------
 ## Run an Ordinal Logistic Regression
+ 
+   # Visualization
+    ggplot(external_regression_data, aes(x = ProposalCombined, y = PercentFemale, col=Gender)) +
+      geom_jitter(alpha = .5) +
+      facet_grid(InstType ~ Division, margins = TRUE) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
 # We start fitting a small model and building it up to se that the polr() works well
   fit <- polr(ProposalCombined ~ Gender + Division + InstType, 
@@ -108,8 +113,7 @@ library(caret)
     
     # We chose this final model. Next we are going to test it
     PrAssModel<-fit7
-    
-    
+  
 
 # Model Diagnostic --------------------------------------------------------
 
@@ -142,6 +146,7 @@ library(caret)
       
           MCE<-c()
           ACC<-c()
+          set.seed(77)
           for ( i in 1:M){
             
               # Resample the data with replacement and obtained In Bag indices
@@ -219,7 +224,8 @@ library(caret)
       
           }
     
-  ProposalCombinedfit<-ModelDiagnostic(TestModel = PrAssModel,outcomeName = 'ProposalCombined')  
+  ProposalCombinedfit<-ModelDiagnostic(TestModel = PrAssModel,outcomeName = 'ProposalCombined') 
+  # Here the polr worked well, no errors
   ProposalCombinedfit
   # $`Average out of sample MCE`
   # [1] "46 %"
@@ -235,7 +241,13 @@ library(caret)
   
   
 # Fitting the Model for the Applicant Track -------------------------------
-
+  
+  # Visualization
+    ggplot(external_regression_data, aes(x = ApplicantTrack, y = PercentFemale, col=Gender)) +
+      geom_jitter(alpha = .5) +
+      facet_grid(InstType ~ Division, margins = TRUE) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  
   # Choose the model
       #response must be a factor
       
@@ -321,129 +333,216 @@ library(caret)
       # [1] "46 %"
       
       
-      
-      
-# Models for Overall Grade ------------------------------------------------
 
-      fit1 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack, 
-                   method="logistic",data=external_regression_data)
-      fit2 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack+Gender:Division, 
-                   method="logistic",data=external_regression_data)
-      summary(fit2)
+# Model Diagnostic OverallGrade ~ ApplTrack + others ------------------------------------------
       
-      deviance(fit1)-deviance((fit2))
-      pchisq(3.139259, fit2$edf-fit1$edf, lower=FALSE)
-      # [1] 0.2081223 -> not significant but need to include Gender:Division
+      # Visualization
+      ggplot(external_regression_data, aes(x = OverallGrade, y = ApplicantTrack, col=Gender)) +
+        geom_jitter(alpha = .5) +
+        facet_grid(InstType ~ Division, margins = TRUE) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
       
-      fit3 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack+Gender:Division+
-                     PercentFemale, 
-                   method="logistic",data=external_regression_data)
-      summary(fit3)
+      # Rearrenge Data
+      OvGrApplTrackDF<- external_regression_data[,c(2,5,6,8:14)]
+      OvGrApplTrackDF$AmountRequested<-log(OvGrApplTrackDF$AmountRequested)
       
-      deviance(fit2)-deviance((fit3))
-      pchisq(0.9582698, fit3$edf-fit2$edf, lower=FALSE)
-      # [1] 0.3276232-> do not include PercentFemale
+      (with(OvGrApplTrackDF, table(OverallGrade,ApplicantTrack)))
       
-      fit4 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack+Gender:Division+
-                     IsContinuation, 
-                   method="logistic",data=external_regression_data)
-      summary(fit4)
+      # Fit a model with all variables and interaction
+      OvGrAppMod<- polr(OverallGrade~.+Gender:Division+Gender:PercentFemale, 
+                        data=OvGrApplTrackDF,
+                        method="logistic",
+                        Hess=T) 
+      summary(OvGrAppMod)
       
-      deviance(fit2)-deviance((fit4))
-      pchisq(16.81665, fit4$edf-fit2$edf, lower=FALSE)
-      # [1] 4.117049e-05-> include IsContinuation
-      
-      fit5 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack+Gender:Division+
-                     IsContinuation+InstType, 
-                   method="logistic",data=external_regression_data)
-      summary(fit5)
-      
-      deviance(fit4)-deviance((fit5))
-      pchisq( 2.581763, fit5$edf-fit4$edf, lower=FALSE)
-      # [1] 0.4606957-> not include InstType
-      
-      fit6 <- polr(OverallGrade ~ Age+Gender+Division+ApplicantTrack+Gender:Division+
-                     IsContinuation+log(AmountRequested), 
-                   method="logistic",data=external_regression_data)
-      summary(fit6)
-      
-      deviance(fit4)-deviance((fit6))
-      pchisq( 0.7346335, fit6$edf-fit4$edf, lower=FALSE)
-      # [1] 0.3913854-> not include AmountRequested
-      
-      OvGrAppMod<-fit4
+      # Correlation Plot
+      OvGrAppDummy <- dummyVars("~.-OverallGrade",data=OvGrApplTrackDF, fullRank=F)
+      X <- as.data.frame(predict(OvGrAppDummy,OvGrApplTrackDF))
+      X<-cor(X)
+      corrplot(X,method = "color",type="upper",
+               title="Model: OverallGrade~ApplicantTrack ..")
       
       
-      
-      leslie_reg_proposal <- glm(SimplifiedOverallGrade ~  
-                                   ProposalCombined , data=external_regression_data, family="binomial")
-      
-      
-      
-# Model Diagnostic OG ~ ApplTrck ------------------------------------------
-
-      coef(summary(OvGrAppMod))
-      
-      # p value calculation
+      # p value calculation with a normal approximation (we have enough data to make this assumption)
       ctable<-coef(summary(OvGrAppMod))
       p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
       (ctable<-cbind(ctable,"p value"=p)) 
       
-      # Probalilities
-      (prob<-exp(cbind(OR=coef(OvGrAppMod), confint(OvGrAppMod))))
+      # Confidence intervals Profile or Wald?
+      # With profile likelihood
+      PCI <- confint(OvGrAppMod)
+      # Wald CI
+      WCI <- confint.default(OvGrAppMod)
+      # Puting them together
+      CI<- cbind(Profile=PCI,Wald=WCI, `lenght PCI`= PCI[,2]-PCI[,1],
+                 `lenght WCI`= WCI[,2]-WCI[,1] )
+      Diff<- round(CI[,5]-CI[,6],4)
+      CI <- cbind(CI,Diff)
+      
+      # As the difference between PCI and WCI is not big, due to the fact that between variables
+      # Te correlation is small (only ApplicantTrack is more correlated to OverallGrade)
+      
+      # Odds Ratios an Confidence Intervals
+      (prob<-exp(cbind(OR=coef(OvGrAppMod), WCI)))
       
       # Confusion Matrices 
-      pred<-predict(OvGrAppMod,external_regression_data) # class prediction
-      tab<- table(pred,external_regression_data$OverallGrade)
+      pred<-predict(OvGrAppMod,OvGrApplTrackDF) # class prediction
+      (tab<- table(Prediction=pred,
+                   Observed=OvGrApplTrackDF$OverallGrade))
+      
       
       # Miss Clasification Error  MCE
-      (mce <- 1- sum(diag(tab))/sum(tab)) #[1] 0.4109673
+      (mce <- 1- sum(diag(tab))/sum(tab)) #[1]  0.4152803
       
-      MCE<-c()
-      ACC<-c()
-      for ( i in 1:5){
-        
-        # Resample the data with replacement and obtained In Bag indices
-        ind<-createResample(external_regression_data[,'OverallGrade'],1)[[1]]
-        InBag <- unique(ind)
-        
-        # Split the data
-        Train<-final.data[ind,]
-        Test<- final.data[-InBag,]
-        
-        # Fit the model in the Train data
-        #B.Model <- polr(formula, 
-                        # method="logistic",
-                        # data=Train,
-                        # Hess = TRUE)
-        B.Model <- update(OvGrAppMod,.~.,data=Train)
-        
-        # Confusion Matrix Out of Bag 
-        pred<-predict(B.Model,Test) # class prediction
-        tab<- table(pred,Test[,'OverallGrade'])
-        
-        # Miss Clasification Error  MCE
-        MCE[i] <- 1- sum(diag(tab))/sum(tab)
-        
-        # Out of Sample Accuracy
-        ACC[i] <- sum(diag(tab))/sum(tab)
-      } 
+      # Test the Out of Sample Miss classification error
       
-      # Average out of sample MCE
-      BOOTMCE<- mean(MCE)
+      # Split the data
+      set.seed(77)
+      split<-sample.split(OvGrApplTrackDF$OverallGrade, SplitRatio = 0.8)
+      Train<-subset(OvGrApplTrackDF, split=="TRUE")
+      Test <-subset(OvGrApplTrackDF, split=="FALSE")
       
-      # Average Accuracy
-      AveAcc<- mean(ACC)
+      # Fit the model in the Train data
+      B.Model <- update(OvGrAppMod,.~.,data=Train)
       
-     
-      hist(MCE,col="springgreen2", 
-           main= "Out of Sample Missclassification Error",
-           cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
-      hist(ACC,col="springgreen2", 
-           main= "Out of Sample Accuracy ",
-           cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
+      # Confusion Matrix Out of Bag 
+      pred<-predict(B.Model,Test) # class prediction
+      tab<- table(pred,Test[,'OverallGrade'])
+      
+      # Out of Sample Miss Clasification Error  OOSMCE
+      (OOSMCE <- 1- sum(diag(tab))/sum(tab)) #[1] 0.4104938
+      
+      # Out of Sample Accuracy OOSACC
+      (OOSACC <- sum(diag(tab))/sum(tab)) # [1] 0.5895062
+      
+# Model Diagnostic OverallGrade ~ ProposalCombined + others -----------------------------------
+      
+      # Visualization
+      ggplot(external_regression_data, aes(x = OverallGrade, y = ProposalCombined, col=Gender)) +
+        geom_jitter(alpha = .5) +
+        facet_grid(InstType ~ Division, margins = TRUE) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
       
       
       
-      OvGrApplicTrackfit<- ModelDiagnostic(TestModel = OvGrAppMod,outcomeName = 'OverallGrade', M=10)
+      # Rearrenge Data
+      OvGrPropCombDF<- external_regression_data[,c(15,5,6,8:14)]
+      OvGrPropCombDF$AmountRequested<-log(OvGrPropCombDF$AmountRequested)
+      
+      (with(OvGrPropCombDF, table(OverallGrade,ProposalCombined)))
+      # Fit a model with all variables and interaction
+      OvGrProMod<- polr(OverallGrade~.+Gender:Division+Gender:PercentFemale, 
+                        data=OvGrPropCombDF,
+                        method="logistic",
+                        Hess=T) 
+      summary(OvGrProMod)
+      
+      # Correlation Plot
+      OvGrProDummy <- dummyVars("~.-OverallGrade",data=OvGrPropCombDF, fullRank=F)
+      X <- as.data.frame(predict(OvGrProDummy,OvGrPropCombDF))
+      X<-cor(X)
+      corrplot(X,method = "color",type="upper",
+               title="Model: OverallGrade~ApplicantTrack ..")
+      
+      
+      # p value calculation with a normal approximation (we have enough data to make this assumption)
+      ctable<-coef(summary(OvGrProMod))
+      p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+      (ctable<-cbind(ctable,"p value"=p)) 
+      
+      # Confidence intervals Profile or Wald?
+      # With profile likelihood
+      # Message: profiling has found a better solution, so original fit had not converged
+      # PCI <- confint(OvGrProMod)
+      
+      # Wald CI
+      WCI <- confint.default(OvGrProMod)
+      
+      # Puting them together
+      # CI<- cbind(Profile=PCI,Wald=WCI, `lenght PCI`= PCI[,2]-PCI[,1],
+      #            `lenght WCI`= WCI[,2]-WCI[,1] )
+      # Diff<- round(CI[,5]-CI[,6],4)
+      # CI <- cbind(CI,Diff)
+      
+      # As the difference between PCI and WCI is not big, due to the fact that between variables
+      # Te correlation is small (only ApplicantTrack is more correlated to OverallGrade)
+      
+      # Probalilities
+      (prob<-exp(cbind(OR=coef(OvGrAppMod), WCI)))
+      
+      # Confusion Matrices 
+      pred<-predict(OvGrProMod,OvGrPropCombDF) # class prediction
+      (tab<- table(Prediction=pred,
+                   Observed=OvGrPropCombDF$OverallGrade))
+      
+      
+      # Miss Clasification Error  MCE
+      (mce <- 1- sum(diag(tab))/sum(tab)) #[1] 0.2612446
+      
+      # Test the Out of Sample Miss classification error
+      
+      # Split the data
+      set.seed(77)
+      split<-sample.split(OvGrPropCombDF$OverallGrade, SplitRatio = 0.8)
+      Train<-subset(OvGrPropCombDF, split=="TRUE")
+      Test <-subset(OvGrPropCombDF, split=="FALSE")
+      
+      # Fit the model in the Train data
+      B.Model <- update(OvGrProMod,.~.,data=Train)
+      
+      # Confusion Matrix Out of Bag 
+      pred<-predict(B.Model,Test) # class prediction
+      tab<- table(pred,Test[,'OverallGrade'])
+      
+      # Out of Sample Miss Clasification Error  OOSMCE
+      (OOSMCE <- 1- sum(diag(tab))/sum(tab)) #[1] 0.2314815
+      
+      # Out of Sample Accuracy OOSACC
+      (OOSACC <- sum(diag(tab))/sum(tab)) # [1] 0.7685185
+      
+      
+
+# Remarks -----------------------------------------------------------------
+
+# Overall, with the external data we can't predict well, neither ApplicantTrack, nor ProposalCombined,
+# From the graphs, there is no visible gender influence in either qualifications.
+# From the regressions: in non of the models is Gender significant.
+# To answer wether gender makes a different impact in the models using track, and proposal in the OverallGrade,
+# we did the visual inspection and fit the models. The resulting Conficence intervals are as follow
+      
+      # For Overall ~ Proposal
+      # ...
+      # PercentFemale         -1.395184559 -0.22342140
+      # Age                   -0.004244672  0.02650406
+      # Genderf               -0.892378982  0.24893195  ** 0 is not in the CI
+      # DivisionDiv 2         -0.238643647  0.50781855
+      # DivisionDiv 3         -0.521638527  0.20612700
+      # IsContinuation1        0.051392402  0.64952788
+      # PreviousRequest1      -0.462781545  0.23218910
+      # InstTypeOther         -1.342374564 -0.16497641
+      # InstTypeUAS/UTE       -1.111066701 -0.12029946
+      # InstTypeUni           -0.569378012  0.06228260
+      # AmountRequested       -0.143750783  0.27463240
+      # Genderf:DivisionDiv 2 -1.102738968  0.41643949
+      # Genderf:DivisionDiv 3 -0.598587028  0.73173728
+      # PercentFemale:Genderf  0.033131445  2.15695362
+      
+      # For OverallGrade ~ ApplicantTrack
+      #                           2.5 %      97.5 %
+      # .....
+      # PercentFemale         -1.154164469 -0.13713767
+      # Age                   -0.008583641  0.01799574
+      # Genderf               -1.168951717 -0.18483020 ** there appears to be an influence of gender in a
+      # DivisionDiv 2         -0.378666572  0.27265816    negative way
+      # DivisionDiv 3         -0.724775558 -0.09500520
+      # IsContinuation1        0.239925669  0.75690091
+      # PreviousRequest1      -0.185109578  0.41980901
+      # InstTypeOther         -0.651346032  0.37019513
+      # InstTypeUAS/UTE       -0.270301230  0.61058140
+      # InstTypeUni           -0.404266725  0.14850529
+      # AmountRequested       -0.100085502  0.25945678
+      # Genderf:DivisionDiv 2 -0.207977363  1.07084032
+      # Genderf:DivisionDiv 3 -0.065855669  1.07878897
+      # PercentFemale:Genderf  0.472881107  2.30013902
+      # 
       
