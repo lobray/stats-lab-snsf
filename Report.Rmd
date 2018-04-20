@@ -119,7 +119,7 @@ table(referee_grades$RefereeRole, useNA = "always")
 
 ```{r, echo=F}
 
-external_regression_data<-prepare_data_external_log_regression(external=final.external)
+external_regression_data<-prepare_data_external_log_regression(apps=final.apps,external=final.external)
 
 # Look at the overall grades given to external reviewers and whether candidate is approved - like 50%. Then split by gender (Second line).
 ex.f <- external_regression_data[external_regression_data$Gender=="f",]
@@ -157,7 +157,7 @@ ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
 
 # Lets look at the internal data
 
-internal_regression_data<-prepare_data_internal_log_regression(internal=final.internal)
+internal_regression_data<-prepare_data_internal_log_regression(apps=final.apps,internal=final.internal)
 in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
 in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
 in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
