@@ -1,0 +1,519 @@
+---
+title: "Internal Referees Regressions Report"
+author: "Chiara Gilardi"
+date: "20 aprile 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=F, warning=F}
+setwd("~/StatLab")
+load("snsf_data.RData")
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+```
+
+```{r, warning=F, message=F}
+library(vcd) 
+library(corrplot)
+library(caTools)
+library(ROCR)
+library(pROC)
+library(car)
+```
+
+First of all, we clean our data and prepare them to be used for regression:
+
+```{r}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+```
+
+### How well Internal Referee grades explain the final decision 
+
+In order to see how important is the Internal Reviews step, we fit a model using IsApproved as a response and the Internal Referees grades and some demographic information as predictors. We fitted the model on a training set (80% of the original data) and tested it on the remaining 20% to check the accuracy of our model. We got an accuracy of 89% which means that the internal grades as a relevant influence on the final decision of the board.
+
+```{r, echo=F}
+split_data <- function(data,Div="All",SplitRatio=0.8){
+  data<- data[,-1]
+  if (Div == "All"){ 
+    final.data<- data
+  }
+  else {
+    final.data<- subset(data,Division==Div, select = -(Division)) 
+  }
+  
+  
+  #spliting the data into train and test set
+  
+  if (SplitRatio<1){
+    split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
+    Train<-subset(final.data, split=="TRUE")
+    Test <-subset(final.data, split=="FALSE") 
+  } else {
+    Test<-Train<-final.data
+  }
+  return(list(data=final.data,Train.data=Train,Test.data=Test))
+}
+
+data_for_model <- split_data(internal_regression_data)
+
+
+InternalReviewModel<- function(data,Div="All",
+                               SplitRatio=0.8, cutoff=0.5 ){ 
+  
+  Train <- data$Train.data
+  Test <- data$Test.data
+  
+  # fitting the model
+  Model <- glm(Train$IsApproved ~. -Ranking+ Age:ApplicantTrack+Gender:Division+ApplicantTrack:Gender-InstType ,data=Train, 
+               family="binomial")
+  
+  
+  # Testing the Treshold
+  par(mfrow=c(1,2))
+  predictor<-predict(Model, Test, type="response")
+  ROCRPred<- prediction(predictor,Test$IsApproved)
+  ROCRPerf<- performance(ROCRPred,"tpr","fpr")
+  plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
+  
+  # with respect to accuracy
+  ROCRACC<- performance(ROCRPred,"acc")
+  plot(ROCRACC)  
+  
+  # Confusion Matrices
+  AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
+  accuracy<-(sum(diag(AccTable))/sum(AccTable))
+  
+  # Return
+  print(paste("Regresion for Internal Reviews.   ", "Division: ", Div))
+  par(mfrow=c(1,1))
+  Res.data<-list(Train,Test)
+  return(list(Regression=Model,
+              Model= summary(Model), 
+              `Confidence Intervals`=confint(Model),
+              `Confusion Matrix`=AccTable,
+              `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+              Accuracy=paste(round(accuracy,2)*100,"%")))
+  
+  
+}
+```
+
+```{r, warning=F, message=F}
+fit <- InternalReviewModel(data_for_model)
+fit
+```
+
+Notice that Gender doesn't seem to be a relevant predictor, since its confidence interval contains zero, the same holds for Division and for the interaction between Division and Gender. There seems to be no gender bias in the internal decision.
+
+Notice also that the fact that the proposed project is a continuation of a previous one seems to have a relevant effect on the final decision: if the project is a continuation, the log odds of being approved increases by 84.69%. Moreover, both the ApplicantTrack grade and the ProjectAssessment grade have a relevant influence on the outcome: if the Track grade increases by 1, the applications is 6.33 times more likely to be approved, keeping all other variables constant, and if the ProjectAssessment grade increases by 1, the application is 15.27 times more likely to be approved. This suggests that the relative importance of the ProjectAssessment is much bigger than the one of the ApplicantTrack.
+
+```{r, include=F}
+exp(6.135e-01)
+exp(1.846e+00)
+exp(2.726e+00)
+```
+
+```{r, include=F}
+Model<-fit$Regression 
+drop1(Model, test="Chisq")
+```
+
+Check if covariates are correlated: the only predictors with an high VIF value are those which are included in the interaction terms. It seems that there is not a multicollinearity problem. Also the correlation plot shows correlation between interactions and factor involved.
+
+```{r}
+vif(Model) 
+```
+
+```{r, include = F}
+X<-model.matrix(Model)
+X<-X[,-1]    # Eliminate the intercept
+Xc<-cor(X)   # Compute correlation matrix
+
+# Plot the correlation matrix  
+# correlation test
+# mat : is a matrix of data
+# ... : further arguments to pass to the native R cor.test function
+cor.mtest <- function(mat, ...) {
+  mat <- as.matrix(mat)
+  n <- ncol(mat)
+  p.mat<- matrix(NA, n, n)
+  diag(p.mat) <- 0
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      tmp <- cor.test(mat[, i], mat[, j], ...)
+      p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+    }
+  }
+  colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+  p.mat
+}
+# matrix of the p-value of the correlation
+p.mat <- cor.mtest(X,method="spearman")
+head(p.mat[, 1:5])
+```
+
+```{r}
+corrplot(Xc, type="upper", order="hclust", 
+         p.mat = p.mat, sig.level = 0.01,insig = "blank")
+```
+
+We proceed with diagnostic analysis:
+
+We plot the response vs the linear predictor and we see that small values in the linear predictor correspond to low acceptance probability, and vice versa. The fitted values show the typical S-shaped curve and everything seems to be ok.
+
+```{r, echo=F}
+Train <- data_for_model$Train.data
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+IsApproved<-Train$IsApproved
+
+plot(fvl, IsApproved, type="n", xlab="linear predictor", ylab="Approval Result")
+points(fvl[IsApproved==0], IsApproved[IsApproved==0])
+points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")
+```
+
+Tukey-Anscombe plot: since the smoother is following approximately the x axis, the model assumptions seem to be fulfilled.
+
+```{r}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+Proportion of deviance explained by our model:
+```{r}
+1-Model$dev/Model$null
+(1-exp((Model$dev-Model$null)/nrow(Train)))/(1-exp(-Model$null/nrow(Train)))
+```
+
+### How well demographic data explain the Internal Referees grades
+
+We simplified the grades given by Internal Referees to ApplicantTrack and ProjectAssessment in order to have two binary variables, which take value 0 if the grade is $<=3$ and value 1 if the grade is $>3$.
+
+Then we used these two binary variables as responses of two different regressions on the demographic data of the applicant and other information about the application (Division, IsContinuation, AmountRequested...).
+
+```{r}
+internal_regression_data$SimplifiedApplicant <- ifelse(internal_regression_data$ApplicantTrack < 4, 0, 1)
+internal_regression_data$SimplifiedProject <- ifelse(internal_regression_data$ProjectAssessment < 4, 0, 1)
+
+ApplicantTrack_reg <- glm(SimplifiedApplicant ~ Gender+Division+PercentFemale+Age+
+                             IsContinuation+PreviousRequest+InstType+AmountRequested+
+                            Gender:Division+Gender:PercentFemale-ProjectID, 
+                           data=internal_regression_data, family="binomial")
+summary(ApplicantTrack_reg)
+```
+
+Diagnostics:
+
+```{r,echo=F}
+Model<-ApplicantTrack_reg
+vif(Model)  
+```
+
+From the VIF values, we see that there is no collinearity between variables.
+
+```{r, echo=F}
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedApplicant<-internal_regression_data$SimplifiedApplicant
+
+plot(fvl, SimplifiedApplicant, type="n", xlab="linear predictor",
+     ylab="ApplicantTrack grade", xlim=c(-2,6))
+points(fvl[SimplifiedApplicant==0], SimplifiedApplicant[SimplifiedApplicant==0])
+points(fvl[SimplifiedApplicant==1], SimplifiedApplicant[SimplifiedApplicant==1], col="red")
+lines(sort(fvl), sort(fpr), lty=3)
+title("Result vs. Linear Predictor")  
+```
+
+The plot of the response vs the linear predictor looks pretty bad, the fitted curve doesn't have the usual S-shape. Also the Tuckey-Anscombe plot doesn't look good, in fact the smoother is above zero for all x values. This means that probably there is a systematic error due to model misspecification.
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot",xlim=c(-2,6))
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+We have evidence that this is not the right model also from the proportion of explained deviance, which is only 5%, as well as the $R^2$ which is 0.077.
+```{r}
+1-Model$dev/Model$null
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+```
+
+We repeated the same analysis for the ProjectAssessment variable. We report only the plots in order to show that also here there is some misspecification:
+
+```{r, include=F}
+Project_reg <- glm(SimplifiedProject~ Gender+Division+PercentFemale+Age+
+                             IsContinuation+PreviousRequest+InstType+AmountRequested+
+                            Gender:Division+Gender:PercentFemale-ProjectID, 
+                           data=internal_regression_data, family="binomial")
+summary(Project_reg)
+```
+
+Diagnostics:
+
+```{r,include=F}
+Model<-ApplicantTrack_reg
+vif(Model)  
+```
+
+
+```{r, echo=F}
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedProject<-internal_regression_data$SimplifiedProject
+
+plot(fvl, SimplifiedApplicant, type="n", xlab="linear predictor",
+     ylab="ProjectAssessment grade", xlim=c(-2,6))
+points(fvl[SimplifiedApplicant==0], SimplifiedApplicant[SimplifiedApplicant==0])
+points(fvl[SimplifiedApplicant==1], SimplifiedApplicant[SimplifiedApplicant==1], col="red")
+lines(sort(fvl), sort(fpr), lty=3)
+title("Result vs. Linear Predictor")  
+```
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot",xlim=c(-2,6))
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+The plots looks exactly as before and the value of explained deviance are also very similar.
+
+```{r}
+1-Model$dev/Model$null
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+```
+
+It seems that transforming the variables into binary we are loosing too much information and consequently we are not able to fit a proper model. We try now to fit a multinomial ordinal regression, instead of a logistic, on the same response variables.
+
+### Multinomial Regression of ProjectAssessment on demographic variables
+
+We tranfrom the ProjectAssessment grades into factors in order to use them as response of our multinomial regression.
+
+```{r, echo=F}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment)
+```
+
+Now we start fitting a model which includes those that we consider the most likely relevant variables:
+
+```{r}
+library(MASS)
+fit <- polr(ProjectAssessment ~ Gender + Division + InstType, 
+            method="logistic",data=internal_regression_data)
+summary(fit)
+```
+
+Once we fitted the first model, we proceed comparing hierarchical models using the difference in deviance and we find our "optimal" model:
+
+```{r, include=F}
+library(MASS)
+fit <- polr(ProjectAssessment ~ Gender + Division + InstType, 
+            method="logistic",data=internal_regression_data)
+
+fit2 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation, 
+             method="logistic",data=internal_regression_data)
+
+deviance(fit)-deviance((fit2))
+pchisq(65.50466, fit2$edf-fit$edf, lower=FALSE) # 5.797671e-16 -> include IsContinuation
+
+fit3 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation + 
+               Age, method="logistic",data=internal_regression_data)
+deviance(fit2)-deviance((fit3))
+pchisq(2.412097, fit3$edf-fit2$edf, lower=FALSE) # 0.120401 -> don't include Age
+
+fit4 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation + 
+               log(AmountRequested), method="logistic",data=internal_regression_data)
+deviance(fit2)-deviance((fit4))
+pchisq(41.69483, fit4$edf-fit2$edf, lower=FALSE) # 1.066907e-10 -> include log(AmountRequested)
+
+fit5 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation + 
+               log(AmountRequested)+PercentFemale, method="logistic",
+              data=internal_regression_data)
+deviance(fit4)-deviance((fit5))
+pchisq(7.92891, fit5$edf-fit4$edf, lower=FALSE) # .00486511 -> include PercentFemale
+
+fit6 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation + 
+               log(AmountRequested)+PercentFemale+Gender:Division, 
+             method="logistic",data=internal_regression_data)
+deviance(fit5)-deviance((fit6))
+pchisq(0.5522981, fit6$edf-fit5$edf, lower=FALSE) # 0.7586998 -> include Gender:Division
+
+fit7 <- polr(ProjectAssessment ~ Gender + Division + InstType + IsContinuation + 
+               log(AmountRequested)+PercentFemale+PreviousRequest+Gender:Division, 
+             method="logistic",data=internal_regression_data)
+deviance(fit5)-deviance((fit7))
+pchisq(1.237963, fit7$edf-fit5$edf, lower=FALSE)
+```
+
+```{r,echo=F}
+Model <- polr(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+
+                  log(AmountRequested)+PercentFemale+ApplicantTrack,
+                  method="logistic", data=internal_regression_data)
+summary(Model)
+```
+
+Now we proceed testing the model accuracy using a train and a test set:
+
+```{r}
+split<-sample.split(internal_regression_data$ProjectAssessment, SplitRatio = 0.8)
+Train<-subset(internal_regression_data, split=="TRUE")
+Test <-subset(internal_regression_data, split=="FALSE")
+
+
+InternalMultiModel<- function(data=internal_regression_data, train=Train, 
+                              test=Test,SplitRatio = 0.8){ 
+
+  # fitting the model
+  Model <- polr(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+
+                  log(AmountRequested)+PercentFemale+ApplicantTrack,
+                  method="logistic", data=Train)
+  
+  predictor<-predict(Model, Test, type="class")
+
+  # Confusion Matrices
+  AccTable<-table(ActualValue=Test$ProjectAssessment,Prediction=predictor)
+  accuracy<-(sum(diag(AccTable))/sum(AccTable))
+  
+  # Return
+  print(paste("Regresion for Internal Reviews.   "))
+  return(list(Model= summary(Model), 
+              #`Confidence Intervals`=confint(Model),
+              `Confusion Matrix`=AccTable,
+              `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+              Accuracy=paste(round(accuracy,2)*100,"%")))
+  
+  
+}
+(Model_fitted <- InternalMultiModel())
+```
+
+
+### Multinomial Regression of ApplicantTrack on demographic variables
+
+We tranfrom the ApplicantTrack grades into factors in order to use them as response of our multinomial regression.
+
+```{r, echo=F}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$ApplicantTrack <- as.ordered(internal_regression_data$ApplicantTrack)
+```
+
+Now we start fitting a model which includes those that we consider the most likely relevant variables:
+
+```{r}
+library(MASS)
+fit <- polr(ApplicantTrack ~ Gender + Division + InstType, 
+            method="logistic",data=internal_regression_data)
+summary(fit)
+```
+
+Once we fitted the first model, we proceed comparing hierarchical models using the difference in deviance and we find our "optimal" model:
+
+```{r,echo=F}
+Model <- polr(ApplicantTrack ~ Gender + Division + InstType + IsContinuation + 
+                log(AmountRequested)+PercentFemale+Gender:Division+ProjectAssessment, 
+                method="logistic",data=internal_regression_data)
+summary(Model)
+```
+
+Now we proceed testing the model accuracy using a train and a test set:
+
+```{r}
+split<-sample.split(internal_regression_data$ApplicantTrack, SplitRatio = 0.8)
+Train<-subset(internal_regression_data, split=="TRUE")
+Test <-subset(internal_regression_data, split=="FALSE")
+
+
+InternalMultiModel<- function(data=internal_regression_data, train=Train, 
+                              test=Test,SplitRatio = 0.8){ 
+
+  # fitting the model
+  Model <- polr(ApplicantTrack ~ Gender + Division + InstType + IsContinuation + 
+                log(AmountRequested)+PercentFemale+Gender:Division+ProjectAssessment, 
+                method="logistic",data=Train)
+  
+  predictor<-predict(Model, Test, type="class")
+
+  # Confusion Matrices
+  AccTable<-table(ActualValue=Test$ApplicantTrack,Prediction=predictor)
+  accuracy<-(sum(diag(AccTable))/sum(AccTable))
+  
+  # Return
+  print(paste("Regresion for Internal Reviews.   "))
+  return(list(Model= summary(Model), 
+              #`Confidence Intervals`=confint(Model),
+              `Confusion Matrix`=AccTable,
+              `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+              Accuracy=paste(round(accuracy,2)*100,"%")))
+  
+  
+}
+(Model_fitted <- InternalMultiModel())
+```
+
+The accuracy is higher than before: it's around 60%. So apparently the ApplicantTrack grade depends more on the demographic data.
+
+### Regression to understand the relative importance of criteria
+
+```{r, echo=F}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$SimplifiedRanking <- ifelse(internal_regression_data$Ranking < 4, 0, 1)
+
+internal_regression_data$SimplifiedRanking <- factor(internal_regression_data$SimplifiedRanking)
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + 
+                                 ProjectAssessment + ApplicantTrack+ PercentFemale+
+                           Gender:ApplicantTrack,
+                           data=internal_regression_data, family="binomial")
+summary(leslie_reg_proposal)
+```
+
+If the ProjectAssessment grade increases by 1, the application is 64 times more likely to get an high ranking from internal reviewers (high ranking means $>3$). If the ApplicantTrack grade increases by 1, the application is 1.39 times more likely to get an high ranking. We can conclude that the ProjectAssessment grade seems to have a much bigger relative importance than the ApplicantTrack.
+
+```{r, include=F}
+exp( 4.15940)
+exp(0.33005)
+```
+
+
+```{r, echo=F}
+Model <- leslie_reg_proposal
+vif(Model) 
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedRanking<-internal_regression_data$SimplifiedRanking
+
+plot(fvl, SimplifiedRanking, type="n", xlab="linear predictor",
+     ylab="ProjectAssessment grade", xlim=c(-2,6))
+points(fvl[SimplifiedRanking==0], SimplifiedRanking[SimplifiedRanking==0])
+points(fvl[SimplifiedRanking==1], SimplifiedRanking[SimplifiedRanking==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")  
+```
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+```{r}
+1-Model$dev/Model$null  #` 70%
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))  # 82%
+```
