@@ -15,6 +15,11 @@ load("SNFS Data/snsf_data.RData")
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
+install.packages("biostatUZH", repos="http://R-Forge.R-project.org")
+
+library(biostatUZH)
+library(psy)
+
 ```
 
 
@@ -112,7 +117,7 @@ table(referee_grades$RefereeRole, useNA = "always")
 
 # Exploratory Analysis
 
-```{r}
+```{r, echo=F}
 
 external_regression_data<-prepare_data_external_log_regression(external=final.external)
 
@@ -180,6 +185,36 @@ in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 (table(in.div3$ProjectAssessment, in.div3$IsApproved))
 
 ```
+
+#### Exploratory Analysis: measure agreement between stages of the process
+
+```{r Cohens-Kappa}
+
+# First, combine data of external & internal applicant rating
+
+kappa.internal <- prepare_data_internal_log_regression(final.apps,final.internal)
+kappa.external <- prepare_data_external_log_regression(final.apps, final.external)
+candidate.rating <- merge(x=kappa.external[,c("ProjectID", "ApplicantTrack")], y = kappa.internal[,c("ProjectID", "ApplicantTrack")],
+                      by="ProjectID")
+colnames(candidate.rating) <- c("ProjectID", "ApplicantTrackExt", "ApplicantTrackInt")
+
+# create matrix to show how external and internal raters rate applicant
+kappa.matrix <- matrix(0, nrow=6, ncol=6)
+colnames(kappa.matrix) <- 1:6
+rownames(kappa.matrix) <- 1:6
+
+# count number of times things agree/don't agree
+for (i in 1:nrow(candidate.rating)) {
+  kappa.matrix[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] <- kappa.matrix[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] + 1
+}
+?cohen.kappa
+dep <- matrix(c(10, 4, 1, 6, 16, 2, 0, 3, 8), nrow = 3, byrow=T)
+q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
+dep.ck <- cohen.kappa(dep, w=q.weights) # quadratic weights
+applicant.kappa <- cohen.kappa(kappa.matrix) # quadratic weights
+
+```
+
 
 Alternative way of displaying the tables above to save space in report:
 
