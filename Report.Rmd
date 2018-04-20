@@ -5,6 +5,7 @@ date: "5 April 2018"
 output:
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -22,6 +23,8 @@ source("Data for Regression.R")
 library(biostatUZH)
 library(psy)
 library(psych)
+library(ggplot2)
+library(gridExtra)
 
 ```
 
@@ -81,79 +84,204 @@ table(referee_grades$RefereeRole, useNA = "always")
 # Exploratory Analysis
 
 ```{r, echo=F}
+########################################################################################################################
+# Function to show mirrored bar plots of external criteria versus approved / not approved step
+########################################################################################################################
+plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot_title="Plot Title", title_size=8) {
+  table_data_frame <- as.data.frame(table(dataset[,variable1], dataset[,"IsApproved"]))
+  colnames(table_data_frame) <- c(variable1, variable2, "Frequency")
+  levels(table_data_frame[,variable1]) <- list("Outstanding"="6", "Excellent"="5", 
+                                                "Very Good"="4", "Good"="3", "Average"="2", "Poor"="1")
+  table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0] <- -table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0]
+  
+  ggplot(table_data_frame, aes_string(x=variable1, y="Frequency", fill=variable2)) + 
+    geom_bar(stat="identity", position="identity") + 
+    scale_y_continuous(breaks=seq(-100,100,by=50),labels=abs(seq(-100,100,by=50))) +
+    coord_flip() +
+    ggtitle(plot_title) + 
+    theme(plot.title = element_text(size = title_size))
+  
+}
+```
 
+## External Review Step: Relationship of the different grades on IsApproved
 
+### OverallGrade and IsApproved 
+```{r, echo=F}
+
+#### External datasets to use in mirror barplots
 external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
-
-
-# Look at the overall grades given to external reviewers and whether candidate is approved - like 50%. Then split by gender (Second line).
 ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
 ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
 ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
 ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
 
-(table(external_regression_data$OverallGrade, external_regression_data$IsApproved))
-(table(ex.f$OverallGrade, ex.f$IsApproved))
-(table(ex.div1$OverallGrade, ex.div1$IsApproved))
-(table(ex.div2$OverallGrade, ex.div2$IsApproved))
-(table(ex.div3$OverallGrade, ex.div3$IsApproved))
 
-# External review of track record inversely used! 
-(table(external_regression_data$ApplicantTrack, external_regression_data$IsApproved))
-(table(ex.f$ApplicantTrack, ex.f$IsApproved))
-(table(ex.div1$ApplicantTrack, ex.div1$IsApproved))
-(table(ex.div2$ApplicantTrack, ex.div2$IsApproved))
-(table(ex.div3$ApplicantTrack, ex.div3$IsApproved))
+### Plot the overall effect, as well as by gender and then by division
 
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div3")
 
-# External review of suitability and whether candidate is approved
-(table(external_regression_data$Suitability, external_regression_data$IsApproved))
-(table(ex.f$Suitability, ex.f$IsApproved))
-(table(ex.div1$Suitability, ex.div1$IsApproved))
-(table(ex.div2$Suitability, ex.div2$IsApproved))
-(table(ex.div3$Suitability, ex.div3$IsApproved))
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
-# External review of relevance and whether candidate is approved -- again like negatively used
-(table(external_regression_data$ScientificRelevance, external_regression_data$IsApproved))
-(table(ex.f$ScientificRelevance, ex.f$IsApproved))
-(table(ex.div1$ScientificRelevance, ex.div1$IsApproved))
-(table(ex.div2$ScientificRelevance, ex.div2$IsApproved))
-(table(ex.div3$ScientificRelevance, ex.div3$IsApproved))
+```
 
-# Lets look at the internal data
+### ApplicantTrack and IsApproved 
+
+``` {r, echo=F}
 
 
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "ApplicantTrack", plot_title = "ApplicantTrack vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs.Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+
+### ScientificProposal and IsApproved 
+
+``` {r, echo=F}
+
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+
+### Suitability and IsApproved
+
+``` {r, echo=F}
+
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+## Internal Review Step: Relationship of the different grades on IsApproved
+
+### Ranking and IsApproved
+```{r, echo=F}
+
+#### internal datasets to use in mirror barplots
 internal_regression_data<-prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
-
 in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
 in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
 in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
 in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 
-(table(internal_regression_data$Ranking, internal_regression_data$IsApproved))
-(table(in.f$Ranking, in.f$IsApproved))
-(table(in.div1$Ranking, in.div1$IsApproved))
-(table(in.div2$Ranking, in.div2$IsApproved))
-(table(in.div3$Ranking, in.div3$IsApproved))
 
-# Internal review of track record inversely used! 
-(table(internal_regression_data$ApplicantTrack, internal_regression_data$IsApproved))
-(table(in.f$ApplicantTrack, in.f$IsApproved))
-(table(in.div1$ApplicantTrack, in.div1$IsApproved))
-(table(in.div2$ApplicantTrack, in.div2$IsApproved))
-(table(in.div3$ApplicantTrack, in.div3$IsApproved))
+### Plot the Ranking effect, as well as by gender and then by division
 
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "Ranking", plot_title = "Ranking vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div3")
 
-# Internal review of proposal and whether candidate is approved -- again like negatively used
-(table(internal_regression_data$ProjectAssessment, internal_regression_data$IsApproved))
-(table(in.f$ProjectAssessment, in.f$IsApproved))
-(table(in.div1$ProjectAssessment, in.div1$IsApproved))
-(table(in.div2$ProjectAssessment, in.div2$IsApproved))
-(table(in.div3$ProjectAssessment, in.div3$IsApproved))
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
 ```
 
-#### Exploratory Analysis: measure agreement between stages of the process
+### ApplicantTrack and IsApproved
+
+``` {r, echo=F}
+
+
+#### internal datasets to use in mirror barplots
+internal_regression_data <- prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "ApplicantTrack", plot_title = "ApplicantTrack vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+
+### ScientificProposal and IsApproved
+
+``` {r, echo=F}
+
+
+#### internal datasets to use in mirror barplots
+internal_regression_data <- prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] 
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+
+
+## Exploratory Analysis: measure agreement between stages of the process
 
 ```{r Cohens-Kappa}
 
@@ -179,12 +307,17 @@ calculate_applicant_kappa <- function(final.apps = final.apps, final.external = 
   }
 
   # Define weight matrix
-  # q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
+  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
 
-  applicant.kappa <- cohen.kappa(kappa.matrix.applicant) # try again with weights
+
+  applicant.kappa <- cohen.kappa(kappa.matrix.applicant, w=linear.weights)
 }
 
-applicant_kappa <- calculate_applicant_kappa(final.apps=final.apps, final.external=final.external, final.internal=final.internal)
+print("Cohen's Kappa for the ApplicantTrack")
+(applicant_kappa <- calculate_applicant_kappa(final.apps=final.apps, final.external=final.external, final.internal=final.internal))
+
 
 calculate_proposal_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
   # First, combine data of external & internal applicant rating
@@ -208,20 +341,27 @@ calculate_proposal_kappa <- function(final.apps = final.apps, final.external = f
     kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] <- 
       kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] + 1
   }
-
+  print(sum(diag(kappa.matrix.proposal)) / 1643)
   # Define weight matrix
-  # q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
+  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+  
+  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
+         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
 
-  proposal.kappa <- cohen.kappa(kappa.matrix.proposal) # try again with weights
+
+  proposal.kappa <- cohen.kappa(kappa.matrix.proposal, w=custom.weights) # try again with weights
   return(proposal.kappa)
 }
 
+print("Cohen's Kappa for the Scientific Proposal")
+(proposal_kappa <- calculate_proposal_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
 
-proposal_kappa <- calculate_proposal_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal)
-print(proposal_kappa)
 
 ```
-We see almost no agreement between the external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. 
+We see almost moderate external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. In the proposal, 37% of applicants recieved the same score from the internal and external reviewer. But this is again a flawed metric since it doesn't account for random agreement, which is why we use Cohen's Kappa.
 
 Alternative way of displaying the tables above to save space in report:
 
