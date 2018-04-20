@@ -11,14 +11,17 @@ output:
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
 ```
 ```{r Load Functions and Data }
-load("SNFS Data/snsf_data.RData")
+
+# load("SNFS Data/snsf_data.RData")
+load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
-install.packages("biostatUZH", repos="http://R-Forge.R-project.org")
+# install.packages("biostatUZH", repos="http://R-Forge.R-project.org")
 
 library(biostatUZH)
 library(psy)
+library(psych)
 
 ```
 
@@ -27,47 +30,7 @@ library(psy)
 
 ## Data Description
 
-We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available).
-
-### Applications
-  * AmountRequested: Rounded to the next 10k CHF
-  * AmountGranted: Rounded to the next 10k CHF
-  * IsApproved: 1 if the application was approved, 0 if it was rejected
-  * GradeFinal: Comparative ranking of the application as determined by the evaluation body (the division of the National Research Council). A: "belongs to the 10% best percent"; AB: "10% are worse, 75% are better"; B: "50% are worse, 25% are better"; BC: " 25% are worse, 50% are better"; C "10% are worse, 75% are better"; D: "90% of the applications are better"
-  
-  * Division: Evaluation Body in which the application was evaluated. Division 1 evaluates Social Sciences and Humanities; Division 2 Mathematics, Natural Sciences and Engineering; Division 3 Biology and Medicine
-  
-  * MainDiscipline: as chosen by the applicant from the SNSF discipline list
-  * MainDisciplineLevel2: category in the SNF discipline list grouping disciplines into fields of research
-  * CallTitle: Call for proposals under which the application was submitted. Applications from the same Call are evaluated together, i.e. in competition to each other
-  * CallEndDate: Submission deadline of the Call
-  * ResponsibleApplicantAcademicAgeAtSubmission: Years since the applicant's PhD at time of submission; data only available since mid 2016
-  * ResponsibleApplicantAgeAtSubmission: Biological age of the applicant at time of submission; data only available since mid 2016
-  * ResponsibleApplicantProfessorshipType: employment situation of the applicant at time of submission; data only available since mid 2016
-  * Gender: of the main applicant
-  * NationalityIsoCode: Nationality of the main applicant
-  * IsHasPreviousProjectRequested: 0 if it is the applicant's first application at the SNSF, 1 if not
-  * InstType: Type of institution where the applicant is employed
-  * IsContinuation: 1 if the project is a thematic continuation of a previously approved project, 0 if not
-  * ProjectID: Anonymized identifier of the application
-
-### Referee Grades
-  * Question: Evaluation criterion
-  * QuestionRating: The (co-)referee's assessment of the evaluation criterion
-  * OverallRanking: The (co-)referee's overall comparative ranking of the application. A: "belongs to the 10% best percent"; same scale as the GradeFinal
-  * RefereeRole: Some applications have one referee evaluation, some have two. The role indicates who was the primary and who was the secondary referee (also called co-referee) 
-  * RefereeGender
-  * IDs: Anonymized identifiers of the application, the referee and the evaluation by the referee
-
-### Reviews
-  * Question: Evaluation criterion
-  * QuestionRating: The external reviewer's assessment of the evaluation criterion
-  * OverallGrade: The external reviewer's overall assessment of the application
-  * SourcePerson: Who suggested the reviewer?
-  * Gender
-  * Country: where the reviewer is located. Not always known
-  * EmailEnding: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
-  * IDs: Anonymized identifiers of the application, the reviewer and the review
+We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available). For a full description of the data & variables, please see the Appendix. 
 
 
 
@@ -119,7 +82,7 @@ table(referee_grades$RefereeRole, useNA = "always")
 
 ```{r, echo=F}
 
-external_regression_data<-prepare_data_external_log_regression(external=final.external)
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
 
 # Look at the overall grades given to external reviewers and whether candidate is approved - like 50%. Then split by gender (Second line).
 ex.f <- external_regression_data[external_regression_data$Gender=="f",]
@@ -157,7 +120,7 @@ ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
 
 # Lets look at the internal data
 
-internal_regression_data<-prepare_data_internal_log_regression(internal=final.internal)
+internal_regression_data<-prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
 in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
 in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
 in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
@@ -190,31 +153,71 @@ in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 
 ```{r Cohens-Kappa}
 
-# First, combine data of external & internal applicant rating
 
-kappa.internal <- prepare_data_internal_log_regression(final.apps,final.internal)
-kappa.external <- prepare_data_external_log_regression(final.apps, final.external)
-candidate.rating <- merge(x=kappa.external[,c("ProjectID", "ApplicantTrack")], y = kappa.internal[,c("ProjectID", "ApplicantTrack")],
-                      by="ProjectID")
-colnames(candidate.rating) <- c("ProjectID", "ApplicantTrackExt", "ApplicantTrackInt")
+calculate_applicant_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
+  # First, combine data of external & internal applicant rating
+  kappa.internal.applicant <- prepare_data_internal_log_regression(final.apps,final.internal)
+  kappa.external.applicant <- prepare_data_external_log_regression(final.apps, final.external)
+  candidate.rating <- merge(x=kappa.external.applicant[,c("ProjectID", "ApplicantTrack")], 
+                            y = kappa.internal.applicant[,c("ProjectID","ApplicantTrack")],
+                            by="ProjectID")
+  colnames(candidate.rating) <- c("ProjectID", "ApplicantTrackExt", "ApplicantTrackInt")
+  
+  # create matrix to show how external and internal raters rate applicant
+  kappa.matrix.applicant <- matrix(0, nrow=6, ncol=6)
+  colnames(kappa.matrix.applicant) <- 1:6
+  rownames(kappa.matrix.applicant) <- 1:6
 
-# create matrix to show how external and internal raters rate applicant
-kappa.matrix <- matrix(0, nrow=6, ncol=6)
-colnames(kappa.matrix) <- 1:6
-rownames(kappa.matrix) <- 1:6
+    # count number of times things agree/don't agree
+  for (i in 1:nrow(candidate.rating)) {
+    kappa.matrix.applicant[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] <- 
+      kappa.matrix.applicant[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] + 1
+  }
 
-# count number of times things agree/don't agree
-for (i in 1:nrow(candidate.rating)) {
-  kappa.matrix[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] <- kappa.matrix[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] + 1
+  # Define weight matrix
+  # q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
+
+  applicant.kappa <- cohen.kappa(kappa.matrix.applicant) # try again with weights
 }
-?cohen.kappa
-dep <- matrix(c(10, 4, 1, 6, 16, 2, 0, 3, 8), nrow = 3, byrow=T)
-q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
-dep.ck <- cohen.kappa(dep, w=q.weights) # quadratic weights
-applicant.kappa <- cohen.kappa(kappa.matrix) # quadratic weights
+
+applicant_kappa <- calculate_applicant_kappa(final.apps=final.apps, final.external=final.external, final.internal=final.internal)
+
+calculate_proposal_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
+  # First, combine data of external & internal applicant rating
+  kappa.internal.proposal <- prepare_data_internal_log_regression(final.apps,final.internal)
+  kappa.external.proposal <- prepare_data_external_log_regression(final.apps, final.external)
+  kappa.external.proposal$ProposalCombined <- round((kappa.external.proposal$ScientificRelevance+
+                                                            kappa.external.proposal$Suitability)/2, 0)
+  proposal.rating <- merge(x=kappa.external.proposal[,c("ProjectID", "ProposalCombined")], 
+                            y = kappa.internal.proposal[,c("ProjectID","ProjectAssessment")],
+                            by="ProjectID")
+  
+  colnames(proposal.rating) <- c("ProjectID", "ProposalExt", "ProposalInt")
+  
+  # create matrix to show how external and internal raters rate applicant
+  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
+  colnames(kappa.matrix.proposal) <- 1:6
+  rownames(kappa.matrix.proposal) <- 1:6
+
+  # count number of times things agree/don't agree
+  for (i in 1:nrow(proposal.rating)) {
+    kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] <- 
+      kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] + 1
+  }
+
+  # Define weight matrix
+  # q.weights <- matrix(c(1, .75, 0, .75, 1, .75, 0, 0.75, 1),ncol=6, byrow=T)
+
+  proposal.kappa <- cohen.kappa(kappa.matrix.proposal) # try again with weights
+  return(proposal.kappa)
+}
+
+
+proposal_kappa <- calculate_proposal_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal)
+print(proposal_kappa)
 
 ```
-
+We see almost no agreement between the external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. 
 
 Alternative way of displaying the tables above to save space in report:
 
@@ -294,51 +297,53 @@ drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%
 
 
 ```{r Visual analysis}
-library(vcd)
-cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
-cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
-# Apparently there is no association between gender and approval (generally + in each division)
+#### LESLIE COMMENTED OUT THIS CHUNK JUST BECAUSE THERE IS AN ERROR PREVENTING THE DOCUMENT FROM KNITTING, AND HADNT FIGURED OUT WHERE THE BUG IS. 
 
-cotabplot(~ Gender + Division, data=final.apps, shade=T)
-# There are more women then men applying for Division 1 and the opposite for Division 2
-
-cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
-# If the project is a continuation it is more likely to be approved
-
-id.approved <- which(final.apps$IsApproved==1)
-perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
-boxplot(perc.f~final.apps$Division[id.approved])
-# Percentage of amount granted of the amount requested:
-# On average in Division1 applicants receive almost all the amount of money requested, 
-# even if there are lots of outliers. Division 2 is the one with the smallest percentage of
-# money granted.
-
-boxplot(final.apps$AmountRequested~final.apps$Division)
-# Probably the previous result is due to the fact that in Division1, the AmountRequested
-# on average is smaller than in all the other divisions.
-
-# EXTERNAL REVIEWERS
-cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
-cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
-cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
-cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
-# No gender bias for any criteria
-
-    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
-    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
-    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
-    
-# Even using the simplified version with 0 and 1 there is no bias
-cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
-cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
-cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
-
-# INTERNAL REVIEWERS
-# Here it seem that is more likely to get an high grade for the TrackRecord if 
-# the applicant is male!
-cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
-cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
-cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
+# library(vcd)
+# cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+# cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
+# # Apparently there is no association between gender and approval (generally + in each division)
+# 
+# cotabplot(~ Gender + Division, data=final.apps, shade=T)
+# # There are more women then men applying for Division 1 and the opposite for Division 2
+# 
+# cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
+# # If the project is a continuation it is more likely to be approved
+# 
+# id.approved <- which(final.apps$IsApproved==1)
+# perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
+# boxplot(perc.f~final.apps$Division[id.approved])
+# # Percentage of amount granted of the amount requested:
+# # On average in Division1 applicants receive almost all the amount of money requested, 
+# # even if there are lots of outliers. Division 2 is the one with the smallest percentage of
+# # money granted.
+# 
+# boxplot(final.apps$AmountRequested~final.apps$Division)
+# # Probably the previous result is due to the fact that in Division1, the AmountRequested
+# # on average is smaller than in all the other divisions.
+# 
+# # EXTERNAL REVIEWERS
+# cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
+# # No gender bias for any criteria
+# 
+#     external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+#     external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+#     external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+#     
+# # Even using the simplified version with 0 and 1 there is no bias
+# cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+# 
+# # INTERNAL REVIEWERS
+# # Here it seem that is more likely to get an high grade for the TrackRecord if 
+# # the applicant is male!
+# cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
+# cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
+# cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 ```
 
 
@@ -348,3 +353,48 @@ cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 ## Results
 
 ## Conclusion
+
+# Appendix
+
+## Detailed Data Description
+
+### Applications
+  * **AmountRequested**: Rounded to the next 10k CHF
+  * **AmountGranted**: Rounded to the next 10k CHF
+  * **IsApproved**: 1 if the application was approved, 0 if it was rejected
+  * **GradeFinal**: Comparative ranking of the application as determined by the evaluation body (the division of the National Research Council). A: "belongs to the 10% best percent"; AB: "10% are worse, 75% are better"; B: "50% are worse, 25% are better"; BC: " 25% are worse, 50% are better"; C "10% are worse, 75% are better"; D: "90% of the applications are better"
+  
+  * **Division**: Evaluation Body in which the application was evaluated. Division 1 evaluates Social Sciences and Humanities; Division 2 Mathematics, Natural Sciences and Engineering; Division 3 Biology and Medicine
+  
+  * **MainDiscipline**: as chosen by the applicant from the SNSF discipline list
+  * **MainDisciplineLevel2**: category in the SNF discipline list grouping disciplines into fields of research
+  * **CallTitle**: Call for proposals under which the application was submitted. Applications from the same Call are evaluated together, i.e. in competition to each other
+  * **CallEndDate**: Submission deadline of the Call
+  * **ResponsibleApplicantAcademicAgeAtSubmission**: Years since the applicant's PhD at time of submission; data only available since mid 2016
+  * **ResponsibleApplicantAgeAtSubmission**: Biological age of the applicant at time of submission; data only available since mid 2016
+  * **ResponsibleApplicantProfessorshipType**: employment situation of the applicant at time of submission; data only available since mid 2016
+  * **Gender**: of the main applicant
+  * **NationalityIsoCode**: Nationality of the main applicant
+  * **IsHasPreviousProjectRequested**: 0 if it is the applicant's first application at the SNSF, 1 if not
+  * **InstType**: Type of institution where the applicant is employed
+  * **IsContinuation**: 1 if the project is a thematic continuation of a previously approved project, 0 if not
+  * **ProjectID**: Anonymized identifier of the application
+
+### Referee Grades
+  * **Question**: Evaluation criterion
+  * **QuestionRating**: The (co-)referee's assessment of the evaluation criterion
+  * **OverallRanking**: The (co-)referee's overall comparative ranking of the application. A: "belongs to the 10% best percent"; same scale as the GradeFinal
+  * **RefereeRole**: Some applications have one referee evaluation, some have two. The role indicates who was the primary and who was the secondary referee (also called co-referee) 
+  * **RefereeGender**
+  * **IDs**: Anonymized identifiers of the application, the referee and the evaluation by the referee
+
+### Reviews
+  * **Question**: Evaluation criterion
+  * **QuestionRating**: The external reviewer's assessment of the evaluation criterion
+  * **OverallGrade**: The external reviewer's overall assessment of the application
+  * **SourcePerson**: Who suggested the reviewer?
+  * **Gender**
+  * **Country**: where the reviewer is located. Not always known
+  * **EmailEnding**: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
+  * **IDs**: Anonymized identifiers of the application, the reviewer and the review
+

@@ -1,6 +1,6 @@
 
 #################################################################
-###########  Regression Analysis - Board reviews  ############
+###########  Regression Analysis - Board reviews  ###############
 #################################################################
 
 library(vcd) 
@@ -18,10 +18,26 @@ source("/home/leslie/Desktop/StatsLab/stats-lab-snsf/Data for Regression.R")
 
 board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
 
-board_log_regression <- glm(board_data$IsApproved ~ .-(ProjectID), family="binomial", data = board_data)
+board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
+                              Ranking + OverallGrade + Gender:Division, family="binomial", data = board_data)
+
+board_log_regression2 <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
+                            OverallGrade + Gender:Division, family="binomial", data = board_data)
+
+board_log_regression1 <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
+                              Ranking + Gender:Division, family="binomial", data = board_data)
+
+board_log_regression4 <- glm(board_data$IsApproved ~ Gender + Ranking + OverallGrade, family="binomial", data = board_data)
+
+
+
+1-pchisq(board_log_regression1$dev-board_log_regression$dev, df=(board_log_regression1$df.res-board_log_regression$df.res))
+
+anova(board_log_regression4, board_log_regression, test="Chisq")
+
 summary(board_log_regression)
 
-BoardModel<- function(data=board_data,Div="All",
+assess_board_model<- function(data=board_data, Div="All",
                       SplitRatio=0.8, cutoff=0.5 ){ 
   
   if (Div == "All"){ 
@@ -31,8 +47,7 @@ BoardModel<- function(data=board_data,Div="All",
     final.data<- subset(data,Division==Div, select = -(Division)) 
   }
   
-  
-  #spliting the data into train and test set
+  ### spliting the data into train and test set
   
   if (SplitRatio<1){
     split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
@@ -42,50 +57,41 @@ BoardModel<- function(data=board_data,Div="All",
     Test<-Train<-final.data
   }
   
-  # fitting the model
-  
-  #ExternalModel<-function(Train,Test,cutoff){
+  #### fitting the model
   
   # Cutoff
   cutoff <- cutoff
   
   # Optimize the model
   
-  # full<- glm(IsApproved ~ .-(ProjectID), data=Train, family="binomial")
-  # Model  <-step(full, direction = "backward", trace=0)
-  # Model <- step(empty,scope=list(lower=empty,upper=full), direction="both",
-  #     trace=0)
   Model <- glm(Train$IsApproved ~ .-(ProjectID),data=Train, 
                family="binomial")
   
-  
-  # Testing the Treshold
+  ### Testing the Treshold
   par(mfrow=c(1,2))
   predictor<-predict(Model, Test, type="response")
   ROCRPred<- prediction(predictor,Test$IsApproved)
   ROCRPerf<- performance(ROCRPred,"tpr","fpr")
   plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
   
-  # with respect to accuracy
+  ### with respect to accuracy
   ROCRACC<- performance(ROCRPred,"acc")
   plot(ROCRACC)  
   
-  # Confusion Matrices
+  ### Confusion Matrices
   AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
   accuracy<-(sum(diag(AccTable))/sum(AccTable))
   
-  # Return
+  ### Return
   print(paste("Regresion for External Reviews.   ", "Division: ", Div))
   return(list(Model= summary(Model), 
               #`Confidence Intervals`=confint(Model),
               `Confusion Matrix`=AccTable,
               `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
               `Accuracy`=paste(round(accuracy,2)*100,"%")))
-  
-  
 }
 
 
-board.all <- BoardModel(data=board_data, Div="All",
+board.all <- assess_board_model(data=board_data, Div="All",
                         SplitRatio=1,cutoff=0.5)
 
