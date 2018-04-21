@@ -13,8 +13,8 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    
 ```
 ```{r Load Functions and Data }
 
-# load("SNFS Data/snsf_data.RData")
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+load("SNFS Data/snsf_data.RData")
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -363,10 +363,8 @@ print("Cohen's Kappa for the Scientific Proposal")
 ```
 We see almost moderate external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. In the proposal, 37% of applicants recieved the same score from the internal and external reviewer. But this is again a flawed metric since it doesn't account for random agreement, which is why we use Cohen's Kappa.
 
-Alternative way of displaying the tables above to save space in report:
-
 #### External Reviewers
-```{r}
+```{r warnings=F, message=F}
 # External Reviewers
 library(expss)
 ER<-apply_labels(external_regression_data,
@@ -406,7 +404,7 @@ drop_empty_columns(calculate(ER,cro(Suitability, list(total(),
 ```
 #### Internal Reviewers
 
-```{r}
+```{r message=F,warning=F}
 # Internal Reviewers
 library(expss)
 IR<-apply_labels(internal_regression_data,
@@ -441,53 +439,54 @@ drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%
 
 
 ```{r Visual analysis}
-#### LESLIE COMMENTED OUT THIS CHUNK JUST BECAUSE THERE IS AN ERROR PREVENTING THE DOCUMENT FROM KNITTING, AND HADNT FIGURED OUT WHERE THE BUG IS. 
+library(vcd)
+cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
+# Apparently there is no association between gender and approval (generally + in each division)
 
-# library(vcd)
-# cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
-# cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
-# # Apparently there is no association between gender and approval (generally + in each division)
-# 
-# cotabplot(~ Gender + Division, data=final.apps, shade=T)
-# # There are more women then men applying for Division 1 and the opposite for Division 2
-# 
-# cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
-# # If the project is a continuation it is more likely to be approved
-# 
-# id.approved <- which(final.apps$IsApproved==1)
-# perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
-# boxplot(perc.f~final.apps$Division[id.approved])
-# # Percentage of amount granted of the amount requested:
-# # On average in Division1 applicants receive almost all the amount of money requested, 
-# # even if there are lots of outliers. Division 2 is the one with the smallest percentage of
-# # money granted.
-# 
-# boxplot(final.apps$AmountRequested~final.apps$Division)
-# # Probably the previous result is due to the fact that in Division1, the AmountRequested
-# # on average is smaller than in all the other divisions.
-# 
-# # EXTERNAL REVIEWERS
-# cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
-# cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
-# cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
-# cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
-# # No gender bias for any criteria
-# 
-#     external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
-#     external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
-#     external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
-#     
-# # Even using the simplified version with 0 and 1 there is no bias
-# cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
-# cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
-# cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
-# 
-# # INTERNAL REVIEWERS
-# # Here it seem that is more likely to get an high grade for the TrackRecord if 
-# # the applicant is male!
-# cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
-# cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
-# cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
+cotabplot(~ Gender + Division, data=final.apps, shade=T)
+# There are more women then men applying for Division 1 and the opposite for Division 2
+
+cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
+# If the project is a continuation it is more likely to be approved
+
+id.approved <- which(final.apps$IsApproved==1)
+perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
+boxplot(perc.f~final.apps$Division[id.approved], main="Percentage of amount granted of the amount requested")
+# Percentage of amount granted of the amount requested:
+# On average in Division1 applicants receive almost all the amount of money requested,
+# even if there are lots of outliers. Division 2 is the one with the smallest percentage of
+# money granted.
+
+boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested per Division")
+# Probably the previous result is due to the fact that in Division1, the AmountRequested
+# on average is smaller than in all the other divisions.
+
+# EXTERNAL REVIEWERS
+cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
+cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
+# No gender bias for any criteria
+
+# Combined Variables for project assessment
+    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+                                                        external_regression_data$Suitability)/2, 0)
+    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+
+# Even using the simplified version with 0 and 1 there is no bias
+cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
+cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
+cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+
+# INTERNAL REVIEWERS
+# Here it seem that is more likely to get an high grade for the TrackRecord if
+# the applicant is male!
+cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
+cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
+cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 ```
 
 
