@@ -30,7 +30,7 @@ prepare_data_external_log_regression <- function(apps, external) {
   
   # Select applications data we want to use
   external_regression_data <- apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID",
-                                            "IsContinuation","PreviousRequest","InstType","AmountRequested")]
+                                            "IsContinuation","PreviousRequest","InstType","AmountRequested","Semester")]
   
   # add in grades & Interaction
   average_ratings <- calculate_average_reviewers(external)
