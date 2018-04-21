@@ -103,10 +103,10 @@ plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot
   
 }
 ```
+## Exploratory Analysis: Mirrored bar plots
+### External Review Step: Relationship of the different grades on IsApproved
 
-## External Review Step: Relationship of the different grades on IsApproved
-
-### OverallGrade and IsApproved 
+#### OverallGrade and IsApproved 
 ```{r, echo=F}
 
 #### External datasets to use in mirror barplots
@@ -131,7 +131,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
 ```
 
-### ApplicantTrack and IsApproved 
+#### ApplicantTrack and IsApproved 
 
 ``` {r, echo=F}
 
@@ -156,7 +156,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 ```
 
 
-### ScientificProposal and IsApproved 
+#### ScientificProposal and IsApproved 
 
 ``` {r, echo=F}
 
@@ -180,7 +180,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 ```
 
 
-### Suitability and IsApproved
+#### Suitability and IsApproved
 
 ``` {r, echo=F}
 
@@ -204,9 +204,10 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
 ```
 
-## Internal Review Step: Relationship of the different grades on IsApproved
 
-### Ranking and IsApproved
+### Internal Review Step: Relationship of the different grades on IsApproved
+
+#### Ranking and IsApproved
 ```{r, echo=F}
 
 #### internal datasets to use in mirror barplots
@@ -231,7 +232,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
 ```
 
-### ApplicantTrack and IsApproved
+#### ApplicantTrack and IsApproved
 
 ``` {r, echo=F}
 
@@ -256,7 +257,7 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 ```
 
 
-### ScientificProposal and IsApproved
+#### ScientificProposal and IsApproved
 
 ``` {r, echo=F}
 
@@ -282,6 +283,10 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
 
 ## Exploratory Analysis: measure agreement between stages of the process
+
+We see almost moderate external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. In the proposal, 37% of applicants recieved the same score from the internal and external reviewer. But this is again a flawed metric since it doesn't account for random agreement, which is why we use Cohen's Kappa.
+
+### Agreement over the Applicant grade
 
 ```{r Cohens-Kappa}
 
@@ -318,6 +323,11 @@ calculate_applicant_kappa <- function(final.apps = final.apps, final.external = 
 print("Cohen's Kappa for the ApplicantTrack")
 (applicant_kappa <- calculate_applicant_kappa(final.apps=final.apps, final.external=final.external, final.internal=final.internal))
 
+
+```
+
+### Agreement over the Project grade
+```{r}
 
 calculate_proposal_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
   # First, combine data of external & internal applicant rating
@@ -361,8 +371,9 @@ print("Cohen's Kappa for the Scientific Proposal")
 
 
 ```
-We see almost moderate external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. In the proposal, 37% of applicants recieved the same score from the internal and external reviewer. But this is again a flawed metric since it doesn't account for random agreement, which is why we use Cohen's Kappa.
 
+
+## Exploratory Analysis: Distribution tables 
 #### External Reviewers
 ```{r warnings=F, message=F}
 # External Reviewers
@@ -428,7 +439,6 @@ IR<-apply_labels(internal_regression_data,
 # This only work if you knit to HTML
 
 expss_output_rnotebook()
-calculate(IR,cro(Ranking,IsApproved))
 drop_empty_columns(calculate(IR,cro(Ranking, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
 drop_empty_columns(calculate(IR,cro(ApplicantTrack,list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
 drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
@@ -437,58 +447,80 @@ drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%
 ```
 
 
+## Exploratory Analysis: Graphic exploration
 
-```{r Visual analysis}
+### Applications
+#### Is there evidence of gender bias?
+
+Apparently there is no association between gender and approval (generally + in each division)
+```{r echo=F}
 library(vcd)
+par(mfrow=c(1,2))
 cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
 cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
-# Apparently there is no association between gender and approval (generally + in each division)
+```
 
+There are more women then men applying for Division 1 and the opposite for Division 2.
+Also, if the project is a continuation it is more likely to be approved
+
+```{r echo=F}
+par(mfrow=c(1,2))
 cotabplot(~ Gender + Division, data=final.apps, shade=T)
-# There are more women then men applying for Division 1 and the opposite for Division 2
-
 cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
-# If the project is a continuation it is more likely to be approved
+```
 
+#### How does the Amount requested relates to Amount granted?
+On average in Division1 applicants receive almost all the amount of money requested,
+ even if there are lots of outliers. Division 2 is the one with the smallest percentage of
+ money granted.
+```{r echo=F}
 id.approved <- which(final.apps$IsApproved==1)
 perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
 boxplot(perc.f~final.apps$Division[id.approved], main="Percentage of amount granted of the amount requested")
-# Percentage of amount granted of the amount requested:
-# On average in Division1 applicants receive almost all the amount of money requested,
-# even if there are lots of outliers. Division 2 is the one with the smallest percentage of
-# money granted.
+```
 
+Probably the previous result is due to the fact that in Division1, the AmountRequested, on average, is smaller than in all the other divisions.
+```{r echo=F}
 boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested per Division")
-# Probably the previous result is due to the fact that in Division1, the AmountRequested
-# on average is smaller than in all the other divisions.
+```
 
-# EXTERNAL REVIEWERS
+### External Reviewers
+#### Is there evidence of gender bias?
+No, there is no evidence of gender bias for any criteria
+```{r}
+par(mfrow=c(2,2))
 cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
 cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
 cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
 cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
-# No gender bias for any criteria
+```
 
-# Combined Variables for project assessment
+Even when combining Variables for project assessment, using a simplified version with 0 and 1, it dosen't seems that there is a bias
+
+```{r echo=F}
+par(mfrow=c(2,2))
     external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
                                                         external_regression_data$Suitability)/2, 0)
     external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
     external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
     external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
 
-# Even using the simplified version with 0 and 1 there is no bias
+
 cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
 cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
 cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+```
 
-# INTERNAL REVIEWERS
-# Here it seem that is more likely to get an high grade for the TrackRecord if
-# the applicant is male!
+### Internal Reviewers
+#### Is there evidence of gender bias?
+
+Here it seem that is more likely to get an high grade for the TrackRecord if the applicant is male!
+```{r}
+par(mfrow=c(2,2))
 cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
 cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
 cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
 ```
-
 
 ## Analysis
 
