@@ -163,7 +163,7 @@ p.mat <- cor.mtest(X,method="spearman")
 head(p.mat[, 1:5])
 ```
 
-```{r}
+```{r, echo=F}
 corrplot(Xc, type="upper", order="hclust", 
          p.mat = p.mat, sig.level = 0.01,insig = "blank")
 ```
@@ -377,7 +377,7 @@ summary(Model)
 
 Now we proceed testing the model accuracy using a train and a test set:
 
-```{r}
+```{r, echo=F}
 split<-sample.split(internal_regression_data$ProjectAssessment, SplitRatio = 0.8)
 Train<-subset(internal_regression_data, split=="TRUE")
 Test <-subset(internal_regression_data, split=="FALSE")
@@ -441,7 +441,7 @@ summary(Model)
 
 Now we proceed testing the model accuracy using a train and a test set:
 
-```{r}
+```{r,echo=F}
 split<-sample.split(internal_regression_data$ApplicantTrack, SplitRatio = 0.8)
 Train<-subset(internal_regression_data, split=="TRUE")
 Test <-subset(internal_regression_data, split=="FALSE")
