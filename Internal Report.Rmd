@@ -10,10 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, message=F, warning=F}
-setwd("~/StatLab")
-load("snsf_data.RData")
-source("Cleaning Functions.R")
-source("Data for Regression.R")
+# setwd("~/StatLab")
+# load("snsf_data.RData")
+# source("Cleaning Functions.R")
+# source("Data for Regression.R")
 ```
 
 ```{r, warning=F, message=F}

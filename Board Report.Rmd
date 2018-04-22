@@ -1,5 +1,11 @@
+---
+title: "Board Report"
+author: "Leslie O'Bray"
+date: "April 22, 2018"
+output: pdf_document
+---
 
-
+```{r}
 #################################################################
 ###########  Regression Analysis - Board reviews  ###############
 #################################################################
@@ -12,12 +18,23 @@ library(pROC)
 library(car)
 library(caret)
 
+
 ### Initialize data
 
 load("/home/leslie/Desktop/StatsLab/snsf_data.RData")
 source("/home/leslie/Desktop/StatsLab/stats-lab-snsf/Cleaning Functions.R")
 source("/home/leslie/Desktop/StatsLab/stats-lab-snsf/Data for Regression.R")
 
+```
+
+
+### Questions for Janine:
+-For variable importance question, could use a random forest to assess variable importance? Or could standardize coefficients
+-Multiple testing problem??
+
+
+Prepare the data and fit the full model:
+```{r}
 
 board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
 
@@ -26,20 +43,33 @@ board_data <- prepare_data_board_log_regression(final.apps, internal = final.int
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + AmountRequested + 
                               Ranking + OverallGrade + Gender:Division, family="binomial", data = board_data)
 
-
-### In fitting the regression, the summary shos that OverallGrade, Ranking, InstType and Age are all significant predictors.
-summary(board_log_regression)
-
-### In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). 
-vif(board_log_regression)
-
-### Check diagnostics: residuals
-plot(resid(board_log_regression, type="pearson"))  # residuals appaer to be expectatino 0, with a few extreme outliers
-plot(resid(board_log_regression, type="deviance")) # expectation 0, though it appears some structure, does this mean fit new model?
+```
 
 
-############ Test out other models, to do a comparision
+In fitting the regression, the summary shos that OverallGrade, Ranking, InstType and Age are all significant predictors.
+```{r}
+(summary(board_log_regression))
+```
 
+
+In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). 
+```{r}
+(vif(board_log_regression))
+```
+
+
+Check diagnostics: residuals:
+```{r}
+plot(resid(board_log_regression, type="pearson")) 
+plot(resid(board_log_regression, type="deviance"))
+
+```
+
+Checking the residuals, they seem to be expectation 0, with a few outliers. However, in looking at the deviance, there appears to be some structure in the data. Should this indicate we need a new model fit?
+
+Test out other models, to do a hierarchical model comparision:
+
+```{r}
 board_log_regression2 <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
                             OverallGrade + Gender:Division, family="binomial", data = board_data)
 
@@ -48,18 +78,18 @@ board_log_regression1 <- glm(board_data$IsApproved ~ Gender + Division + Age + A
 
 board_log_regression4 <- glm(board_data$IsApproved ~ Gender + Ranking + OverallGrade, family="binomial", data = board_data)
 
-
+anova(board_log_regression2, board_log_regression, test="Chisq") # significantly different than small model
+anova(board_log_regression1, board_log_regression, test="Chisq") # significantly different than small model
+anova(board_log_regression4, board_log_regression, test="Chisq") # not significiantly different than small model
 
 1-pchisq(board_log_regression1$dev-board_log_regression$dev, df=(board_log_regression1$df.res-board_log_regression$df.res))
 
-anova(board_log_regression4, board_log_regression, test="Chisq")
-
-summary(board_log_regression)
-
+```
+Doing this model comparision, don't we have a big multiple testing problem? Should we avoid doing any kind of model comparison and instead 1) validate model fit, 2) assess performance, 3) compute variable importance?
 
 
-
-
+Do CV to see if model fit is decent:
+```{r}
 #####################################################################
 #################### CV to assess model fit ##########################
 #####################################################################
@@ -122,4 +152,9 @@ assess_board_model<- function(data=board_data, Div="All",
 
 board.all <- assess_board_model(data=board_data, Div="All",
                         SplitRatio=1,cutoff=0.5)
+
+
+```
+
+
 
