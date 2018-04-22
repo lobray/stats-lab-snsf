@@ -1,0 +1,790 @@
+---
+title: "External Reviewers Regressions Report"
+author: "Carla Schaerer, based on Chiara's report"
+date: "21 April 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, message=F, warning=F, echo=FALSE}
+load("SNFS Data/snsf_data.RData")
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+```
+
+```{r libraries, warning=F, message=F, echo=FALSE}
+library(vcd) 
+library(corrplot)
+library(caTools)
+library(ROCR)
+library(pROC)
+library(car)
+library(biostatUZH)
+library(psy)
+library(psych)
+```
+
+First of all, we clean our data and prepare them to be used for regression. A summary of the final data for regression is the following:
+
+```{r echo=F}
+external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
+head(external_regression_data)
+```
+
+### How well External Reviewers grades explain the final decision 
+
+```{r, echo=F}
+options(digits = 5)
+split_data <- function(data,Div="All",SplitRatio=0.8){
+  data<- data[,-1]
+  if (Div == "All"){ 
+    final.data<- data
+  }
+  else {
+    final.data<- subset(data,Division==Div, select = -(Division)) 
+  }
+  
+  
+  #spliting the data into train and test set
+  
+  if (SplitRatio<1){
+    split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
+    Train<-subset(final.data, split=="TRUE")
+    Test <-subset(final.data, split=="FALSE") 
+  } else {
+    Test<-Train<-final.data
+  }
+  return(list(data=final.data,Train.data=Train,Test.data=Test))
+}
+
+data_for_model <- split_data(external_regression_data, SplitRatio=0.8)
+
+
+ExternalReviewModel<- function(data,Div="All",
+                               SplitRatio=0.8, cutoff=0.5 ){ 
+  
+  Train <- data$Train.data
+  Test <- data$Test.data
+  
+  # fitting the model
+   Model <- glm(Train$IsApproved ~ .-OverallGrade-PreviousRequest+Gender:Division+
+                 Gender:PercentFemale,data=Train, 
+                family="binomial")
+  
+  
+  # Testing the Treshold
+  par(mfrow=c(1,2))
+  predictor<-predict(Model, Test, type="response")
+  ROCRPred<- prediction(predictor,Test$IsApproved)
+  ROCRPerf<- performance(ROCRPred,"tpr","fpr")
+  plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
+  
+  # with respect to accuracy
+  ROCRACC<- performance(ROCRPred,"acc")
+  plot(ROCRACC)  
+  
+  # Confusion Matrices
+  AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
+  accuracy<-(sum(diag(AccTable))/sum(AccTable))
+  
+  # Return
+  # print(paste("Regresion for External Reviews.   ", "Division: ", Div))
+  par(mfrow=c(1,1))
+  return(list(Regression=Model,
+              Model= summary(Model), 
+              `Confidence Intervals`=confint(Model),
+              `Confusion Matrix`=AccTable,
+              `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
+              Accuracy=paste(round(accuracy,2)*100,"%")))
+  
+  }
+```
+In order to see how important is the External Reviews step, we fit a model using IsApproved as a response and the External Referees grades and some demographic information as predictors.
+```{r, warning=F, message=F, echo=FALSE}
+fit <- ExternalReviewModel(data_for_model)
+fit$Model
+```
+We first fitted the model on a training set (80% of the original data) and tested it on the remaining 20% to check the accuracy of our model. We got an accuracy of `r fit$Accuracy` which means that the external grades has a relevant influence on the final decision of the board.
+
+Then we fitted the model to the whole data set. Here are some results.
+
+```{r}
+data_for_model <- split_data(external_regression_data, SplitRatio=1)
+fit <- ExternalReviewModel(data_for_model)
+
+```
+
+* The accuracy we obtained is of `r fit$Accuracy`.
+
+* The summary of the regression is:
+```{r}
+fit$Model
+```
+
+* The 95% Confidence Intervals for the predictors are: 
+
+
+```{r }
+
+CI<-as.matrix(fit$`Confidence Intervals`)
+CI<-round(CI,5)
+betas<-round(coef(fit$Regression),5)
+zero<- c()
+for (i in 1:nrow(CI)){
+  zero[i]<-ifelse(CI[i,1]<0&CI[i,2]>0,"y","n")
+}
+id<-which(zero=="n")
+Sig.Variab<- row.names(CI[id,])
+CI<-cbind(Coef=betas,CI,zero)
+CI
+```
+
+
+Notice that Gender doesn't seem to be a relevant predictor, since its confidence interval contains zero, the same holds for Division and for the interaction between Division and Gender. There seems to be no gender bias in the external decision.
+
+```{r, include=F}
+# Odds Ratio
+sig.betas<- betas[id]
+OR<-exp(sig.betas)
+
+```
+
+With this model, it appears to be that only "ApplicantTrack" , "ScientificRelevance", "Suitability", "IsContinuation1" and "AmountRequested" are significant.
+
+Notice also that the fact that the proposed project is a continuation of a previous one seems to have a relevant effect on the final decision: if the project is a continuation, the log odds of being approved increases by `r round((OR["IsContinuation1"][[1]]-1)*100,2)`% . The ApplicantTrack ,Scientific Relevance and Suitability grades have a relevant influence on the outcome: if the Track grade increases by 1, the applications is `r (OR["ApplicantTrack"][[1]])`  times more likely to be approved, keeping all other variables constant. If the Scientific Relevance grade increases by 1, the application is `r (OR["ScientificRelevance"][[1]])`  times more likely to be approved. Finally, if the Suitability grade increases by 1, and all the rest remains constant, then the application is `r (OR["Suitability"][[1]])` times more likely to be approved. This suggests that the relative importance of the project Suitability is higher than all the other variables.
+
+The above is confirmed with the following Chi-test made with the function dorp1() 
+```{r, include=F}
+Model<-fit$Regression
+drop1(Model, test="Chisq")
+```
+
+Check if covariates are correlated: the only predictors with an high VIF value are those which are included in the interaction terms. It seems that there is not a multicollinearity problem. Also the correlation plot shows correlation between interactions and factor involved, and between the grades, which is expected.
+
+```{r}
+vif(Model)
+```
+ 
+```{r, include = F}
+X<-model.matrix(Model)
+X<-X[,-1]    # Eliminate the intercept
+Xc<-cor(X)   # Compute correlation matrix 
+
+# Plot the correlation matrix
+# correlation test
+# mat : is a matrix of data
+# ... : further arguments to pass to the native R cor.test function
+#cor.mtest <- function(mat, ...) {
+ #
+# matrix of the p-value of the correlation
+#p.mat <- cor.mtest(X,method="spearman")
+#head(p.mat[, 1:5])
+
+corrplot(Xc, type="upper",method = "circle")
+```
+
+We proceed with diagnostic analysis:
+
+We plot the response vs the linear predictor and we see that small values in the linear predictor correspond to low acceptance probability, and vice versa. The fitted values show the typical S-shaped curve and everything seems to be ok.
+
+```{r, echo=F}
+Train <- data_for_model$Train.data
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+IsApproved<-Train$IsApproved
+
+plot(fvl, IsApproved, type="n", xlab="linear predictor", ylab="Approval Result")
+points(fvl[IsApproved==0], IsApproved[IsApproved==0])
+points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")
+```
+
+Tukey-Anscombe plot: since the smoother is following approximately the x axis, the model assumptions seem to be fulfilled.
+
+```{r}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+
+```{r}
+#1-Model$dev/Model$null
+CD<-(1-exp((Model$dev-Model$null)/nrow(Train)))/(1-exp(-Model$null/nrow(Train)))
+```
+Proportion of deviance explained by our model: `r round(CD*100,2)`%
+
+### How well demographic data explain the External Reviewers grades
+
+We first combined the grades given for Scientific Relevance and Suitability and created a new variable called ProposalCombined (which is a simple average of both grades). Then we simplified the grades given by External Reviewers to ApplicantTrack and of this new variable in order to have two binary variables, which take value 0 if the grade is $<=3$ and value 1 if the grade is $>3$.
+
+Then we used these two binary variables as responses of two different regressions on the demographic data of the applicant and other information about the application (Division, IsContinuation, AmountRequested...).
+
+```{r}
+# Average the grade for ScientificRelevance ans Suitability
+  external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+                                                        external_regression_data$Suitability)/2, 0)
+# Simplify variables
+  external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+  external_regression_data$SimplifiedProject <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+
+ApplicantTrack_reg <- glm(SimplifiedApplicant ~ Gender+Division+PercentFemale+Age+
+                             IsContinuation+PreviousRequest+InstType+AmountRequested+
+                            Gender:Division+Gender:PercentFemale-ProjectID,
+                           data=external_regression_data, family="binomial")
+summary(ApplicantTrack_reg)
+```
+
+Diagnostics:
+
+```{r,echo=F}
+Model<-ApplicantTrack_reg
+vif(Model)
+```
+
+From the VIF values, we see that there is no collinearity between variables.
+
+```{r, echo=F}
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedApplicant<-external_regression_data$SimplifiedApplicant
+
+plot(fvl, SimplifiedApplicant, type="n", xlab="linear predictor",
+     ylab="ApplicantTrack grade")
+points(fvl[SimplifiedApplicant==0], SimplifiedApplicant[SimplifiedApplicant==0])
+points(fvl[SimplifiedApplicant==1], SimplifiedApplicant[SimplifiedApplicant==1], col="red")
+lines(sort(fvl), sort(fpr), lty=3)
+title("Result vs. Linear Predictor")
+```
+
+The plot of the response vs the linear predictor looks pretty bad, the fitted curve doesn't have the usual S-shape. Also the Tuckey-Anscombe plot doesn't look good, in fact the smoother is above zero for all x values. This means that probably there is a systematic error due to model misspecification.
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot",xlim=c(-2,6))
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+We have evidence that this is not the right model also from the proportion of explained deviance, which is only 9%, as well as the $R^2$ which is 11%.
+```{r}
+1-Model$dev/Model$null
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+```
+
+We repeated the same analysis for the ProjectAssessment variable. We report only the plots in order to show that also here there is some misspecification:
+
+```{r, include=F}
+Project_reg <- glm(SimplifiedProject~ Gender+Division+PercentFemale+Age+
+                             IsContinuation+PreviousRequest+InstType+AmountRequested+
+                            Gender:Division+Gender:PercentFemale-ProjectID,
+                           data=external_regression_data, family="binomial")
+summary(Project_reg)
+```
+
+Diagnostics:
+
+```{r,include=F}
+Model<-ApplicantTrack_reg
+vif(Model)
+```
+
+
+```{r, echo=F}
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedProject<-external_regression_data$SimplifiedProject
+
+plot(fvl, SimplifiedApplicant, type="n", xlab="linear predictor",
+     ylab="ProjectAssessment grade", xlim=c(-2,6))
+points(fvl[SimplifiedApplicant==0], SimplifiedApplicant[SimplifiedApplicant==0])
+points(fvl[SimplifiedApplicant==1], SimplifiedApplicant[SimplifiedApplicant==1], col="red")
+lines(sort(fvl), sort(fpr), lty=3)
+title("Result vs. Linear Predictor")
+```
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot",xlim=c(-2,6))
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+
+The plots looks exactly as before and the value of explained deviance are also very similar.
+
+```{r}
+1-Model$dev/Model$null
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+```
+
+It seems that transforming the variables into binary we are loosing too much information and consequently we are not able to fit a proper model. We try now to fit a multinomial ordinal regression, instead of a logistic, on the same response variables.
+
+### Multinomial Regression of ProjectAssessment on demographic variables
+
+We transformed the Combined Proposal qualification grades into factors in order to use them as response of our multinomial regression.
+
+```{r, echo=F}
+# Get the Regression data
+  external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
+
+# Average the grade for ScientificRelevance ans Suitability
+  external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+                                                        external_regression_data$Suitability)/2, 0)
+  
+  #response must be an order factor for odrinal Regression
+  
+  external_regression_data$ProposalCombined <- as.ordered(external_regression_data$ProposalCombined)
+  external_regression_data$ApplicantTrack <- as.ordered(external_regression_data$ApplicantTrack)
+  external_regression_data$OverallGrade <- as.ordered(external_regression_data$OverallGrade)
+```
+
+Here a visualization of the data:
+
+It doesn't seem to be any influence of gender in the proposal grade.
+```{r}
+ # Visualization
+    ggplot(external_regression_data, aes(x = ProposalCombined, y = PercentFemale, col=Gender)) +
+      geom_jitter(alpha = .5) +
+      facet_grid(InstType ~ Division, margins = TRUE) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+```
+
+
+We fit a Model with the variables and interaction we considered could be significant, and proceed with the diagnostic. We used bootstrapping to test the miss-classification error, and then fit the model to the whole data.
+
+```{r}
+library(MASS)
+PrAssModel <- polr(ProposalCombined ~ Gender + Division + InstType + IsContinuation + Age+
+                    log(AmountRequested)+PercentFemale+Gender:Division+Gender:PercentFemale+
+                    Semester, 
+                    method="logistic",
+                    data=external_regression_data,
+                    Hess=TRUE)
+
+```
+
+
+```{r}
+library(caret)
+# Uses bootstrap to estimate the out of sample miss classification error
+    # instead of only one split.
+    # M: number of bootstraps
+    ModelDiagnostic<- function(TestModel=PrAssModel,
+                               outcomeName = 'ProposalCombined',
+                               data=external_regression_data,Div="All",M=30) { 
+      
+      # Model formula and final data
+        
+        if (Div == "All"){
+          formula=TestModel$call[["formula"]]
+          final.data<- data
+        } else {
+          formula=update.formula(TestModel,.~.-Division-Gender:Division)
+          final.data<- subset(data,Division==Div, select = -(Division)) 
+        }
+      
+      # Fitting the model
+      
+        # Fit the model in all data
+          Model <- polr(formula, 
+                        method="logistic",
+                        data=final.data,
+                        Hess = TRUE)
+          
+        # Uses Bootstraps for the out of sample Miss classification Error
+      
+          MCE<-c()
+          ACC<-c()
+          set.seed(77)
+          for ( i in 1:M){
+            
+              # Resample the data with replacement and obtained In Bag indices
+                ind<-createResample(final.data[,outcomeName],1)[[1]]
+                InBag <- unique(ind)
+                
+              # Split the data
+                Train<-final.data[ind,]
+                Test<- final.data[-InBag,]
+          
+              # Fit the model in the Train data
+                B.Model <- polr(formula, 
+                                method="logistic",
+                                data=Train,
+                                Hess = TRUE)
+                #B.Model <- update(Model,.~.,data=Train)
+                
+              # Confusion Matrix Out of Bag 
+                pred<-predict(B.Model,Test) # class prediction
+                tab<- table(pred,Test[,outcomeName])
+                
+              # Miss Clasification Error  MCE
+                MCE[i] <- 1- sum(diag(tab))/sum(tab)
+                
+              # Out of Sample Accuracy
+                ACC[i] <- sum(diag(tab))/sum(tab)
+          } 
+           
+         
+          # p value calculation
+                ctable<-coef(summary(Model))
+                p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+                ctable<-cbind(ctable,"p value"=p) 
+                
+          # Probalilities
+            prob<-exp(cbind(OR=coef(Model), confint(Model)))
+      
+          # Confusion Matrices 
+            pred<-predict(Model,data) # class prediction
+            tab<- table(pred,data[,outcomeName])
+            
+          # Miss Clasification Error  MCE
+            mce <- 1- sum(diag(tab))/sum(tab)
+          
+          # Average out of sample MCE
+            BOOTMCE<- mean(MCE)
+          
+          # Average Accuracy
+            AveAcc<- mean(ACC)
+            
+            
+           # Kappa Statistic
+            # Define weight matrix
+              # Define weight matrix
+                linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+                               0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+                               0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6,
+                               byrow=T)
+          
+                kappa.matrix <- as.matrix(tab)
+                kappa <- cohen.kappa(kappa.matrix, w=linear.weights)
+            
+      # Return
+        res<-list(Model=formula,
+                    Summary= summary(Model),
+                   `Odd Ratio and Confident intervals`= prob,
+                   `Confusion Matrix`= tab,
+                   `Average out of sample MCE`=  paste(round(BOOTMCE,2)*100,"%"),
+                   `Average Accuracy`=  paste(round(AveAcc,2)*100,"%"),    
+                   `Miss Classification Error`= paste(round(mce,2)*100,"%"),
+                    Accuracy=paste(round(1-mce,2)*100,"%"),
+                    Kappa=kappa)
+        
+        hist(MCE,col="springgreen2", 
+             main= "Out of Sample Missclassification Error",
+             cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
+        hist(ACC,col="springgreen2", 
+             main= "Out of Sample Accuracy ",
+             cex.main=0.8, sub=paste("Number of iterations ",M),cex.sub=0.8)
+        
+        return(res)
+      
+          }
+    
+  ProposalCombinedfit<-ModelDiagnostic(TestModel = PrAssModel,outcomeName = 'ProposalCombined') 
+  # Here the polr worked well, no errors
+  ProposalCombinedfit
+```
+We have a high percentage of miss classification, which suggest that the model is not correct and other options should be explored.
+
+Notice that under this model, if the applicant is a woman, she is `r (round(1-0.55156,2))` times more likely of getting higher grades than a male applicant. Also, being in Division 2 and at ETH gives an applicant higher chances of better grades. Age does not seems to have an influence. An interestingly, the higher the percentage of females in the reviewers analyzing an application, the less likely is that the project get higher grades.
+
+
+### Multinomial Regression of ApplicantTrack on demographic variables
+
+Now to see the influence of the predictors on the Applicants track grade, we do as above and fit a model, were the response is ApplicantTrack.
+
+First an overview of the data:
+
+```{r}
+  # Visualization
+    ggplot(external_regression_data, aes(x = ApplicantTrack, y = PercentFemale, col=Gender)) +
+      geom_jitter(alpha = .5) +
+      facet_grid(InstType ~ Division, margins = TRUE) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  
+```
+
+
+Now we proceed testing the model accuracy using again bootstrapping to estimate the average out of sample miss classification error, but then fitting the model to all of the data:
+
+```{r}
+AppTrModel<- polr(ApplicantTrack ~ Gender + Division + InstType + IsContinuation + 
+                     log(AmountRequested)+PercentFemale+Gender:Division, 
+                   method="logistic",data=external_regression_data)
+```
+
+
+```{r}
+  ApplicantTrackfit<-ModelDiagnostic(TestModel = AppTrModel,outcomeName = 'ApplicantTrack',M=30)  
+      ApplicantTrackfit
+
+```
+
+
+The accuracy is still very low. And other model options to explain the Applicant Track grade must be explored. Notice however, that in this case Gender has no influence, and being at ETH is still significant. Also significant for the applicant track grade is if the project is a continuation and the Amount requested.
+
+### Regression to understand the impact of the Application track on the Overall Grade
+
+A first glance:
+```{r}
+ # Visualization
+      ggplot(external_regression_data, aes(x = OverallGrade, y = ApplicantTrack, col=Gender)) +
+        geom_jitter(alpha = .5) +
+        facet_grid(InstType ~ Division, margins = TRUE) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+      
+      # Rearrenge Data
+      OvGrApplTrackDF<- external_regression_data[,c(2,5,6,8:15)]
+      OvGrApplTrackDF$AmountRequested<-log(OvGrApplTrackDF$AmountRequested)
+```
+
+We then fit a model with all variables and some interactions
+```{r}
+# Fit a model with all variables and interaction
+      OvGrAppMod<- polr(OverallGrade~.+Gender:Division+Gender:PercentFemale, 
+                        data=OvGrApplTrackDF,
+                        method="logistic",
+                        Hess=T) 
+      summary(OvGrAppMod)
+```
+#### Model Diagnostics
+```{r}
+ # Correlation Plot
+      OvGrAppDummy <- dummyVars("~.-OverallGrade",data=OvGrApplTrackDF, fullRank=F)
+      X <- as.data.frame(predict(OvGrAppDummy,OvGrApplTrackDF))
+      X<-cor(X)
+      corrplot(X,method = "color",type="upper",
+               title="Model: OverallGrade~ApplicantTrack ..")
+      
+      
+      # p value calculation with a normal approximation (we have enough data to make this assumption)
+      ctable<-coef(summary(OvGrAppMod))
+      p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+      (ctable<-cbind(ctable,"p value"=p)) 
+```
+##### Analysis of confidence intervals for this model
+
+When running polr() in this model, some times the profiling of the likelihood to find the confidence intervals do not work. For that reason, we will explore here the difference in profile CI and Wald CI to see if we can use Wald CI instead of Profile, also considering that the variables are only partially correlated.
+```{r}
+# Confidence intervals Profile or Wald?
+      # With profile likelihood
+      PCI <- confint(OvGrAppMod)
+      # Wald CI
+      WCI <- confint.default(OvGrAppMod)
+      # Puting them together
+      CI<- cbind(Profile=PCI,Wald=WCI, `lenght PCI`= PCI[,2]-PCI[,1],
+                 `lenght WCI`= WCI[,2]-WCI[,1] )
+      Diff<- round(CI[,5]-CI[,6],4)
+      CI <- cbind(CI,Diff)
+      CI
+      
+      # As the difference between PCI and WCI is not big, due to the fact that between variables
+      # Te correlation is small (only ApplicantTrack is more correlated to OverallGrade)
+```
+As the difference between Profile CI (PCI) and Wald CI (WCI) is not big, due to the fact that between variables the correlation is small (only ApplicantTrack is more correlated to OverallGrade which also is what expected).
+
+Now, using Wald Confidence Intervals, the Odd Ratios and their corresponding CI looks as follow:
+
+```{r}
+# Odds Ratios an Confidence Intervals
+      prob<-round(exp(cbind(OR=coef(OvGrAppMod), WCI)),4)
+      ones<- ifelse(prob[,2]<1&prob[,3]>1, 1,0) 
+      prob<-cbind(prob,`Is One in CI`=ones)
+      prob
+      
+```
+
+
+
+The confusion matrix is shown below. We reach a miss classification error of 41.2%, and an accuracy of 58.8%.
+```{r}
+# Confusion Matrices 
+      pred<-predict(OvGrAppMod,OvGrApplTrackDF) # class prediction
+      (tab<- table(Prediction=pred,
+                   Observed=OvGrApplTrackDF$OverallGrade))
+      
+      
+      # Miss Clasification Error  MCE
+      mce <- 1- sum(diag(tab))/sum(tab) #[1]  0.4152803
+      acc<- 1-mce
+```
+
+
+### Regression to understand the impact of the Proposal assessment on the Overall Grade
+
+A first glance:
+```{r}
+# Visualization
+      ggplot(external_regression_data, aes(x = OverallGrade, y = ProposalCombined, col=Gender)) +
+        geom_jitter(alpha = .5) +
+        facet_grid(InstType ~ Division, margins = TRUE) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+      
+      
+      
+      # Rearrenge Data
+      OvGrPropCombDF<- external_regression_data[,c(16,5,6,8:15)]
+      OvGrPropCombDF$AmountRequested<-log(OvGrPropCombDF$AmountRequested)
+```
+
+We then fit a model with all variables and some interactions
+```{r}
+# Fit a model with all variables and interaction
+      OvGrProMod<- polr(OverallGrade~.+Gender:Division+Gender:PercentFemale, 
+                        data=OvGrPropCombDF,
+                        method="logistic",
+                        Hess=T) 
+      summary(OvGrProMod)
+```
+
+#### Model Diagnostic
+
+For the analysis of this model, we are using again Wald CI.
+```{r}
+# Correlation Plot
+      OvGrProDummy <- dummyVars("~.-OverallGrade",data=OvGrPropCombDF, fullRank=F)
+      X <- as.data.frame(predict(OvGrProDummy,OvGrPropCombDF))
+      X<-cor(X)
+      corrplot(X,method = "color",type="upper",
+               title="Model: OverallGrade~ApplicantTrack ..")
+      
+      
+      # p value calculation with a normal approximation (we have enough data to make this assumption)
+      ctable<-coef(summary(OvGrProMod))
+      p <- pnorm(abs(ctable[,"t value"]),lower.tail = FALSE)*2
+      (ctable<-cbind(ctable,"p value"=p)) 
+      
+      # Wald CI
+      WCI <- confint.default(OvGrProMod)
+```
+ 
+ The Odd Ratios and their corresponding CI looks as follow:
+ 
+```{r}
+ # Odds Ratio
+      prob<-exp(cbind(OR=coef(OvGrProMod), WCI))
+      ones<- ifelse(prob[,2]<1&prob[,3]>1, 1,0) 
+      prob<-cbind(prob,`Is One in CI`=ones)
+      prob
+```
+
+Again here, the percentage of female in the reviewer seems to have an influence in the grade of the project. Woman tend to be more strict in the way they qualify. To further analyze this, lets have a look to the following graph, female reviewers give in proportion more "very good" grades than men, and men give more "excellent" grades:
+
+```{r}
+#how do different gender reviewers grade
+    r.tab<-prop.table(table(external_reviews$ReviewerGender,external_reviews$OverallGrade),1)
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+            legend.text = c("Female", "Male"),
+            main="Difference on how Female and Male grade")
+```
+Once more, if the project is a continuation and the institution type have an influence in the Overall Grade. If comming from a UAS/UTE the project is 0.54 times more likely to reach higer grades, and 0.47 tiems if comming from an institution different than ETH, UNI or UAS/UTE.
+
+
+How well the model predict, here the confusion matrix. We have a 26.1% miss-classification error with a 73.9% accuracy. 
+```{r}
+# Confusion Matrices 
+      pred<-predict(OvGrProMod,OvGrPropCombDF) # class prediction
+      (tab<- table(Prediction=pred,
+                   Observed=OvGrPropCombDF$OverallGrade))
+ # Miss Clasification Error  MCE
+      mce <- 1- sum(diag(tab))/sum(tab) #[1] 0.2612446
+      acc<-1-mce
+```
+
+
+
+### Regression to understand the relative importance of criteria
+
+```{r}
+# Visualization
+      
+      ggplot(external_regression_data, aes(x = OverallGrade, y = ProposalCombined, 
+                                           col=ApplicantTrack, pch=Gender)) +
+        geom_jitter(alpha = .5) +
+        facet_grid(InstType ~ Division, margins = TRUE) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+      
+# Simplify Overall grade      
+    external_regression_data$SimplifiedRanking <- ifelse(external_regression_data$OverallGrade < 4, 
+                                                         0, 1)
+    external_regression_data$SimplifiedRanking <- factor(external_regression_data$SimplifiedRanking)
+      
+# Rearrenge Data
+    OvGrCombDF<- external_regression_data[,c(17,2:4,6,8:15)]
+    OvGrCombDF$AmountRequested<-log(OvGrCombDF$AmountRequested)
+```
+
+
+```{r, echo=F, message=FALSE, warning=FALSE}
+OvGrCombFit <- glm(SimplifiedRanking ~ .+ Gender:Division+Gender:PercentFemale,
+                           data=OvGrCombDF, family="binomial")
+print(summary(OvGrCombFit)$call)
+
+```
+Coefficients estimates are:
+
+
+```{r, include=F}
+dummy.coef(OvGrCombFit)
+
+```
+
+With the corresponding Wald confidence intervals
+
+```{r}
+betas<-round(coef(OvGrCombFit),4)
+WCI<- round(confint.default(OvGrCombFit),4)
+prob<-round(exp(cbind(OR=betas, WCI)),4)
+      ones<- ifelse(prob[,2]<1&prob[,3]>1, 1,0) 
+      prob<-cbind(prob,`Is One in CI`=ones)
+      prob
+
+exp( 1.9347) #Scientific Relevance
+exp(2.3911) # Suitability
+```
+The confidence intervals for Applicant Track are uninformative. The most important criteria for the Overall Grade seems to be the Scientific Relevance and Suitability of the project.
+
+Diagnostic:
+```{r, echo=F}
+Model<-OvGrCombFit
+vif(Model) 
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+SimplifiedRanking<-external_regression_data$SimplifiedRanking
+
+plot(fvl, SimplifiedRanking, type="n", xlab="linear predictor",
+     ylab="Overall Grade", xlim=c(-2,6))
+points(fvl[SimplifiedRanking==0], SimplifiedRanking[SimplifiedRanking==0])
+points(fvl[SimplifiedRanking==1], SimplifiedRanking[SimplifiedRanking==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Simplified Grade vs. Linear Predictor")  
+```
+
+```{r, echo=F}
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+```
+The diagnostic plot look ok, and we get a pseudo -R2 of 82%, 
+
+```{r}
+1-Model$dev/Model$null  #` 77%
+(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))  # 82%
+
