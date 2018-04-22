@@ -61,7 +61,7 @@ prepare_data_internal_log_regression <- function(apps, internal) {
   
   # Extract columns from applications data
 
-  internal_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age",
+  internal_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age","Semester",
                                       "IsContinuation","PreviousRequest","InstType","AmountRequested")]
   
   # add later: ranking, track, project assessment
