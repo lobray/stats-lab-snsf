@@ -23,6 +23,8 @@ library(caTools)
 library(ROCR)
 library(pROC)
 library(car)
+rm(applications, external_reviews, referee_grades)
+rm(apps, internal_reviews, reviews)
 ```
 
 First of all, we clean our data and prepare them to be used for regression:
@@ -31,12 +33,17 @@ First of all, we clean our data and prepare them to be used for regression:
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
 ```
 
+```{r, include=F}
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+levels(internal_regression_data$Semester)
+```
+
 ### How well Internal Referee grades explain the final decision 
 
-In order to see how important is the Internal Reviews step, we fit a model using IsApproved as a response and the Internal Referees grades and some demographic information as predictors. We fitted the model on a training set (80% of the original data) and tested it on the remaining 20% to check the accuracy of our model. We got an accuracy of 89% which means that the internal grades as a relevant influence on the final decision of the board.
+In order to see how important is the Internal Reviews step, we fit a model using IsApproved as a response and the Internal Referees grades and some demographic information as predictors. We fitted the model on the original data and tested it again on the original data to check the accuracy of our model. We got an accuracy of 87% which means that the internal grades have a relevant influence on the final decision of the board.
 
 ```{r, echo=F}
-split_data <- function(data,Div="All",SplitRatio=0.8){
+split_data <- function(data,Div="All",SplitRatio=1){
   data<- data[,-1]
   if (Div == "All"){ 
     final.data<- data
@@ -62,7 +69,7 @@ data_for_model <- split_data(internal_regression_data)
 
 
 InternalReviewModel<- function(data,Div="All",
-                               SplitRatio=0.8, cutoff=0.5 ){ 
+                               SplitRatio=1, cutoff=0.5 ){ 
   
   Train <- data$Train.data
   Test <- data$Test.data
@@ -107,14 +114,14 @@ fit <- InternalReviewModel(data_for_model)
 fit
 ```
 
-Notice that Gender doesn't seem to be a relevant predictor, since its confidence interval contains zero, the same holds for Division and for the interaction between Division and Gender. There seems to be no gender bias in the internal decision.
+Notice that Gender doesn't seem to be a relevant predictor, since its confidence interval contains zero, the same holds for Division, Semester and for the interaction between Division and Gender. There seems to be no gender bias in the internal decision.
 
-Notice also that the fact that the proposed project is a continuation of a previous one seems to have a relevant effect on the final decision: if the project is a continuation, the log odds of being approved increases by 84.69%. Moreover, both the ApplicantTrack grade and the ProjectAssessment grade have a relevant influence on the outcome: if the Track grade increases by 1, the applications is 6.33 times more likely to be approved, keeping all other variables constant, and if the ProjectAssessment grade increases by 1, the application is 15.27 times more likely to be approved. This suggests that the relative importance of the ProjectAssessment is much bigger than the one of the ApplicantTrack.
+Notice also that the fact that the proposed project is a continuation of a previous one seems to have a relevant effect on the final decision: if the project is a continuation, the log odds of being approved increases by 89%. Moreover, both the ApplicantTrack grade and the ProjectAssessment grade have a relevant influence on the outcome: if the Track grade increases by 1, the applications is 4.79 times more likely to be approved, keeping all other variables constant, and if the ProjectAssessment grade increases by 1, the application is 13.86 times more likely to be approved. This suggests that the relative importance of the ProjectAssessment is much bigger than the one of the ApplicantTrack.
 
 ```{r, include=F}
-exp(6.135e-01)
-exp(1.846e+00)
-exp(2.726e+00)
+exp(6.381e-01) # continuation
+exp(1.566e+00) # applicant track
+exp(2.629e+00) # prject assessment
 ```
 
 ```{r, include=F}
@@ -189,7 +196,7 @@ lines(loess.smooth(xx, yy, family="gaussian"), col="red")
 abline(h=0, lty=3, col="grey")
 ```
 
-Proportion of deviance explained by our model:
+Proportion of deviance explained by our model is 52.14%, while the $R^2$ is 0.686.
 ```{r}
 1-Model$dev/Model$null
 (1-exp((Model$dev-Model$null)/nrow(Train)))/(1-exp(-Model$null/nrow(Train)))
@@ -206,7 +213,8 @@ internal_regression_data$SimplifiedApplicant <- ifelse(internal_regression_data$
 internal_regression_data$SimplifiedProject <- ifelse(internal_regression_data$ProjectAssessment < 4, 0, 1)
 
 ApplicantTrack_reg <- glm(SimplifiedApplicant ~ Gender+Division+PercentFemale+Age+
-                             IsContinuation+PreviousRequest+InstType+AmountRequested+
+                             IsContinuation+PreviousRequest+InstType+Semester+
+                            AmountRequested+
                             Gender:Division+Gender:PercentFemale-ProjectID, 
                            data=internal_regression_data, family="binomial")
 summary(ApplicantTrack_reg)
@@ -245,7 +253,7 @@ lines(loess.smooth(xx, yy, family="gaussian"), col="red")
 abline(h=0, lty=3, col="grey")
 ```
 
-We have evidence that this is not the right model also from the proportion of explained deviance, which is only 5%, as well as the $R^2$ which is 0.077.
+We have evidence that this is not the right model also from the proportion of explained deviance, which is only 5%, as well as the $R^2$ which is 0.08.
 ```{r}
 1-Model$dev/Model$null
 (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
@@ -254,7 +262,7 @@ We have evidence that this is not the right model also from the proportion of ex
 We repeated the same analysis for the ProjectAssessment variable. We report only the plots in order to show that also here there is some misspecification:
 
 ```{r, include=F}
-Project_reg <- glm(SimplifiedProject~ Gender+Division+PercentFemale+Age+
+Project_reg <- glm(SimplifiedProject~ Gender+Division+PercentFemale+Age+Semester+
                              IsContinuation+PreviousRequest+InstType+AmountRequested+
                             Gender:Division+Gender:PercentFemale-ProjectID, 
                            data=internal_regression_data, family="binomial")
@@ -361,7 +369,7 @@ pchisq(1.237963, fit7$edf-fit5$edf, lower=FALSE)
 ```
 
 ```{r,echo=F}
-Model <- polr(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+
+Model <- polr(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+Semester+
                   log(AmountRequested)+PercentFemale+ApplicantTrack,
                   method="logistic", data=internal_regression_data)
 summary(Model)
@@ -402,6 +410,7 @@ InternalMultiModel<- function(data=internal_regression_data, train=Train,
 (Model_fitted <- InternalMultiModel())
 ```
 
+Accuracy is around 40%.
 
 ### Multinomial Regression of ApplicantTrack on demographic variables
 
@@ -424,7 +433,7 @@ summary(fit)
 Once we fitted the first model, we proceed comparing hierarchical models using the difference in deviance and we find our "optimal" model:
 
 ```{r,echo=F}
-Model <- polr(ApplicantTrack ~ Gender + Division + InstType + IsContinuation + 
+Model <- polr(ApplicantTrack ~ Gender + Division + InstType + IsContinuation + Semester+
                 log(AmountRequested)+PercentFemale+Gender:Division+ProjectAssessment, 
                 method="logistic",data=internal_regression_data)
 summary(Model)
@@ -465,7 +474,7 @@ InternalMultiModel<- function(data=internal_regression_data, train=Train,
 (Model_fitted <- InternalMultiModel())
 ```
 
-The accuracy is higher than before: it's around 60%. So apparently the ApplicantTrack grade depends more on the demographic data.
+The accuracy is higher than before: it's around 50%. So apparently the ApplicantTrack grade depends more on the demographic data.
 
 ### Regression to understand the relative importance of criteria
 
