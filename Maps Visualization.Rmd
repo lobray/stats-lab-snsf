@@ -1,0 +1,160 @@
+---
+title: "Maps visualization"
+author: "Chiara Gilardi"
+date: "22 aprile 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=F, warning=F, message=F}
+setwd("~/StatLab")
+load("snsf_data.RData")
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+library(rworldmap)
+library(countrycode)
+```
+
+### Reviewers number per country 
+
+```{r}
+tab <- table(final.external$ReviewerCountry)
+tab <- data.frame(tab)
+countries <- tab[,1]
+
+country_codes <- countrycode(countries, "country.name", "iso3c")
+DF <- data.frame(country = country_codes,Reviewers_number = tab[,2])
+Map <- joinCountryData2Map(DF, joinCode = "ISO3",nameJoinColumn = "country")
+
+mapCountryData(Map, nameColumnToPlot="Reviewers_number", catMethod = "logFixedWidth",
+               missingCountryCol = gray(.8), mapTitle = "Number of Reviewers per Country")
+```
+
+
+### Applications per Country
+
+```{r}
+tab <- table(final.apps$Nationality)
+tab <- data.frame(tab)
+
+country_codes <- countrycode(tab[,1], "iso2c", "iso3c")
+
+DF <- data.frame(country = country_codes,Applications = tab[,2])
+Map <- joinCountryData2Map(DF, joinCode = "ISO3",nameJoinColumn = "country")
+
+mapCountryData(Map, nameColumnToPlot="Applications", catMethod = "logFixedWidth",
+      missingCountryCol = gray(.8), mapTitle = "Number of Applications per Country")
+```
+
+### Average Overallgrade and Ranking per country
+
+I used the board_data because it includes both OverallGrade and Ranking. I just modified the prepare_data_board function to include Nationality in the output dataset.
+
+```{r, echo=F}
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+rm(applications, external_reviews, referee_grades)
+rm(apps, internal_reviews, reviews)
+
+# Get board_data using Leslie's function:
+prepare_data_board_log_regression <- function(apps, internal, external) {
+  
+  # Extract columns from applications data
+  board_regression_data <- final.apps[,c("IsApproved", "ProjectID", "Gender","Nationality", 
+                                         "Division", "Age", "AmountRequested")]
+  
+  # Calculate average ratings for internal and external reviews
+  average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
+  average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
+  
+  # Merge with external reviews & referee data
+  board_regression_data <- merge(board_regression_data, average_internal_ratings, by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, average_ratings, by = "ProjectID")
+  board_regression_data$Ranking <- as.factor(board_regression_data$Ranking)
+  board_regression_data$OverallGrade <- as.factor(board_regression_data$OverallGrade)
+  
+  # Select Division
+  board_div<- subset(board_regression_data,Division=="Div 1", select = -Division)
+  
+}
+
+board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
+```
+
+```{r}
+# Compute the averages per country (I just modified the average function):
+
+calculate_average_country <- function(data) {
+  # data <- board_data
+  # Revalue factors on a 1:6 scale and set the variable as numeric for ApplicantTrack, 
+  # ProjectAssessment and Ranking
+  
+  #data$ApplicantTrack <- revalue(data$ApplicantTrack, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
+  data$OverallGrade <- as.numeric(data$OverallGrade)
+  
+  #data$Ranking <- revalue(data$Ranking, c("D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6))
+  data$Ranking <- as.numeric(data$Ranking)
+  
+  # Create a vector of unique Nationalities
+  nation <- unique(data$Nationality)
+ 
+  # Create matrix to store the data
+  average_review_matrix <- matrix(0, nrow=length(unique(data$Nationality)), ncol=3)
+  
+  j <- 1
+  for (i in nation) {
+    
+    # Count number of reviewers per project ID
+    number_reviewers <- dim(data[which(data$Nationality == i),])[1] 
+    
+    # Input the project id into the matrix
+    average_review_matrix[j,1] <- i 
+    
+    # Get a vector of just the vote for each variable
+    reviewer_vote_per_nation_OverallGrade <- data[which(data$Nationality == i),]$OverallGrade
+    reviewer_vote_per_nation_Ranking <- data[which(data$Nationality == i),]$Ranking
+    
+    # Average grade
+    average_OverallGrade <- round(mean(reviewer_vote_per_nation_OverallGrade, na.rm = TRUE),0)
+    average_Ranking <- round(mean(reviewer_vote_per_nation_Ranking, na.rm = TRUE),0)
+    
+    # Put average into the matrix and turn into factors
+    average_review_matrix[j,2] <- average_OverallGrade
+    average_review_matrix[j,3] <- average_Ranking
+    
+    # Increment j
+    j <- j+1
+  }
+  
+  colnames(average_review_matrix)<- c("country", "OverallGrade", "Ranking")
+  return(as.data.frame(average_review_matrix))
+}
+```
+
+#### OverallGrade
+
+```{r}
+DF<- calculate_average_country(board_data)
+countries <- DF$country
+country_codes <- countrycode(countries, "iso2c", "iso3c")
+
+DFrame <- data.frame(country = country_codes,OverallGrade = DF$OverallGrade)
+Map <- joinCountryData2Map(DFrame, joinCode = "ISO3",nameJoinColumn = "country")
+
+mapCountryData(Map, nameColumnToPlot="OverallGrade", catMethod = "categorical",
+               missingCountryCol = gray(.8), mapTitle = "OverallGrade average per Country")
+```
+
+#### Ranking
+
+```{r}
+DFrame2 <- data.frame(country = country_codes,Ranking = DF$Ranking)
+Map2 <- joinCountryData2Map(DFrame2, joinCode = "ISO3",nameJoinColumn = "country")
+
+mapCountryData(Map2, nameColumnToPlot="Ranking", catMethod = "categorical",
+               missingCountryCol = gray(.8), mapTitle = "Ranking average per Country")
+```
+
