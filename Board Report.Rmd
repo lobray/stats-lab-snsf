@@ -57,6 +57,11 @@ In checking for correlation among coefficients, we only don't see any alarming v
 (vif(board_log_regression))
 ```
 
+Check VariableImportance. We see that Ranking is orders of magnitude more impactful than any of the other variables.
+```{r}
+(board_variable_importance <- varImp(board_log_regression))
+
+```
 
 Check diagnostics: residuals:
 ```{r}
