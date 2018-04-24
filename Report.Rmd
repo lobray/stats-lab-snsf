@@ -30,6 +30,12 @@ library(gridExtra)
 
 
 ## Introduction
+The Swiss National Science Foundation (SNF) is a research funding agency which disseminates yearlt, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three datasets provided by SNF, cointaing information on the applications for funding received in 2016, the corresponding and the scores given by both internal and external evaluators. 
+The analysis performed for SNF had a two-fold aim, corresponding to the following two research questions:
+1) Is gender bias occurring at any stage of the SNSF evaluation process? Is the gender of the main applicant influencing the rating of the application?
+2) To what extent the different steps of the evaluation and the different criteria determine the final funding decision?
+The SNSF evaluation procedure is indeed a multi-step process (involving external reviewers, internal referees, and an internal board) which takes into consideration both the track record of the applicant and the quality of the project (see Appendinx for a more detailed description of the evaluation procedure).
+Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown that female applicants' projects get higher score when the application is blinded. Moreover,  female applicants receive usually higher grades for projects and lower grades for track record. Hence, after investigating the gender dimension to identify possible biases in the evaluation procedure, the focus of the analysis will be the relative importance of of the criteria for funding (applicant's track record vs. quality of the proposal) and, also, of each step of the evaluation procedure (which opinion is more likely to determine the final decision – the external referee's or the board's?). Possible interactions between the gender dimension and the second research question will also be investigated (for instance, by taking into account also the gender of evaluator or the percentage of female referees).
 
 ## Data Description
 
