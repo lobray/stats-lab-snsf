@@ -12,9 +12,9 @@ output:
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
 ```
 ```{r Load Functions and Data }
-
+setwd()
 # load("SNFS Data/snsf_data.RData")
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+# load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 

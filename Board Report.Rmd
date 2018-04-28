@@ -17,7 +17,7 @@ library(ROCR)
 library(pROC)
 library(car)
 library(caret)
-
+library(glmnet)
 
 ### Initialize data
 
@@ -39,9 +39,9 @@ Prepare the data and fit the full model:
 board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
 
 
-
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + AmountRequested + 
                               Ranking + OverallGrade + Gender:Division, family="binomial", data = board_data)
+
 
 ```
 
@@ -57,11 +57,69 @@ In checking for correlation among coefficients, we only don't see any alarming v
 (vif(board_log_regression))
 ```
 
+
 Check VariableImportance. We see that Ranking is orders of magnitude more impactful than any of the other variables.
+
+First, calculate Pseudo R^2, create a function:
+
 ```{r}
-(board_variable_importance <- varImp(board_log_regression))
+# NOTE TO LESLIE: confirm pseudo r^2 metric
+
+calc_pseudo_r <- function(log_regression_object) {
+  round((log_regression_object$null.deviance - log_regression_object$deviance) /
+          (log_regression_object$df.null + log_regression_object$null.deviance - log_regression_object$deviance),4)
+
+}
+
+# Check pseudo r for model: 
+calc_pseudo_r(board_log_regression)
+```
+
+
+```{r}
+## NEED TO UPDATE TO USE STANDARDIZED VARIABLES. BUT, WHAT DOES A STANDARDIZED BINARY VARIABLE EVEN MEAN? CHECK IF USEMODEL=F
+# IS SUFFICIENT
+(board_variable_importance <- varImp(board_log_regression, useModel=FALSE))
+(board_variable_importance <- varImp(board_log_regression, nonpara=TRUE))
+
+
 
 ```
+
+Alternative Method for seeing variable importance: For each predictor, permute the values. See difference in fit.
+QUESTION: How can we assess the interactions? Since we can only permute the explanatory variablse that aren't interactions? Or that doesn't really matter since the end goal is the item (Gender) and not the specific interaction of Gender+Division?
+
+```{r permute data }
+
+predictors <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "AmountRequested", 
+                "Ranking", "OverallGrade")
+
+# Function to permute values
+permute_values <- function(data_vector) {
+  n <- length(data_vector)
+  permuted_vector <- sample(data_vector, n, replace=F)
+}
+
+
+# Function to calculate variable importance via permutation
+calc_variable_importance <- function(predictors = predictors, data = board_data, regression_object) {
+  variable_imp_matrix <- cbind(precitors, rep(0, length(predictors)))
+  base_pseudo_r <- calc_pseudo_r(regression_object)
+  
+  for (i in predictors) {
+    permuted_predictor <- permute_values(board_data[,predictor[i]])
+    permuted_board_data <- board_data
+    permuted_board_data[,predictor[i]] <- permuted_predictor
+    
+    # calculate pseudo r squared
+    
+  } 
+}
+
+
+
+```
+
 
 Check diagnostics: residuals:
 ```{r}
@@ -157,7 +215,7 @@ assess_board_model<- function(data=board_data, Div="All",
 
 board.all <- assess_board_model(data=board_data, Div="All",
                         SplitRatio=1,cutoff=0.5)
-
+board.all$Accuracy
 
 ```
 
