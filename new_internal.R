@@ -13,13 +13,14 @@ library(car)
 library(effects)
 library(MASS)
 
+
+#######################################################
+### Logistic regression IsApproved (NUMERIC grades) ###
+#######################################################
+
 # Prepare data
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-
-######################################
-### Logistic regression IsApproved ###
-######################################
 
 # Scale data before fitting the model to get standardized coefficients
 data <- internal_regression_data
@@ -98,6 +99,101 @@ pseudoR_2 <- (1-exp((Model_2$dev-Model_2$null)/nrow(data)))/(1-exp(-Model_2$null
 pseudoR_2  # 0.6817
 
 
+
+
+
+
+#######################################################
+### Logistic regression IsApproved (ORDERED grades) ###
+#######################################################
+
+# Prepare data
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+
+# Consider grades as factors
+data <- internal_regression_data
+data$ApplicantTrack <- ifelse(data$ApplicantTrack<4,3,data$ApplicantTrack)
+data$ApplicantTrack <- as.ordered(factor(data$ApplicantTrack))
+data$ProjectAssessment <- ifelse(data$ProjectAssessment<4,3,data$ProjectAssessment)
+data$ProjectAssessment <- as.ordered(factor(data$ProjectAssessment))
+
+Model2 <- glm(IsApproved ~. -ProjectID-Ranking+ Age:ApplicantTrack+Gender:Division,
+             data=data, family="binomial")
+summary(Model)
+
+# Confidence Intervals
+confint(Model)
+
+# Diagnostic plots
+fvl <- predict(Model, type="link")
+fpr <- predict(Model, type="response")
+IsApproved<-internal_regression_data$IsApproved
+
+plot(fvl, IsApproved, type="n", xlab="linear predictor", ylab="Approval Result")
+points(fvl[IsApproved==0], IsApproved[IsApproved==0])
+points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")
+
+# It doesn't look very good, because those observations that are wrongly predicted:
+#id<-which(fvl<(-1) & IsApproved==1)    # Approved with ProjectAssessment=3
+#View(data[id,])
+
+#id<-which(fvl>2 & IsApproved==0)       # NotApproved with ProjectAssessment 5 or 6
+#View(data[id,])
+
+xx <- fvl
+yy <- residuals(Model, type="deviance")
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+# Looks pretty good
+
+# Goodness of fit: pseudo-R2
+pseudoR <- (1-exp((Model$dev-Model$null)/nrow(data)))/(1-exp(-Model$null/nrow(data)))
+pseudoR
+# 0.69
+
+# Visualization with effects package
+plot(Effect("Gender", mod=Model))
+plot(Effect(c("ApplicantTrack"), mod=Model))
+plot(Effect("ProjectAssessment", mod=Model))
+plot(Effect(c("Gender","ApplicantTrack"), mod=Model))
+plot(Effect(c("Gender","ProjectAssessment"), mod=Model))
+plot(Effect("AmountRequested", mod=Model))
+plot(Effect("Division", mod=Model))
+plot(Effect("Age",mod=Model))
+plot(Effect("InstType", mod=Model))
+plot(Effect("PercentFemale",mod=Model))
+plot(Effect("IsContinuation",mod=Model))
+plot(Effect("PreviousRequest",mod=Model))
+plot(Effect("Semester",mod=Model))
+
+# Relative importance: shuffle columns and see how poorer is the fit
+data2 <- data
+data2$ProjectAssessment <- sample(data$ProjectAssessment,size=nrow(data2), replace=F)
+
+Model_1 <- glm(IsApproved ~. -ProjectID-Ranking+ Age:ApplicantTrack+Gender:Division+ApplicantTrack:Gender,
+               data=data2, family="binomial")
+summary(Model_1)
+pseudoR_1 <- (1-exp((Model_1$dev-Model_1$null)/nrow(data)))/(1-exp(-Model_1$null/nrow(data)))
+pseudoR_1
+# 0.3092
+
+data3 <- data
+data3$ApplicantTrack <- sample(data$ApplicantTrack,size=nrow(data2), replace=F)
+
+Model_2 <- glm(IsApproved ~. -ProjectID-Ranking+ Age:ApplicantTrack+Gender:Division+ApplicantTrack:Gender,
+               data=data3, family="binomial")
+summary(Model_2)
+pseudoR_2 <- (1-exp((Model_2$dev-Model_2$null)/nrow(data)))/(1-exp(-Model_2$null/nrow(data)))
+pseudoR_2  # 0.6835
+
+
+
+
+
 ################################################
 ### Ordinal regression for ProjectAssessment ###
 ################################################
@@ -108,7 +204,9 @@ internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 
 # Response variable should be ordered
-internal_regression_data$ProjectAssessment <- as.ordered(internal_regression_data$ProjectAssessment)
+data <- internal_regression_data
+#data$ProjectAssessment <- ifelse(data$ProjectAssessment<4,3,data$ProjectAssessment)
+data$ProjectAssessment <- as.ordered(data$ProjectAssessment)
 
 # I remove variables that were not significant in order to reduce the 
 # condition number of the Hessian that otherwise was even higher (e+06)
@@ -116,7 +214,7 @@ internal_regression_data$ProjectAssessment <- as.ordered(internal_regression_dat
 
 OrdinalModel <- clm(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+
                       log(AmountRequested)+PercentFemale,
-                      data=internal_regression_data)
+                      data=data)
 summary(OrdinalModel)
 
 drop1(OrdinalModel, test = "Chi")
@@ -137,6 +235,8 @@ plot(Effect("InstType", mod=OrdinalModel))
 plot(Effect("PercentFemale",mod=OrdinalModel))
 plot(Effect("IsContinuation",mod=OrdinalModel))
 
+
+
 #############################################
 ### Ordinal regression for ApplicantTrack ###
 #############################################
@@ -148,7 +248,9 @@ internal_regression_data$Semester <- revalue(internal_regression_data$Semester, 
 library(ordinal)
 
 # Response variable should be ordered
-internal_regression_data$ApplicantTrack <- as.ordered(internal_regression_data$ApplicantTrack)
+data <- internal_regression_data
+#data$ApplicantTrack <- ifelse(data$ApplicantTrack < 4, 3, data$ApplicantTrack)
+data$ApplicantTrack <- as.ordered(data$ApplicantTrack)
 
 # I remove variables that were not significant in order to reduce the 
 # condition number of the Hessian that otherwise was even higher (e+06)
@@ -156,7 +258,7 @@ internal_regression_data$ApplicantTrack <- as.ordered(internal_regression_data$A
 
 OrdinalModel2 <- clm(ApplicantTrack ~ Gender+Division+InstType+IsContinuation+
                        Gender:Division+log(AmountRequested)+PercentFemale,
-                    data=internal_regression_data)
+                    data=data)
 summary(OrdinalModel2)
 
 drop1(OrdinalModel2, test = "Chi")
@@ -175,6 +277,9 @@ plot(Effect("AmountRequested", mod=OrdinalModel2))
 plot(Effect("Division", mod=OrdinalModel2))
 plot(Effect("InstType", mod=OrdinalModel2))
 plot(Effect("IsContinuation",mod=OrdinalModel2))
+
+
+
 
 ###############################################################
 ### Ordinal regression for ProjectAssessment using 3 levels ###
@@ -256,21 +361,28 @@ plot(Effect("Division", mod=OrdinalModel_b))
 plot(Effect("InstType", mod=OrdinalModel_b))
 plot(Effect("IsContinuation",mod=OrdinalModel_b))
 
-#######################################
-### Logistic regression for Ranking ###
-#######################################
+
+
+
+######################################################
+### Logistic regression for Ranking (with FACTORS) ###
+######################################################
 
 # Prepare data
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 
 data <- internal_regression_data
+data$ApplicantTrack <- ifelse(data$ApplicantTrack<4,3,data$ApplicantTrack)
+data$ApplicantTrack <- as.ordered(factor(data$ApplicantTrack))
+data$ProjectAssessment <- ifelse(data$ProjectAssessment<4,3,data$ProjectAssessment)
+data$ProjectAssessment <- as.ordered(factor(data$ProjectAssessment))
+
 data$SimplifiedRanking <- ifelse(data$Ranking < 4, 0, 1)
 
 data$SimplifiedRanking <- factor(data$SimplifiedRanking)
 leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
-                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType+
-                             Gender:ApplicantTrack,
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType,
                            data=data, family="binomial")
 summary(leslie_reg_proposal)
 
@@ -282,15 +394,145 @@ confint(leslie_reg_proposal, type = "Wald")
 round(exp(leslie_reg_proposal$coef), 3)
 round(exp(confint(leslie_reg_proposal, type = "Wald")), 1)
 
-# Effect plots
+# Diagnostic plots
+fvl <- predict(leslie_reg_proposal, type="link")
+fpr <- predict(leslie_reg_proposal, type="response")
+IsApproved<-internal_regression_data$IsApproved
+
+plot(fvl, IsApproved, type="n", xlab="linear predictor", ylab="Approval Result")
+points(fvl[IsApproved==0], IsApproved[IsApproved==0])
+points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")
+# This looks really bad
+
+xx <- fvl
+yy <- residuals(leslie_reg_proposal, type="deviance")
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+# This looks bad too
+
+# Goodness of fit: pseudo-R2
+pseudoR <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR
+# 0.8255619
+
+# Effect plots: useless in this case...
 plot(Effect("Gender", mod=leslie_reg_proposal))
 plot(Effect("AmountRequested", mod=leslie_reg_proposal))
 plot(Effect("Division", mod=leslie_reg_proposal))
 plot(Effect("InstType", mod=leslie_reg_proposal))
 
-#####################################################
-### Ordinal regression for Ranking using 3 levels ###
-#####################################################
+# Relative importance: shuffle columns and see how poorer is the fit
+data2 <- data
+data2$ProjectAssessment <- sample(data2$ProjectAssessment,size=nrow(data2), replace=F)
+
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType+
+                             Gender:ApplicantTrack,
+                           data=data2, family="binomial")
+summary(leslie_reg_proposal)
+pseudoR_1 <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR_1
+# 0.31197
+
+data3 <- data
+data3$ApplicantTrack <- sample(data3$ApplicantTrack,size=nrow(data2), replace=F)
+
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType+
+                             Gender:ApplicantTrack,
+                           data=data3, family="binomial")
+summary(leslie_reg_proposal)
+pseudoR_2 <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR_2  # 0.8232
+
+
+
+
+#######################################################
+### Logistic regression for Ranking (using NUMERIC) ###
+#######################################################
+
+# Prepare data
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+
+data <- internal_regression_data
+data$SimplifiedRanking <- ifelse(data$Ranking < 4, 0, 1)
+
+data$SimplifiedRanking <- factor(data$SimplifiedRanking)
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType,
+                           data=data, family="binomial")
+summary(leslie_reg_proposal)
+
+
+drop1(leslie_reg_proposal, test = "Chi")
+confint(leslie_reg_proposal, type = "Wald")
+
+# Odds ratio and confidence intervals for Odds Ratio
+# round(exp(leslie_reg_proposal$coef), 3)
+# round(exp(confint(leslie_reg_proposal, type = "Wald")), 1)
+
+# Diagnostic plots
+fvl <- predict(leslie_reg_proposal, type="link")
+fpr <- predict(leslie_reg_proposal, type="response")
+IsApproved<-internal_regression_data$IsApproved
+
+plot(fvl, IsApproved, type="n", xlab="linear predictor", ylab="Approval Result")
+points(fvl[IsApproved==0], IsApproved[IsApproved==0])
+points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
+lines(sort(fvl+1), sort(fpr+1), lty=3)
+title("Result vs. Linear Predictor")
+
+xx <- fvl
+yy <- residuals(leslie_reg_proposal, type="deviance")
+plot(xx, yy, pch=20, main="Tukey-Anscombe Plot")
+lines(loess.smooth(xx, yy, family="gaussian"), col="red")
+abline(h=0, lty=3, col="grey")
+
+# Goodness of fit: pseudo-R2
+pseudoR <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR
+
+# Effect plots: these make sense...
+plot(Effect("Gender", mod=leslie_reg_proposal))
+plot(Effect("AmountRequested", mod=leslie_reg_proposal))
+plot(Effect("Division", mod=leslie_reg_proposal))
+plot(Effect("InstType", mod=leslie_reg_proposal))
+
+# Relative importance: shuffle columns and see how poorer is the fit
+data2 <- data
+data2$ProjectAssessment <- sample(data2$ProjectAssessment,size=nrow(data2), replace=F)
+
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType+
+                             Gender:ApplicantTrack,
+                           data=data2, family="binomial")
+summary(leslie_reg_proposal)
+pseudoR_1 <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR_1
+# 0.31197
+
+data3 <- data
+data3$ApplicantTrack <- sample(data3$ApplicantTrack,size=nrow(data2), replace=F)
+
+leslie_reg_proposal <- glm(SimplifiedRanking ~ Age + Gender + Division + log(AmountRequested)+
+                             ProjectAssessment + ApplicantTrack+ PercentFemale+InstType+
+                             Gender:ApplicantTrack,
+                           data=data3, family="binomial")
+summary(leslie_reg_proposal)
+pseudoR_2 <- (1-exp((leslie_reg_proposal$dev-leslie_reg_proposal$null)/nrow(data)))/(1-exp(-leslie_reg_proposal$null/nrow(data)))
+pseudoR_2  # 0.8232
+
+
+
+
+###############################################################
+### Ordinal regression for Ranking using 3 levels (NUMERIC) ###
+###############################################################
 
 # Change levels of Ranking:
 # 1 if Ranking is 1 or 2
@@ -329,3 +571,6 @@ plot(Effect("Gender", mod=OrdinalModel_b))
 plot(Effect("ApplicantTrack",mod=OrdinalModel_b))
 plot(Effect("ProjectAssessment", mod=OrdinalModel_b))
 plot(Effect("IsContinuation",mod=OrdinalModel_b))
+
+
+
