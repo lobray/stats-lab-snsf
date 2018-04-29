@@ -572,5 +572,36 @@ plot(Effect("ApplicantTrack",mod=OrdinalModel_b))
 plot(Effect("ProjectAssessment", mod=OrdinalModel_b))
 plot(Effect("IsContinuation",mod=OrdinalModel_b))
 
+########################################################
+### DIFFERENCE IN EVALUATION BETWEEN MALE AND FEMALE ###
+########################################################
+
+r.tab<-prop.table(table(internal_reviews$RefereeGender,internal_reviews$Ranking),1)
+#mycol<-colorRampPalette(c("red", "green"))(6)
+barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+        legend.text = c("Female", "Male"),
+        main="Difference on how Female and Male grade")
+
+# Also in internal referees women seem to be strichter than men (Ranking)
+
+r.tab<-prop.table(table(internal_reviews$RefereeGender,internal_reviews$ApplicantTrack),1)
+#mycol<-colorRampPalette(c("red", "green"))(6)
+barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+        legend.text = c("Female", "Male"),
+        main="Difference on how Female and Male grade")
+
+# Women on average give less outstanding and excellent grades for ApplicantTrack
+
+r.tab<-prop.table(table(internal_reviews$RefereeGender,internal_reviews$ProjectAssessment),1)
+#mycol<-colorRampPalette(c("red", "green"))(6)
+barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+        legend.text = c("Female", "Male"),
+        main="Difference on how Female and Male grade")
+
+# Women on average give less outstanding and excellent grades for ProjectAssessment
+
+####################################
+### Linear-by-Linear association ###
+####################################
 
 
