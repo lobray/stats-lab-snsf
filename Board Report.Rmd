@@ -134,6 +134,8 @@ aa <- as.data.frame(calc_variable_importance(predictors=predictors, data=board_d
 ```
 In this step, for each explanatory variable, I randomly permuted the values for that variable, and refitted the logistic regression model. I then compared the pseudo R^2 metric with the initial pseudo R^2 metric computed in the original model. In the output matrix, you can see how much the pseudo R^2 changed when that variable was permuted. In this case, we see that permuting Ranking had the biggest impact on the pseudo R^2 - decreasing it by 0.16. The next biggest impact was overall grade, which decreased the pseudo R^2 0.003. From this, we can conclude that Ranking is the most important explanatory variable in predicting IsApproved.
 
+**QUESITON** Is my definition of pseudo R^2 okay? Make sure to be consistent across our work. 
+
 Check diagnostics: residuals:
 ```{r}
 plot(resid(board_log_regression, type="pearson")) 

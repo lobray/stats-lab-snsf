@@ -25,6 +25,8 @@ library(psy)
 library(psych)
 library(ggplot2)
 library(gridExtra)
+library(coin)
+
 
 ```
 
@@ -535,6 +537,7 @@ drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%
 ### Applications
 #### Is there evidence of gender bias?
 
+
 Apparently there is no association between gender and approval (generally + in each division)
 ```{r echo=F}
 library(vcd)
@@ -569,7 +572,8 @@ boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested p
 
 ### External Reviewers
 #### Is there evidence of gender bias?
-No, there is no evidence of gender bias for any criteria
+
+Need to fix everywhere since ordinal variables cannot be used in chi squared test.
 ```{r}
 par(mfrow=c(2,2))
 cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
