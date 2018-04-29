@@ -66,8 +66,8 @@ First, calculate Pseudo R^2, create a function:
 # NOTE TO LESLIE: confirm pseudo r^2 metric
 
 calc_pseudo_r <- function(log_regression_object) {
-  round((log_regression_object$null.deviance - log_regression_object$deviance) /
-          (log_regression_object$df.null + log_regression_object$null.deviance - log_regression_object$deviance),4)
+  (log_regression_object$null.deviance - log_regression_object$deviance) /
+          (log_regression_object$df.null + log_regression_object$null.deviance - log_regression_object$deviance)
 
 }
 
@@ -87,7 +87,8 @@ calc_pseudo_r(board_log_regression)
 ```
 
 Alternative Method for seeing variable importance: For each predictor, permute the values. See difference in fit.
-QUESTION: How can we assess the interactions? Since we can only permute the explanatory variablse that aren't interactions? Or that doesn't really matter since the end goal is the item (Gender) and not the specific interaction of Gender+Division?
+
+
 
 ```{r permute data }
 
@@ -103,23 +104,35 @@ permute_values <- function(data_vector) {
 
 # Function to calculate variable importance via permutation
 calc_variable_importance <- function(predictors = predictors, data = board_data, regression_object) {
-  variable_imp_matrix <- cbind(precitors, rep(0, length(predictors)))
+  variable_imp_matrix <- matrix(0, nrow=length(predictors), ncol=2)
+  variable_imp_matrix[,1] <- predictors
   base_pseudo_r <- calc_pseudo_r(regression_object)
   
   for (i in predictors) {
-    permuted_predictor <- permute_values(board_data[,predictor[i]])
-    permuted_board_data <- board_data
-    permuted_board_data[,predictor[i]] <- permuted_predictor
+    permuted_board_data <- data
+    permuted_predictor <- permute_values(permuted_board_data[,i])
+    
+    permuted_board_data[,i] <- permuted_predictor
+    
+    # run regression on permuted value
+    permuted_board_log_regression <- glm(permuted_board_data$IsApproved ~ Gender + Division + Age +
+                                           IsContinuation + InstType + AmountRequested +
+                                           Ranking + OverallGrade + Gender:Division, family="binomial", data = permuted_board_data)
+    
     
     # calculate pseudo r squared
-    
+    permuted_pseudo_r <- calc_pseudo_r(permuted_board_log_regression)
+    variable_imp_matrix[which(variable_imp_matrix[,1] == i),2] <- (permuted_pseudo_r - base_pseudo_r)
   } 
+  colnames(variable_imp_matrix) <- c("Variable", "Difference to Base Pseudo R^2")
+  return(variable_imp_matrix)
 }
 
 
+aa <- as.data.frame(calc_variable_importance(predictors=predictors, data=board_data, regression_object=board_log_regression))
 
 ```
-
+In this step, for each explanatory variable, I randomly permuted the values for that variable, and refitted the logistic regression model. I then compared the pseudo R^2 metric with the initial pseudo R^2 metric computed in the original model. In the output matrix, you can see how much the pseudo R^2 changed when that variable was permuted. In this case, we see that permuting Ranking had the biggest impact on the pseudo R^2 - decreasing it by 0.16. The next biggest impact was overall grade, which decreased the pseudo R^2 0.003. From this, we can conclude that Ranking is the most important explanatory variable in predicting IsApproved.
 
 Check diagnostics: residuals:
 ```{r}
