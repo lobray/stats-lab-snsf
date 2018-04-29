@@ -576,6 +576,10 @@ boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested p
 Need to fix everywhere since ordinal variables cannot be used in chi squared test.
 ```{r}
 par(mfrow=c(2,2))
+?independence_test
+test <- independence_test(Gender ~ OverallGrade, data=external_regression_data)
+test2 <- lbl_test(Gender ~ OverallGrade, data=external_regression_data)
+
 cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
 cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
 cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
