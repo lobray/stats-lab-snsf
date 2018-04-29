@@ -547,12 +547,14 @@ cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
 ```
 
 There are more women then men applying for Division 1 and the opposite for Division 2.
-Also, if the project is a continuation it is more likely to be approved
+Also, if the project is a continuation it is more likely to be approved. It seems that there is no time effect: proposals are equally likely to be approved in April and October. Apparently proposals from ETH are more likely to be approved, especially than those from UAS/UTE. 
 
 ```{r echo=F}
 par(mfrow=c(1,2))
 cotabplot(~ Gender + Division, data=final.apps, shade=T)
 cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
+cotabplot(~ IsApproved + Semester, data=final.apps, shade=TRUE)
+cotabplot(~ IsApproved + InstType, data=final.apps, shade=TRUE)
 ```
 
 #### How does the Amount requested relates to Amount granted?
@@ -573,16 +575,7 @@ boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested p
 ### External Reviewers
 #### Is there evidence of gender bias?
 
-Need to fix everywhere since ordinal variables cannot be used in chi squared test.
-```{r}
-par(mfrow=c(2,2))
-cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
-cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
-cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
-cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
-```
-
-Even when combining Variables for project assessment, using a simplified version with 0 and 1, it dosen't seems that there is a bias
+Even when combining Variables for Project Assessment, Applicant Track and the Overall Grade using a simplified version with 0 and 1, it dosen't seems that there is a gender bias in the external evaluation.
 
 ```{r echo=F}
 par(mfrow=c(2,2))
@@ -601,9 +594,15 @@ cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
 ### Internal Reviewers
 #### Is there evidence of gender bias?
 
-Here it seem that is more likely to get an high grade for the TrackRecord if the applicant is male!
-```{r}
+We repeated the same analysis for the internal evaluation: it seems that it is more likely to get a low grade (from 1 to 3) for the both Track Record and Project Assessment if the applicant is female! There same holds for the Ranking.
+
+```{r, echo=FALSE}
 par(mfrow=c(2,2))
+
+internal_regression_data$Ranking <- ifelse(internal_regression_data$Ranking < 4, 0, 1)
+internal_regression_data$ProjectAssessment <- ifelse(internal_regression_data$ProjectAssessment < 4, 0, 1)
+internal_regression_data$ApplicantTrack <- ifelse(internal_regression_data$ApplicantTrack < 4, 0, 1)
+
 cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
 cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
 cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
