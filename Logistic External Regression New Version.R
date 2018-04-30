@@ -10,6 +10,7 @@ source("Data for Regression.R")
 library(biostatUZH)
 library(psy)
 library(psych)
+library(caret)
 
 rm(applications,reviews,referee_grades, test)
 
@@ -22,11 +23,13 @@ summary(external_regression_data)
 
 # Logistic Regression -----------------------------------------------------
 
+
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
 data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested))
 
 barplot(table(data$IsApproved,data$ApplicantTrack),col=c("red","green"), beside=TRUE,
         main = "Applicant Track Grade vs. Approval")
+
 legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
 
 # As we define the grades as ordered factors, contrast.poly() is used as default to compute the
@@ -49,7 +52,7 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
     # Residual plot
       plot(fvl, IsApproved, type="n", xlab="linear predictor",
            ylab="Approval Result")
-      points(fvl[IsApproved==0], IsApproved[IsApproved==0], add=TRUE)
+      points(fvl[IsApproved==0], IsApproved[IsApproved==0])
       points(fvl[IsApproved==1], IsApproved[IsApproved==1], col="red")
       lines(sort(fvl+1), sort(pred+1), lty=3)
       title("Result vs. Linear Predictor")  
@@ -61,7 +64,7 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
       
         kappa.matrix <- as.matrix(table(data$IsApproved,pred>=0.5))
         kappa <- cohen.kappa(kappa.matrix, w=linear.weights)  # 0.5
-      
+        kappa
     # Pseudos-R^2
         # 1
           (PsR21<-1-fit$dev/fit$null)  #[1] 0.2730928
@@ -112,7 +115,7 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
                    family="binomial")
         summary(Model)
         # We have no NA's now, and the variance are reasonable
-        # The problem seems to be fit
+        # The problem seems to be fixed
         
         # Model Diagnostic
         # Predicted values
@@ -189,8 +192,10 @@ library(ggplot2)
   
   # Effect per Gender, on Is Approved by Division
     plot(eff.fit[[11]])
+  
   # Effect of gender in approval, per division
     plot(predictorEffects(Model, ~ Gender))
+    # Lines are almost horizotal, an indication of no gender effect. Good news!!
   # All effects at once
     plot(eff.fit)
 
@@ -287,16 +292,19 @@ GetROC_AUC = function(probs, true_Y){
     featuresMeanR2 <- c(featuresMeanR2, mean(featureR2 < refR2))
   }  
   
-  # I changed the following line because it was using featureMeanAUC again
-  # that's why you got the same result with both methods. Now they are very different..
-  # Any idea on which one is better?
   PseudoRShuffle <- data.frame('feature'=predictorNames, 'importance'=featuresMeanR2)
   PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
   print(PseudoRShuffle)
 
   # To compare both methods
-    Comp<- cbind(AUCShuffle,PseudoRShuffle)
-    Comp
-    # They give the same result
-    # Not anymore...
+    Comp<- cbind(AUC=AUCShuffle[,2],PseudoR2=PseudoRShuffle[,2])
+    row.names(Comp)<-AUCShuffle[,1]
+    
+    
+# Last approach for looking at the variable importance, using caret::varImp
+    library(caret)
+    C.varImp<- data.frame(varImp(Model))
+   
+    
+    
   
