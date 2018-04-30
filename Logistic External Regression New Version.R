@@ -287,11 +287,16 @@ GetROC_AUC = function(probs, true_Y){
     featuresMeanR2 <- c(featuresMeanR2, mean(featureR2 < refR2))
   }  
   
-  PseudoRShuffle <- data.frame('feature'=predictorNames, 'importance'=featuresMeanAUCs)
+  # I changed the following line because it was using featureMeanAUC again
+  # that's why you got the same result with both methods. Now they are very different..
+  # Any idea on which one is better?
+  PseudoRShuffle <- data.frame('feature'=predictorNames, 'importance'=featuresMeanR2)
   PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
   print(PseudoRShuffle)
 
   # To compare both methods
     Comp<- cbind(AUCShuffle,PseudoRShuffle)
+    Comp
     # They give the same result
+    # Not anymore...
   
