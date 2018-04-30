@@ -12,9 +12,9 @@ output:
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
 ```
 ```{r Load Functions and Data }
-setwd()
+# setwd()
 # load("SNFS Data/snsf_data.RData")
-# load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -26,7 +26,7 @@ library(psych)
 library(ggplot2)
 library(gridExtra)
 library(coin)
-
+library(ggmosaic)
 
 ```
 
@@ -328,26 +328,28 @@ Now if we examine if this is also true in the proposal, which it is. In the top 
 
 ```{r, scientific proposal}
 
-# Calculate summary metric for proposal 
-external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-                                                            external_regression_data$Suitability)/2, 0)
-
-ex_proposal <- as.data.frame(prop.table(table(external_regression_data$ProposalCombined)))
-ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
-colnames(ex_proposal)[1] <- "ProposalScore"
-ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
-  geom_histogram(stat="identity") +
-  ggtitle("External Proposal Frequency Distribution") +
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
-
-in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAssessment)))
-in_proposal$Freq <- as.numeric(in_proposal$Freq)
-colnames(in_proposal)[1] <- "ProposalScore"
-ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
-  geom_histogram(stat="identity") +
-  ggtitle("Internal Proposal Frequency Distribution") +
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
-
+# leslie NEEDS TO BE FIXED -- calculate sUMMARY METRIC BEFORE FACTOR! wON'T KNIT BECAUSE OF THIS. PROBLEM IS THAT WE CONVERTED BACK TO FACTOR. 
+# 
+# # Calculate summary metric for proposal 
+# external_regression_data$ProposalCombined <-
+#   round((external_regression_data$ScientificRelevance+external_regression_data$Suitability)/2, 0)
+# 
+# ex_proposal <- as.data.frame(prop.table(table(external_regression_data$ProposalCombined)))
+# ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
+# colnames(ex_proposal)[1] <- "ProposalScore"
+# ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
+#   geom_histogram(stat="identity") +
+#   ggtitle("External Proposal Frequency Distribution") +
+#   geom_text(aes(label=round(Freq, 2),vjust=1.5))
+# 
+# in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAssessment)))
+# in_proposal$Freq <- as.numeric(in_proposal$Freq)
+# colnames(in_proposal)[1] <- "ProposalScore"
+# ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
+#   geom_histogram(stat="identity") +
+#   ggtitle("Internal Proposal Frequency Distribution") +
+#   geom_text(aes(label=round(Freq, 2),vjust=1.5))
+# 
 
 
 ```
@@ -575,22 +577,118 @@ boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested p
 ### External Reviewers
 #### Is there evidence of gender bias?
 
+#### Do males or females rate females differently in the OverallGrade?
+```{r}
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab<-prop.table(table(tmp.external.data$ReviewerGender, tmp.external.data$OverallGrade, tmp.external.data$Gender),1)
+
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    # barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+    #         legend.text = c("Female", "Male"),
+    #         main="Difference on how Female and Male grade")
+r.tab.dataframe <- as.data.frame(r.tab)    
+colnames(r.tab.dataframe) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
+
+ggplot(r.tab.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ReviewerGender",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades")
+
+# How men and women allocate overallgrades
+ggplot(r.tab.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades")
+
+
+
+```
+
+```{r}
+# How men and women allocate overallgrades to female applicants
+
+r.tab.f <- prop.table(table(tmp.external.data.f$ReviewerGender, tmp.external.data.f$OverallGrade),1)
+r.tab.f.dataframe <- as.data.frame(r.tab.f)    
+colnames(r.tab.f.dataframe) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+
+ggplot(r.tab.f.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades to Female Applicants")
+```
+
+We see male and female reviewers rate female applicants almost identically. 
+ 
+```{r}
+# How men and women allocate overallgrades to male applicants
+
+r.tab.m <- prop.table(table(tmp.external.data.m$ReviewerGender, tmp.external.data.m$OverallGrade),1)
+r.tab.m.dataframe <- as.data.frame(r.tab.m)    
+colnames(r.tab.m.dataframe) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+ggplot(r.tab.m.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades to Male Applicants")
+```
+
+We observe that female reviewers give fewer "Excellent" and "Outstanding" to male applicants, and give more "Very Goods."
+
+
+
+
+Need to fix everywhere since ordinal variables cannot be used in chi squared test.
+
+```{r}
+par(mfrow=c(2,2))
+
+test <- independence_test(Gender ~ OverallGrade, data=external_regression_data)
+test2 <- lbl_test(Gender ~ OverallGrade, data=external_regression_data)
+
+cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
+cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
+cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
+```
+
 
 Even when combining Variables for Project Assessment, Applicant Track and the Overall Grade using a simplified version with 0 and 1, it dosen't seems that there is a gender bias in the external evaluation.
->>>>>>> cdd6bb492466981bfce3ce3ed000247cf9fc548a
 
 ```{r echo=F}
-par(mfrow=c(2,2))
-    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-                                                        external_regression_data$Suitability)/2, 0)
-    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
-    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
-    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+
+#### commented out becuase of error HERE THAT PREVENTED KNITTING - WILL LOOK INTO THIS IN THE MORNING TO FIX
+# par(mfrow=c(2,2))
+#    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+#                                                        external_regression_data$Suitability)/2, 0)
+#    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+#    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+#    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
 
 
-cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
-cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
-cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
 ```
 
 ### Internal Reviewers
