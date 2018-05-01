@@ -1,0 +1,831 @@
+---
+title: "Graphic Exploration"
+author: "Leslie O'Bray"
+date: "May 1, 2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
+```
+```{r Load Functions and Data }
+
+# load("SNFS Data/snsf_data.RData")
+load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+
+# install.packages("biostatUZH", repos="http://R-Forge.R-project.org")
+
+library(biostatUZH)
+library(psy)
+library(psych)
+library(ggplot2)
+library(gridExtra)
+library(coin)
+library(ggmosaic)
+
+```
+
+## Exploratory Analysis: Mirrored bar plots
+
+```{r, echo=F}
+########################################################################################################################
+# Function to show mirrored bar plots of external criteria versus approved / not approved step
+########################################################################################################################
+plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot_title="Plot Title", title_size=8) {
+  table_data_frame <- as.data.frame(table(dataset[,variable1], dataset[,"IsApproved"]))
+  colnames(table_data_frame) <- c(variable1, variable2, "Frequency")
+  levels(table_data_frame[,variable1]) <- list("Outstanding"="6", "Excellent"="5", 
+                                                "Very Good"="4", "Good"="3", "Average"="2", "Poor"="1")
+  table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0] <- -table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0]
+  
+  ggplot(table_data_frame, aes_string(x=variable1, y="Frequency", fill=variable2)) + 
+    geom_bar(stat="identity", position="identity") + 
+    scale_y_continuous(breaks=seq(-100,100,by=50),labels=abs(seq(-100,100,by=50))) +
+    coord_flip() +
+    ggtitle(plot_title) + 
+    theme(plot.title = element_text(size = title_size))
+  
+}
+```
+
+### External Review Step: Relationship of the different grades on IsApproved
+
+#### OverallGrade and IsApproved 
+```{r, echo=F}
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+
+### Plot the overall effect, as well as by gender and then by division
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+#### ApplicantTrack and IsApproved 
+
+``` {r, echo=F}
+
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "ApplicantTrack", plot_title = "ApplicantTrack vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs.Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+
+#### ScientificProposal and IsApproved 
+
+``` {r, echo=F}
+
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+
+#### Suitability and IsApproved
+
+``` {r, echo=F}
+
+
+#### External datasets to use in mirror barplots
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=external_regression_data, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved; All Data")
+p2 <- plot_mirror_barplot(dataset=ex.f, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Female")
+p3 <- plot_mirror_barplot(dataset=ex.m, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Male")
+p4 <- plot_mirror_barplot(dataset=ex.div1, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div1")
+p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div2")
+p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "Suitability", plot_title = "External Suitability vs. IsApproved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+
+### Internal Review Step: Relationship of the different grades on IsApproved
+
+#### Ranking and IsApproved
+```{r, echo=F}
+
+#### internal datasets to use in mirror barplots
+internal_regression_data<-prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+
+### Plot the Ranking effect, as well as by gender and then by division
+
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "Ranking", plot_title = "Ranking vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "Ranking", plot_title = "Ranking vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+#### ApplicantTrack and IsApproved
+
+``` {r, echo=F}
+
+
+#### internal datasets to use in mirror barplots
+internal_regression_data <- prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "ApplicantTrack", plot_title = "ApplicantTrack vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+```
+
+
+#### ScientificProposal and IsApproved
+
+``` {r, echo=F}
+
+
+#### internal datasets to use in mirror barplots
+internal_regression_data <- prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] 
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+p1 <- plot_mirror_barplot(dataset=internal_regression_data, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved; All Data")
+p2 <- plot_mirror_barplot(dataset=in.f, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Female")
+p3 <- plot_mirror_barplot(dataset=in.m, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Male")
+p4 <- plot_mirror_barplot(dataset=in.div1, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div1")
+p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div2")
+p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div3")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+
+
+
+## Exploratory Analysis: Distribution tables 
+
+#### External Reviewers
+```{r warnings=F, message=F}
+# External Reviewers
+library(expss)
+ER<-apply_labels(external_regression_data,
+                                   ProjectID="ProjectID",
+                                   ApplicantTrack="Main Applicant Track",
+                                   ApplicantTrack=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                              "excellent" = 5, "outstanding" = 6 ),  
+                                   ScientificRelevance="ScientificRelevance",
+                                   ScientificRelevance=c( "poor"= 1, "average"= 2, "good" = 3, 
+                                                          "very good" = 4,"excellent" = 5, "outstanding" = 6 ),
+                                   Suitability="Suitability",
+                                   Suitability=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                   OverallGrade="Overall Reviewer grade",
+                                   OverallGrade=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                   PercentFemale="Percentage of females in the reviewers",
+                                   IsApproved="Result",
+                                   IsApproved=c("Accepted"=1,"Rejected"=0),
+                                   Age= "Age",
+                                   Gender="Gender",
+                                   Division="Division"
+                                   )
+
+# This only work if you knit to HTML
+
+expss_output_rnotebook()
+drop_empty_columns(calculate(ER,cro(OverallGrade, list(total(),
+                                                       Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(ApplicantTrack,list(total(),
+                                                        Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(ScientificRelevance, list(total(),
+                                                              Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(ER,cro(Suitability, list(total(),
+                                                      Gender%nest%IsApproved,Division%nest%IsApproved))))
+
+```
+#### Internal Reviewers
+
+```{r message=F,warning=F}
+# Internal Reviewers
+library(expss)
+IR<-apply_labels(internal_regression_data,
+                                       ProjectID="ProjectID",
+                                       IsApproved="Result",
+                                       IsApproved=c("Accepted"=1,"Rejected"=0),
+                                       Gender="Gender",
+                                       Division="Division",
+                                       Age= "Age",
+                                       PercentFemale="Percentage of females in the reviewers",
+                                       ApplicantTrack="Main Applicant Track",
+                                       ApplicantTrack=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                       ProjectAssessment= "Project Assessment",
+                                       ProjectAssessment=c( "poor"= 1, "average"= 2, "good" = 3, "very good" = 4,
+                                                  "excellent" = 5, "outstanding" = 6 ),
+                                       Ranking="Overall Comparative Ranking",
+                                       Ranking=c( "D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6 )  
+                                       )
+
+# This only work if you knit to HTML
+
+expss_output_rnotebook()
+drop_empty_columns(calculate(IR,cro(Ranking, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(IR,cro(ApplicantTrack,list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+drop_empty_columns(calculate(IR,cro(ProjectAssessment, list(total(),Gender%nest%IsApproved,Division%nest%IsApproved))))
+
+
+```
+
+
+## Exploratory Analysis: Graphic exploration
+
+### Applications
+#### Is there evidence of gender bias?
+
+
+Apparently there is no association between gender and approval (generally + in each division)
+```{r echo=F}
+library(vcd)
+par(mfrow=c(1,2))
+cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
+```
+
+There are more women then men applying for Division 1 and the opposite for Division 2.
+Also, if the project is a continuation it is more likely to be approved. It seems that there is no time effect: proposals are equally likely to be approved in April and October. Apparently proposals from ETH are more likely to be approved, especially than those from UAS/UTE. 
+
+```{r echo=F}
+par(mfrow=c(1,2))
+cotabplot(~ Gender + Division, data=final.apps, shade=T)
+cotabplot(~ IsContinuation + IsApproved, data=final.apps, shade=T)
+cotabplot(~ IsApproved + Semester, data=final.apps, shade=TRUE)
+cotabplot(~ IsApproved + InstType, data=final.apps, shade=TRUE)
+```
+
+#### How does the Amount requested relates to Amount granted?
+On average in Division1 applicants receive almost all the amount of money requested,
+ even if there are lots of outliers. Division 2 is the one with the smallest percentage of
+ money granted.
+```{r echo=F}
+id.approved <- which(final.apps$IsApproved==1)
+perc.f <- final.apps$AmountGranted[id.approved]/final.apps$AmountRequested[id.approved]*100
+boxplot(perc.f~final.apps$Division[id.approved], main="Percentage of amount granted of the amount requested")
+```
+
+Probably the previous result is due to the fact that in Division1, the AmountRequested, on average, is smaller than in all the other divisions.
+```{r echo=F}
+boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested per Division")
+```
+
+### External Reviewers
+#### Is there evidence of gender bias?
+
+#### OverallGrade: Do males or females rate females differently in the OverallGrade? How men and women allocate OverallGrade to all applicants, female applicants, and male applicants
+
+##### 
+```{r OverallGrade}
+
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
+
+# How men and women allocate overallgrades
+ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades")
+
+
+
+r.tab.f <- prop.table(table(tmp.external.data.f$OverallGrade, tmp.external.data.f$ReviewerGender, tmp.external.data.f$Gender),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.external.data.m$OverallGrade, tmp.external.data.m$ReviewerGender, tmp.external.data.m$Gender),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades to Male Applicants")
+
+# grid.arrange(p1, p2, p1, ncol=1)
+```
+
+We see male and female reviewers rate female applicants almost identically. 
+ 
+We observe that female reviewers give fewer "Excellent" and "Outstanding" to male applicants, and give more "Very Goods."
+
+
+#### ApplicantTrack: Do males or females rate females differently in the ApplicantTrack? How men and women allocate ApplicantTrack to all applicants, female applicants, and male applicants
+
+```{r}
+
+
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$ApplicantTrack, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("ApplicantTrack", "ReviewerGender", "Gender", "Freq")
+
+# How men and women allocate ApplicantTracks
+ggplot(r.tab.dataframe.2,aes(x=ApplicantTrack,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks")
+
+
+
+r.tab.f <- prop.table(table(tmp.external.data.f$ApplicantTrack, tmp.external.data.f$ReviewerGender, tmp.external.data.f$Gender),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("ApplicantTrack", "ReviewerGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=ApplicantTrack,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.external.data.m$ApplicantTrack, tmp.external.data.m$ReviewerGender, tmp.external.data.m$Gender),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("ApplicantTrack", "ReviewerGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=ApplicantTrack,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks to Male Applicants")
+
+```
+
+
+#### ScientificRelevance: Do males or females rate females differently in the ScientificRelevance? How men and women allocate ScientificRelevance to all applicants, female applicants, and male applicants
+
+```{r}
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$ScientificRelevance, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)
+colnames(r.tab.dataframe.2) <- c("ScientificRelevance", "ReviewerGender", "Gender", "Freq")
+
+# How men and women allocate ScientificRelevances
+ggplot(r.tab.dataframe.2,aes(x=ScientificRelevance,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ScientificRelevance",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ScientificRelevance")+ylab("Proportion of ScientificRelevances allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ScientificRelevances")
+
+
+
+r.tab.f <- prop.table(table(tmp.external.data.f$ScientificRelevance, tmp.external.data.f$ReviewerGender, tmp.external.data.f$Gender),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)
+colnames(r.tab.dataframe.f) <- c("ScientificRelevance", "ReviewerGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=ScientificRelevance,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ScientificRelevance",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ScientificRelevance")+ylab("Proportion of ScientificRelevances allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ScientificRelevances to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.external.data.m$ScientificRelevance, tmp.external.data.m$ReviewerGender, tmp.external.data.m$Gender),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)
+colnames(r.tab.dataframe.m) <- c("ScientificRelevance", "ReviewerGender", "Gender", "Freq")
+
+ggplot(r.tab.dataframe.m,aes(x=ScientificRelevance,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ScientificRelevance",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ScientificRelevance")+ylab("Proportion of ScientificRelevances allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ScientificRelevances to Male Applicants")
+
+
+
+```
+
+
+
+#### Suitability: Do males or females rate females differently in the Suitability? How men and women allocate Suitability to all applicants, female applicants, and male applicants
+
+```{r}
+
+
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$Suitability, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Suitability", "ReviewerGender", "Gender", "Freq")
+
+# How men and women allocate Suitabilitys
+ggplot(r.tab.dataframe.2,aes(x=Suitability,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Suitability",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Suitability")+ylab("Proportion of Suitabilitys allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Suitabilitys")
+
+
+
+r.tab.f <- prop.table(table(tmp.external.data.f$Suitability, tmp.external.data.f$ReviewerGender, tmp.external.data.f$Gender),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("Suitability", "ReviewerGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=Suitability,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Suitability",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Suitability")+ylab("Proportion of Suitabilitys allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Suitabilitys to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.external.data.m$Suitability, tmp.external.data.m$ReviewerGender, tmp.external.data.m$Gender),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("Suitability", "ReviewerGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=Suitability,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Suitability",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Suitability")+ylab("Proportion of Suitabilitys allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Suitabilitys to Male Applicants")
+
+```
+
+### Internal Reviews
+
+#### ApplicantTrack: Do males or females rate females differently in the ApplicantTrack? How men and women allocate ApplicantTrack to all applicants, female applicants, and male applicants
+
+```{r}
+
+
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "ProjectID")], final.internal, by="ProjectID")
+
+# just females
+tmp.internal.data.f <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="f",]
+
+# just males
+tmp.internal.data.m <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$ApplicantTrack, tmp.internal.data$RefereeGender, tmp.internal.data$Gender.x),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("ApplicantTrack", "RefereeGender", "Gender", "Freq")
+
+# How men and women allocate ApplicantTracks
+ggplot(r.tab.dataframe.2,aes(x=ApplicantTrack,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks")
+
+
+
+r.tab.f <- prop.table(table(tmp.internal.data.f$ApplicantTrack, tmp.internal.data.f$RefereeGender, tmp.internal.data.f$Gender.x),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("ApplicantTrack", "RefereeGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=ApplicantTrack,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.internal.data.m$ApplicantTrack, tmp.internal.data.m$RefereeGender, tmp.internal.data.m$Gender.x),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("ApplicantTrack", "RefereeGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=ApplicantTrack,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ApplicantTrack",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ApplicantTrack")+ylab("Proportion of ApplicantTracks allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ApplicantTracks to Male Applicants")
+
+```
+
+#### ProjectAssessment: Do males or females rate females differently in the ProjectAssessment? How men and women allocate ProjectAssessment to all applicants, female applicants, and male applicants
+
+```{r}
+
+
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "ProjectID")], final.internal, by="ProjectID")
+
+# just females
+tmp.internal.data.f <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="f",]
+
+# just males
+tmp.internal.data.m <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$ProjectAssessment, tmp.internal.data$RefereeGender, tmp.internal.data$Gender.x),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("ProjectAssessment", "RefereeGender", "Gender", "Freq")
+
+# How men and women allocate ProjectAssessments
+ggplot(r.tab.dataframe.2,aes(x=ProjectAssessment,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ProjectAssessment",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ProjectAssessment")+ylab("Proportion of ProjectAssessments allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ProjectAssessments")
+
+
+
+r.tab.f <- prop.table(table(tmp.internal.data.f$ProjectAssessment, tmp.internal.data.f$RefereeGender, tmp.internal.data.f$Gender.x),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("ProjectAssessment", "RefereeGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=ProjectAssessment,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ProjectAssessment",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ProjectAssessment")+ylab("Proportion of ProjectAssessments allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ProjectAssessments to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.internal.data.m$ProjectAssessment, tmp.internal.data.m$RefereeGender, tmp.internal.data.m$Gender.x),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("ProjectAssessment", "RefereeGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=ProjectAssessment,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="ProjectAssessment",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("ProjectAssessment")+ylab("Proportion of ProjectAssessments allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate ProjectAssessments to Male Applicants")
+
+```
+
+
+#### Ranking: Do males or females rate females differently in the Ranking? How men and women allocate Ranking to all applicants, female applicants, and male applicants
+
+```{r}
+
+
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "ProjectID")], final.internal, by="ProjectID")
+
+# just females
+tmp.internal.data.f <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="f",]
+
+# just males
+tmp.internal.data.m <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender, tmp.internal.data$Gender.x),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Gender", "Freq")
+
+# How men and women allocate Rankings
+ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Ranking",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Ranking")+ylab("Proportion of Rankings allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Rankings")
+
+
+
+r.tab.f <- prop.table(table(tmp.internal.data.f$Ranking, tmp.internal.data.f$RefereeGender, tmp.internal.data.f$Gender.x),2)
+r.tab.dataframe.f <- as.data.frame(r.tab.f)    
+colnames(r.tab.dataframe.f) <- c("Ranking", "RefereeGender", "Gender", "Freq")
+
+
+ggplot(r.tab.dataframe.f,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Ranking",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Ranking")+ylab("Proportion of Rankings allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Rankings to Female Applicants")
+
+
+
+r.tab.m<-prop.table(table(tmp.internal.data.m$Ranking, tmp.internal.data.m$RefereeGender, tmp.internal.data.m$Gender.x),2)
+r.tab.dataframe.m <- as.data.frame(r.tab.m)    
+colnames(r.tab.dataframe.m) <- c("Ranking", "RefereeGender", "Gender", "Freq")
+
+
+
+ggplot(r.tab.dataframe.m,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="Ranking",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("Ranking")+ylab("Proportion of Rankings allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate Rankings to Male Applicants")
+
+```
+
+# Old Analyses Commented Out on Ordinal Variables (can delete?)
+```{r}
+# ORDINAL VARIABLES
+# 
+# par(mfrow=c(2,2))
+# 
+# test <- independence_test(Gender ~ OverallGrade, data=external_regression_data)
+# test2 <- lbl_test(Gender ~ OverallGrade, data=external_regression_data)
+# 
+# cotabplot(~ Gender + OverallGrade, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + ApplicantTrack, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + ScientificRelevance, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + Suitability, data=external_regression_data, shade=T)
+```
+
+
+Even when combining Variables for Project Assessment, Applicant Track and the Overall Grade using a simplified version with 0 and 1, it dosen't seems that there is a gender bias in the external evaluation.
+
+```{r echo=F}
+
+#### commented out becuase of error HERE THAT PREVENTED KNITTING - WILL LOOK INTO THIS IN THE MORNING TO FIX
+# par(mfrow=c(2,2))
+#    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
+#                                                        external_regression_data$Suitability)/2, 0)
+#    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
+#    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
+#    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
+
+
+# cotabplot(~ Gender + SimplifiedOverallGrade, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedApplicant, data=external_regression_data, shade=T)
+# cotabplot(~ Gender + SimplifiedProposal, data=external_regression_data, shade=T)
+```
+
+### Internal Reviewers
+#### Is there evidence of gender bias?
+
+We repeated the same analysis for the internal evaluation: it seems that it is more likely to get a low grade (from 1 to 3) for the both Track Record and Project Assessment if the applicant is female! There same holds for the Ranking.
+
+```{r, echo=FALSE}
+# par(mfrow=c(2,2))
+# 
+# internal_regression_data$Ranking <- ifelse(internal_regression_data$Ranking < 4, 0, 1)
+# internal_regression_data$ProjectAssessment <- ifelse(internal_regression_data$ProjectAssessment < 4, 0, 1)
+# internal_regression_data$ApplicantTrack <- ifelse(internal_regression_data$ApplicantTrack < 4, 0, 1)
+# 
+# cotabplot(~ Gender + Ranking, data=internal_regression_data, shade=T)
+# cotabplot(~ Gender + ApplicantTrack, data=internal_regression_data, shade=T)
+# cotabplot(~ Gender + ProjectAssessment, data=internal_regression_data, shade=T)
+```
