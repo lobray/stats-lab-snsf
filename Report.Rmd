@@ -577,7 +577,7 @@ boxplot(final.apps$AmountRequested~final.apps$Division, main="Amount requested p
 ### External Reviewers
 #### Is there evidence of gender bias?
 
-#### Do males or females rate females differently in the OverallGrade?
+#### Do males or females rate females differently in the OverallGrade? (Two visualization options)
 ```{r}
 
 tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
@@ -605,8 +605,24 @@ ggplot(r.tab.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
   ggtitle("Difference in how Female & Male Allocate OverallGrades")
 
+########### Option 1 #################
 # How men and women allocate overallgrades
 ggplot(r.tab.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  scale_fill_discrete(name="OverallGrade",
+                      breaks=c(1, 2),
+                      labels=c("Male", "Female"))+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades")
+
+
+########### Option 2 #################
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
+
+# How men and women allocate overallgrades
+ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="OverallGrade",
                       breaks=c(1, 2),
