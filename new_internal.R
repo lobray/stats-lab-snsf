@@ -1,4 +1,4 @@
-setwd("~/StatLab")
+#setwd("~/StatLab")
 load("snsf_data.RData")
 source("Cleaning Functions.R")
 source("Data for Regression.R")
@@ -279,8 +279,8 @@ Model <- update(Model, .~.-ApplicantTrack:Gender)
 (PsR22<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))) #[1] 0.6886228
 
 # It doesn't look very good, because those observations that are wrongly predicted:
-# id<-which(fvl<(-1) & IsApproved==1)    # Approved with ProjectAssessment=3
-# id<-which(fvl>2 & IsApproved==0)       # NotApproved with ProjectAssessment 5 or 6
+ id<-which(fvl<(-1) & IsApproved==1)    # Approved with ProjectAssessment=3
+ id<-which(fvl>2 & IsApproved==0)       # NotApproved with ProjectAssessment 5 or 6
 
 
 # Visualization with effects package
@@ -394,6 +394,17 @@ confint(OrdinalModel, type = "Wald")
 # Odds ratio and confidence intervals for Odds Ratio
 round(exp(OrdinalModel$beta), 1)
 round(exp(confint(OrdinalModel, type = "Wald")), 1)
+
+# Try with nominal effects to prove proportional odds assumption for division
+Nom.div<-clm(ProjectAssessment ~ Gender+Division+InstType+IsContinuation+
+              log(AmountRequested)+PercentFemale,nominal = ~Division,
+            data=data)
+summary(Nom.div)
+
+# Test to compare the equal slopes or proportional odds assumption
+anova(OrdinalModel,Nom.div)
+# the test is significant so we can reject the hypotesis that the slopes are the same. 
+# Therefore proportional odds assumption is violated
 
 # Use deviance as goodness of fit??
 
