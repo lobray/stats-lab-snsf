@@ -628,7 +628,7 @@ colnames(r.tab.f.dataframe) <- c("OverallGrade", "ReviewerGender", "Freq")
 
 ggplot(r.tab.f.dataframe,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   geom_bar(stat="identity",position="dodge")+
-  scale_fill_discrete(name="OverallGrade",
+  scale_fill_discrete(name="ReviewerGender",
                       breaks=c(1, 2),
                       labels=c("Male", "Female"))+
   xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +

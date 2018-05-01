@@ -28,19 +28,16 @@ source("/home/leslie/Desktop/StatsLab/stats-lab-snsf/Data for Regression.R")
 ```
 
 
-### Questions for Janine:
--For variable importance question, could use a random forest to assess variable importance? Or could standardize coefficients
--Multiple testing problem??
-
-
 Prepare the data and fit the full model:
 ```{r}
 
 board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
+board_data$Ranking <- factor(board_data$Ranking,ordered=TRUE)
+board_data$OverallGrade <- factor(board_data$Ranking, ordered=TRUE)
 
 
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + AmountRequested + 
-                              Ranking + OverallGrade + Gender:Division, family="binomial", data = board_data)
+                              Ranking + OverallGrade + Gender:Division + PercentFemale, family="binomial", data = board_data)
 
 
 ```
@@ -77,8 +74,7 @@ calc_pseudo_r(board_log_regression)
 
 
 ```{r}
-## NEED TO UPDATE TO USE STANDARDIZED VARIABLES. BUT, WHAT DOES A STANDARDIZED BINARY VARIABLE EVEN MEAN? CHECK IF USEMODEL=F
-# IS SUFFICIENT
+## IF GOING TO USE VARIMP, NEED TO UPDATE TO USE STANDARDIZED VARIABLES. BUT, WHAT DOES A STANDARDIZED BINARY VARIABLE EVEN MEAN? CHECK IF USEMODEL=F IS SUFFICIENT
 (board_variable_importance <- varImp(board_log_regression, useModel=FALSE))
 (board_variable_importance <- varImp(board_log_regression, nonpara=TRUE))
 
@@ -145,26 +141,22 @@ plot(resid(board_log_regression, type="deviance"))
 
 Checking the residuals, they seem to be expectation 0, with a few outliers. However, in looking at the deviance, there appears to be some structure in the data. Should this indicate we need a new model fit?
 
-Test out other models, to do a hierarchical model comparision:
+Do a bit of variable selection in order to optimize the AIC criterion:
 
 ```{r}
-board_log_regression2 <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
-                            OverallGrade + Gender:Division, family="binomial", data = board_data)
-
-board_log_regression1 <- glm(board_data$IsApproved ~ Gender + Division + Age + AmountRequested + 
-                              Ranking + Gender:Division, family="binomial", data = board_data)
-
-board_log_regression4 <- glm(board_data$IsApproved ~ Gender + Ranking + OverallGrade, family="binomial", data = board_data)
-
-anova(board_log_regression2, board_log_regression, test="Chisq") # significantly different than small model
-anova(board_log_regression1, board_log_regression, test="Chisq") # significantly different than small model
-anova(board_log_regression4, board_log_regression, test="Chisq") # not significiantly different than small model
-
-1-pchisq(board_log_regression1$dev-board_log_regression$dev, df=(board_log_regression1$df.res-board_log_regression$df.res))
+drop1(board_log_regression, test="F")
+fit1 <- update(board_log_regression, .~.-InstType)
+drop1(fit1, test="F")
+fit2 <- update(fit1, .~.-Gender:Division)
+drop1(fit2, test="F")
+fit3 <- update(fit2, .~.-Division)
+drop1(fit3)
+fit4 <- update(fit3, .~.-AmountRequested)
+drop1(fit4)
 
 ```
-Doing this model comparision, don't we have a big multiple testing problem? Should we avoid doing any kind of model comparison and instead 1) validate model fit, 2) assess performance, 3) compute variable importance?
 
+I stopped when removing Gender became the next target.
 
 Do CV to see if model fit is decent:
 ```{r}

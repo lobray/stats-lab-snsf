@@ -89,14 +89,21 @@ prepare_data_board_log_regression <- function(apps, internal, external) {
   # Extract columns from applications data
   board_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested","IsContinuation",
                                          "InstType","PreviousRequest")]
+
+  # Calculate % female reviewers in external+internal
+  tmp_ex_gender <- external[,c("ProjectID", "ReviewerGender")]
+  colnames(tmp_ex_gender) <- c("ProjectID", "RefereeGender")
+  combined_reviewer_gender <- rbind(internal[,c("ProjectID", "RefereeGender")], tmp_ex_gender)
+  internal_reviews_gender <- calculate_percent_female(combined_reviewer_gender, "RefereeGender")
   
   # Calculate average ratings for internal and external reviews
   average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
   average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
   
-  # Merge with external reviews & referee data
+  # Merge with external reviews & referee data & % female
   board_regression_data <- merge(board_regression_data, average_internal_ratings, by = "ProjectID")
   board_regression_data <- merge(board_regression_data, average_ratings, by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, internal_reviews_gender, by="ProjectID")
   
   # Create logistic regression & return object
   #board_log_regression <- glm(board_regression_data$IsApproved ~ .-(ProjectID), family="binomial", data = board_regression_data)
