@@ -18,6 +18,7 @@ library(pROC)
 library(car)
 library(caret)
 library(glmnet)
+library(combinat)
 
 ### Initialize data
 
@@ -94,38 +95,48 @@ predictors <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "Amou
 # Function to permute values
 permute_values <- function(data_vector) {
   n <- length(data_vector)
-  permuted_vector <- sample(data_vector, n, replace=F)
+  permuted_vector <- data_vector
+  permuted_matrix <- matrix(0, nrow=n, ncol=100000)
+    for (i in 1:100000) {
+    permuted_matrix[,i] <- sample(n, n, x=permuted_vector)
+  }
+  
+  return(permuted_matrix)
 }
-
 
 # Function to calculate variable importance via permutation
 calc_variable_importance <- function(predictors = predictors, data = board_data, regression_object) {
   variable_imp_matrix <- matrix(0, nrow=length(predictors), ncol=2)
   variable_imp_matrix[,1] <- predictors
+  print(variable_imp_matrix)
   base_pseudo_r <- calc_pseudo_r(regression_object)
   
   for (i in predictors) {
     permuted_board_data <- data
     permuted_predictor <- permute_values(permuted_board_data[,i])
+    pseudo_r <- c(length=ncol(permuted_predictor))
     
-    permuted_board_data[,i] <- permuted_predictor
-    
-    # run regression on permuted value
-    permuted_board_log_regression <- glm(permuted_board_data$IsApproved ~ Gender + Division + Age +
+        
+    for (j in 1:ncol(permuted_predictor)) {
+      permuted_board_data[,j] <- permuted_predictor[,j]
+      
+      # run regression on permuted value
+      permuted_board_log_regression <- glm(permuted_board_data$IsApproved ~ Gender + Division + Age +
                                            IsContinuation + InstType + AmountRequested +
                                            Ranking + OverallGrade + Gender:Division, family="binomial", data = permuted_board_data)
+      # calculate pseudo r squared
+      pseudo_r[j] <- calc_pseudo_r(permuted_board_log_regression)  
     
+    }
     
-    # calculate pseudo r squared
-    permuted_pseudo_r <- calc_pseudo_r(permuted_board_log_regression)
-    variable_imp_matrix[which(variable_imp_matrix[,1] == i),2] <- (permuted_pseudo_r - base_pseudo_r)
+    variable_imp_matrix[which(variable_imp_matrix[,1] == i),2] <- mean(permuted_pseudo_r) - (base_pseudo_r)
   } 
   colnames(variable_imp_matrix) <- c("Variable", "Difference to Base Pseudo R^2")
   return(variable_imp_matrix)
 }
 
 
-aa <- as.data.frame(calc_variable_importance(predictors=predictors, data=board_data, regression_object=board_log_regression))
+aa <- (calc_variable_importance(predictors=predictors, data=board_data, regression_object=board_log_regression))
 
 ```
 In this step, for each explanatory variable, I randomly permuted the values for that variable, and refitted the logistic regression model. I then compared the pseudo R^2 metric with the initial pseudo R^2 metric computed in the original model. In the output matrix, you can see how much the pseudo R^2 changed when that variable was permuted. In this case, we see that permuting Ranking had the biggest impact on the pseudo R^2 - decreasing it by 0.16. The next biggest impact was overall grade, which decreased the pseudo R^2 0.003. From this, we can conclude that Ranking is the most important explanatory variable in predicting IsApproved.
