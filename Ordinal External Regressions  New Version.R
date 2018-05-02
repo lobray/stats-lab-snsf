@@ -55,6 +55,13 @@ str(data)
       fit1 <- clm(ProposalCombined ~Gender*(Division+PercentFemale)+Age+Division+IsContinuation+
                     PreviousRequest+InstType+Semester+logAmount,
                   data=data)
+    # fit a null Model
+      fit.null<- clm(ProposalCombined~1, data=data)
+      fit.null$df.residual- fit1$df.residual
+      
+      LR<-fit.null$logLik/fit1$logLik
+      1-pchisq(LR,df=15)
+      
       # I am not using Gender:Applicant track here as ApplicantTrack is not in the model
       summary(fit1)  # cond.H very high
       
@@ -110,39 +117,39 @@ str(data)
       plot(Effect("InstType", mod=Model))
       plot(Effect("IsContinuation",mod=Model))
       
-    # # Variable Importance----
-    #   # Not sure which meassure to use here. I'll try with LogLikelihood, I don't know
-    #   # how to estimate the Deviance for this models. Any one knows? 
-    #   
-    #   outcomeName <- 'ProposalCombined'
-    #   predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation', 
-    #                         'InstType', 'logAmount')
-    #   predictions <- predict(object=Model, data[,predictorNames], type="class")
-    #     # A quick check
-    #       table(data$ProposalCombined,predictions$fit)
-    #       #Still classifies in mostly in category 4
-    #       sum(predictions$fit=="4") # 1530 out of 1623 ???
-    #       
-    #   # Initialize vectors fro randomization    
-    #   ll.Reference<-Model$logLik
-    #   LlShuffle <- NULL
-    #   shuffletimes <- 10  #number of interactions
-    #   
-    #   featuresMeanLR <- c()
-    #   for (feature in predictorNames) {
-    #     featureLl <- c()
-    #     shuffledData <- data[,c(outcomeName, predictorNames)]
-    #     for (iter in 1:shuffletimes) {
-    #       shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
-    #       Model.tmp <- update(Model,.~.,data=shuffledData)
-    #       featureLl <- c(featureLl,Model.tmp$logLik)
-    #     }
-    #     featuresMeanLR <- c(featuresMeanLR, mean(-2*(ll.Reference-featureLl)))
-    #   }  
-    #   
-    #   # PseudoRShuffle <- data.frame('feature'=predictorNames, 'average LR.stat'=featuresMeanLR)
-    #   # PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
-    #   # print(PseudoRShuffle)
+    # Variable Importance----
+      # Not sure which meassure to use here. I'll try with LogLikelihood, I don't know
+      # how to estimate the Deviance for this models. Any one knows?
+
+      outcomeName <- 'ProposalCombined'
+      predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation',
+                            'InstType', 'logAmount')
+      predictions <- predict(object=Model, data[,predictorNames], type="class")
+        # A quick check
+          table(data$ProposalCombined,predictions$fit)
+          #Still classifies in mostly in category 4
+          sum(predictions$fit=="4") # 1530 out of 1623 ???
+
+      # Initialize vectors fro randomization
+      ll.Reference<-Model$logLik
+      LlShuffle <- NULL
+      shuffletimes <- 10  #number of interactions
+
+      featuresMeanLR <- c()
+      for (feature in predictorNames) {
+        featureLl <- c()
+        shuffledData <- data[,c(outcomeName, predictorNames)]
+        for (iter in 1:shuffletimes) {
+          shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+          Model.tmp <- update(Model,.~.,data=shuffledData)
+          featureLl <- c(featureLl,Model.tmp$logLik)
+        }
+        featuresMeanLR <- c(featuresMeanLR, mean(-2*(ll.Reference-featureLl)))
+      }
+
+      # PseudoRShuffle <- data.frame('feature'=predictorNames, 'average LR.stat'=featuresMeanLR)
+      # PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
+      # print(PseudoRShuffle)
     #   
     #     This part needs work. 
   
@@ -167,7 +174,14 @@ str(data)
                           InstType + logAmount + Gender:PercentFemale,data=data)
             summary(Model) #cond.H still high
             
-            table(data$ApplicantTrack)
+            # fit a null Model
+            fit.null<- clm(ApplicantTrack~1, data=data)
+            fit.null$df.residual- Model$df.residual
+            
+            LR<-fit.null$logLik/Model$logLik
+            1-pchisq(LR,df=10)
+            
+            prop.table(table(data$ApplicantTrack,data$Gender),2)
             
             drop1(Model, test = "Chi")
             # Cannot be imporved
@@ -211,8 +225,7 @@ str(data)
     summary(fit3)
     drop1(fit3, test = "Chi")
     
-    Model3<-clm(OverallGrade ~ Gender + PercentFemale + ApplicantTrack + ProposalCombined + 
-                  IsContinuation + Gender:PercentFemale, data=data)
+    Model3<-clm(OverallGrade ~ ApplicantTrack + ProposalCombined , data=data)
     summary(Model3)
     
     #Odd Ratios
