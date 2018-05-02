@@ -32,6 +32,8 @@ prepare_data_external_log_regression <- function(apps, external) {
   external_regression_data <- apps[,c("IsApproved", "Age", "Gender", "Division", "ProjectID",
                                             "IsContinuation","PreviousRequest","InstType","AmountRequested","Semester")]
   
+
+  
   # add in grades & Interaction
   average_ratings <- calculate_average_reviewers(external)
   
@@ -44,9 +46,8 @@ prepare_data_external_log_regression <- function(apps, external) {
   external_regression_data$ScientificRelevance<-factor(external_regression_data$ScientificRelevance, ordered = T)
   external_regression_data$Suitability<-factor(external_regression_data$Suitability,ordered=T)
   external_regression_data$OverallGrade<-factor(external_regression_data$OverallGrade, ordered=T)
+  external_regression_data$ProposalCombined<-factor(external_regression_data$ProposalCombined, ordered=T)
   
-  # Create regression object, and return it 
-  #external_log_regression <- glm(external_regression_data$IsApproved ~ .-(ProjectID), data=external_regression_data, family="binomial")
   return(external_regression_data)
 }
 

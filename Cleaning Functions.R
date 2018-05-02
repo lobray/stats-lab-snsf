@@ -349,6 +349,32 @@ calculate_average_referee <- function(data) {
     }
 
 
+calculate_combined_proposal_grade <- function(var1 = data$ScientificRelevance, var2 = data$Suitability) {
+
+  # This function is used in the following calculate_average_reviews function. 
+   
+  ProposalCombined <- round((var1+var2)/2, 4)
+  
+  fix_nas <- which(is.na(ProposalCombined)==TRUE)
+  
+  for (i in fix_nas) {
+    if ((is.na(var1[i])==TRUE) & (is.na(var2[i])==TRUE)) {
+      ProposalCombined[i] <- NA
+    }
+    
+    if ((is.na(var1[i])==TRUE) & (is.na(var2[i])==FALSE)) {
+      ProposalCombined[i] <- var2[i]
+    }
+    
+    if ((is.na(var1[i])==FALSE) & (is.na(var2[i])==TRUE)) {
+      ProposalCombined[i] <- var1[i]
+      
+    }
+    
+    return(ProposalCombined)
+    
+  }
+}
 
 
 ### Average of Reviewers
@@ -371,11 +397,14 @@ calculate_average_reviewers<- function(data) {
   data$OverallGrade <- revalue(data$OverallGrade, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
   data$OverallGrade <- as.numeric(data$OverallGrade)
   
+  # Add in ProposalCombined
+  data$ProposalCombined <- calculate_combined_proposal_grade(var1 = data$ScientificRelevance, var2=data$Suitability)
+  
   # Create a vector of unique IDs
   projID <- unique(data$ProjectID)
   
   # Create matrix to store the data
-  average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=5)
+  average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=6)
   
   j <- 1
   for (i in projID) {
@@ -391,55 +420,28 @@ calculate_average_reviewers<- function(data) {
     reviewer_vote_per_projectID_ScientificRelevance <- data[which(data$ProjectID == i),]$ScientificRelevance
     reviewer_vote_per_projectID_Suitability <- data[which(data$ProjectID == i),]$Suitability
     reviewer_vote_per_projectID_OverallGrade <- data[which(data$ProjectID == i),]$OverallGrade
+    reviewer_vote_per_projectID_ProposalCombined <- data[which(data$ProjectID == i),]$ProposalCombined
     
     # Average grade
     average_ApplicantTrack <- round(mean(reviewer_vote_per_projectID_ApplicantTrack, na.rm = TRUE),0)
     average_ScientificRelevance <-round( mean(reviewer_vote_per_projectID_ScientificRelevance, na.rm = TRUE),0)
     average_Suitability <- round(mean(reviewer_vote_per_projectID_Suitability, na.rm = TRUE),0)
     average_OverallGrade <- round(mean(reviewer_vote_per_projectID_OverallGrade, na.rm = TRUE),0)
+    average_ProposalCombined <- round(mean(reviewer_vote_per_projectID_ProposalCombined, na.rm = TRUE),0)
     
     # Put average grade into the matrix
     average_review_matrix[j,2] <- average_ApplicantTrack
     average_review_matrix[j,3] <- average_ScientificRelevance
     average_review_matrix[j,4] <- average_Suitability
     average_review_matrix[j,5] <- average_OverallGrade
+    average_review_matrix[j,6] <- average_ProposalCombined
     
     # Increment j
     j <- j+1
   }
   
-  colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ScientificRelevance","Suitability", "OverallGrade")
+  colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ScientificRelevance","Suitability", 
+                                      "OverallGrade", "ProposalCombined")
   return(as.data.frame(average_review_matrix))
 }
 
-calculate_combined_proposal_grade <- function(data) {
-  data$ScientificRelevance <- revalue(data$ScientificRelevance, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
-  data$ScientificRelevance <- as.numeric(data$ScientificRelevance)
-  
-  data$Suitability <- revalue(data$Suitability, c("poor"= 1, "average"= 2, "good" = 3, "very good" = 4, "excellent" = 5, "outstanding" = 6))
-  data$Suitability <- as.numeric(data$Suitability)
-  
-  ProposalCombined <- round((data$ScientificRelevance+data$Suitability)/2, 0)
-
-  fix_nas <- which(is.na(ProposalCombined)==TRUE)
-
-  for (i in fix_nas) {
-    if ((is.na(data$ScientificRelevance[i])==TRUE) & (is.na(data$Suitability[i])==TRUE)) {
-      ProposalCombined[i] <- NA
-    }
-    
-    if ((is.na(data$ScientificRelevance[i])==TRUE) & (is.na(data$Suitability[i])==FALSE)) {
-      ProposalCombined[i] <- data$Suitability[i]
-    }
-    
-    if ((is.na(data$ScientificRelevance[i])==FALSE) & (is.na(data$Suitability[i])==TRUE)) {
-      ProposalCombined[i] <- data$ScientificRelevance[i]
-      
-    }
-  
-    
-    data$ProposalCombined <- ProposalCombined
-    data$ProposalCombined <- factor(data$ProposalCombined, ordered=TRUE)
-    return(data)
-  }
-}
