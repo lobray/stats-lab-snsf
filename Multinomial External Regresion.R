@@ -33,9 +33,7 @@ library(caret)
   external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
 # Average the grade for ScientificRelevance ans Suitability
-  external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-                                                        external_regression_data$Suitability)/2, 0)
-  
+ 
   #response must be an order factor for odrinal Regression
   
   external_regression_data$ProposalCombined <- as.ordered(external_regression_data$ProposalCombined)

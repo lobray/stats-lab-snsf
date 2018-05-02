@@ -231,8 +231,7 @@ Then we used these two binary variables as responses of two different regression
 
 ```{r}
 # Average the grade for ScientificRelevance ans Suitability
-  external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-                                                        external_regression_data$Suitability)/2, 0)
+  
 # Simplify variables
   external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)
   external_regression_data$SimplifiedProject <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
@@ -341,8 +340,7 @@ We transformed the Combined Proposal qualification grades into factors in order 
   external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
 # Average the grade for ScientificRelevance ans Suitability
-  external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-                                                        external_regression_data$Suitability)/2, 0)
+  external_regression_data$ProposalCombined
   
   #response must be an order factor for odrinal Regression
   

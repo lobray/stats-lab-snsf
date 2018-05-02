@@ -801,8 +801,7 @@ Even when combining Variables for Project Assessment, Applicant Track and the Ov
 
 #### commented out becuase of error HERE THAT PREVENTED KNITTING - WILL LOOK INTO THIS IN THE MORNING TO FIX
 # par(mfrow=c(2,2))
-#    external_regression_data$ProposalCombined <- round((external_regression_data$ScientificRelevance+
-#                                                        external_regression_data$Suitability)/2, 0)
+#    
 #    external_regression_data$SimplifiedOverallGrade <- ifelse(external_regression_data$OverallGrade < 4, 0, 1)
 #    external_regression_data$SimplifiedProposal <- ifelse(external_regression_data$ProposalCombined < 4, 0, 1)
 #    external_regression_data$SimplifiedApplicant <- ifelse(external_regression_data$ApplicantTrack < 4, 0, 1)

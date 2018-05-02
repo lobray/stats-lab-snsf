@@ -155,7 +155,7 @@ Now if we examine if this is also true in the proposal, which it is. In the top 
 
 ```{r, scientific proposal}
 
-ProposalCombined <- calculate_combined_proposal_grade(final.external)$ProposalCombined
+ProposalCombined <- external_regression_data$ProposalCombined
 ex_proposal <- as.data.frame(prop.table(table(ProposalCombined)))
 ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
 colnames(ex_proposal)[1] <- "ProposalScore"
@@ -243,8 +243,7 @@ calculate_proposal_kappa <- function(final.apps = final.apps, final.external = f
   # First, combine data of external & internal applicant rating
   kappa.internal.proposal <- prepare_data_internal_log_regression(final.apps,final.internal)
   kappa.external.proposal <- prepare_data_external_log_regression(final.apps, final.external)
-  kappa.external.proposal$ProposalCombined <- round((kappa.external.proposal$ScientificRelevance+
-                                                            kappa.external.proposal$Suitability)/2, 0)
+  kappa.external.proposal$ProposalCombined <- kappa.external.proposal$ProposalCombined
   proposal.rating <- merge(x=kappa.external.proposal[,c("ProjectID", "ProposalCombined")], 
                             y = kappa.internal.proposal[,c("ProjectID","ProjectAssessment")],
                             by="ProjectID")
@@ -283,7 +282,7 @@ print("Cohen's Kappa for the Scientific Proposal")
 ```
 
 
-```{r internal kappa with ranking}
+```{r internal kappa with ranking 1}
 
 library(psych)
 library(biostatUZH)

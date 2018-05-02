@@ -27,9 +27,6 @@ rm(applications,reviews,referee_grades, test)
 # Get the Regression data
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
-# Average the grade for ScientificRelevance and Suitability and set it as ordered factor
-external_regression_data$ProposalCombined <- round((as.numeric(external_regression_data$ScientificRelevance)+
-                                                      as.numeric(external_regression_data$Suitability))/2, 0)
 external_regression_data$ProposalCombined <- factor(external_regression_data$ProposalCombined, ordered = T)
 
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
