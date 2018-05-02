@@ -886,45 +886,22 @@ barplot(r.tab, beside = TRUE, col = c("pink","lightblue"),
 ### Linear-by-Linear association ###
 ####################################
 
-# I didn't find a way to save a table as a table 
-# so I wrote it as text and coverted it
-# I'll change it with a proper function as soon as I can
-
 library(coin)
 
 ## Ranking:
 
 data <- internal_regression_data
 data$Ranking <- ifelse(data$Ranking < 4, 3, data$Ranking)
+
 table(data$Gender, data$Ranking)
+cTab <- xtabs(~ Gender + Ranking, data=data)
 
-#   3   4   5   6
-#m 463 413 320  64
-#f 167 131  55  10
-
-file <- tempfile()
-cat("                      \"Ranking\"\n",
-    "            \"3\" \"4\" \"5\" \"6\"\n",
-    "m            463   413   320   64\n",
-    "f            167   131   55    10\n",
-    file = file)
-ft <- read.ftable(file, skip = 2, row.var.names = "Gender",
-                  col.vars = list("Ranking" = c("3", "4", "5", "6")))
-ft
-t <- as.table(ft)
-prop.table(t,margin = NULL)
-
-# Visualization of the prop.table
-spineplot(t)
-
-# Linear-by-Linear Association test
-LxL = lbl_test(t)
-LxL
+spineplot(cTab)
+lbl_test(cTab)
 # p-value=5.632e-06 -> reject H0 -> no independence?
 
 # Compare to chi-square test without ordered categories
-ChiSq = chisq_test(t)
-ChiSq  # p-value = 3.516e-05
+chisq_test(cTab)  # p-value = 3.516e-05
 
 
 ## ApplicantTrack:
@@ -932,30 +909,14 @@ ChiSq  # p-value = 3.516e-05
 data$ApplicantTrack <- ifelse(data$ApplicantTrack < 4, 3, data$ApplicantTrack)
 table(data$Gender, data$ApplicantTrack)
 
-#   3   4   5   6
-#m 140 463  498  159
-#f  61 160  113  29
-
-file <- tempfile()
-cat("                      \"Track\"\n",
-    "            \"3\" \"4\" \"5\" \"6\"\n",
-    "m            140   463   498   159\n",
-    "f            61    160   113    29\n",
-    file = file)
-ft <- read.ftable(file, skip = 2, row.var.names = "Gender",
-                  col.vars = list("Track" = c("3", "4", "5", "6")))
-ft
-t <- as.table(ft)
-prop.table(t,margin = NULL)
+t <- xtabs(~ Gender+ApplicantTrack, data=data)
 
 spineplot(t)
-LxL = lbl_test(t)
-LxL
+lbl_test(t)
 # p-value = 4.459e-06 -> reject H0 -> no independence?
 
 # Compare to chi-square test without ordered categories
-ChiSq = chisq_test(t)
-ChiSq  # p-value = 7.138e-05
+chisq_test(t)   # p-value = 7.138e-05
 
 
 ## Project:
@@ -963,27 +924,11 @@ ChiSq  # p-value = 7.138e-05
 data$ProjectAssessment <- ifelse(data$ProjectAssessment < 4, 3, data$ProjectAssessment)
 table(data$Gender, data$ProjectAssessment)
 
-#   3   4   5   6
-#m 471 404  325  60
-#f  172 114  67  10
-
-file <- tempfile()
-cat("                      \"Project\"\n",
-    "            \"3\" \"4\" \"5\" \"6\"\n",
-    "m            471   404   325   60\n",
-    "f            172   114   67    10\n",
-    file = file)
-ft <- read.ftable(file, skip = 2, row.var.names = "Gender",
-                  col.vars = list("Project" = c("3", "4", "5", "6")))
-ft
-t <- as.table(ft)
-prop.table(t,margin = NULL)
+t <- xtabs(~ Gender+ProjectAssessment, data=data)
 
 spineplot(t)
-LxL = lbl_test(t)
-LxL
+lbl_test(t)
 # p-value = 6.537e-05 -> reject H0 -> no independence?
 
 # Compare to chi-square test without ordered categories
-ChiSq = chisq_test(t)
-ChiSq   # p-value = 0.001099
+chisq_test(t)   # p-value = 0.001099
