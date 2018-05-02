@@ -33,12 +33,19 @@ Prepare the data and fit the full model:
 ```{r}
 
 board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
+
+
+table(board_data$OverallGrade, board_data$Ranking)
+table(board_data$OverallGrade, board_data$IsApproved)
+
+board_data$Ranking <- ifelse(board_data$Ranking < 4, 3, board_data$Ranking)
+board_data$OverallGrade <- ifelse(board_data$OverallGrade < 4, 3, board_data$OverallGrade)
 board_data$Ranking <- factor(board_data$Ranking,ordered=TRUE)
 board_data$OverallGrade <- factor(board_data$Ranking, ordered=TRUE)
 
 
-board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + AmountRequested + 
-                              Ranking + OverallGrade + Gender:Division + PercentFemale, family="binomial", data = board_data)
+board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) + 
+                              Ranking + OverallGrade + Gender:Division + PercentFemale*Gender, family="binomial", data = board_data)
 
 
 ```
@@ -47,12 +54,15 @@ board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + Is
 In fitting the regression, the summary shos that OverallGrade, Ranking, InstType and Age are all significant predictors.
 ```{r}
 (summary(board_log_regression))
+
+
 ```
 
 
 In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). 
 ```{r}
 (vif(board_log_regression))
+
 ```
 
 
@@ -61,16 +71,18 @@ Check VariableImportance. We see that Ranking is orders of magnitude more impact
 First, calculate Pseudo R^2, create a function:
 
 ```{r}
-# NOTE TO LESLIE: confirm pseudo r^2 metric
+
 
 calc_pseudo_r <- function(log_regression_object) {
-  (log_regression_object$null.deviance - log_regression_object$deviance) /
-          (log_regression_object$df.null + log_regression_object$null.deviance - log_regression_object$deviance)
-
+  n <- dim(log_regression_object$data)[1]
+  pseudo <- (1 - exp((log_regression_object$dev - log_regression_object$null)/n)) / (1-exp(-log_regression_object$null/n))
+  return(pseudo)
 }
 
 # Check pseudo r for model: 
 calc_pseudo_r(board_log_regression)
+
+
 ```
 
 
@@ -80,7 +92,7 @@ calc_pseudo_r(board_log_regression)
 (board_variable_importance <- varImp(board_log_regression, nonpara=TRUE))
 
 
-
+table(board_data$IsApproved, board_data$OverallGrade)
 ```
 
 Alternative Method for seeing variable importance: For each predictor, permute the values. See difference in fit.

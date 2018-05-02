@@ -282,6 +282,96 @@ print("Cohen's Kappa for the Scientific Proposal")
 
 ```
 
+
+```{r internal kappa with ranking}
+
+library(psych)
+library(biostatUZH)
+
+calculate_ranking_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
+  # First, combine data of external & internal applicant rating
+  kappa.internal.proposal <- prepare_data_internal_log_regression(final.apps,final.internal)
+  
+  proposal.rating <- kappa.internal.proposal[,c("ProjectID", "Ranking", "ApplicantTrack", "ProjectAssessment")]
+  
+
+  # create matrix to show how external and internal raters rate applicant
+  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
+  colnames(kappa.matrix.proposal) <- 1:6
+  rownames(kappa.matrix.proposal) <- 1:6
+
+  # count number of times things agree/don't agree
+  kappa.matrix.project <- table(proposal.rating$Ranking, proposal.rating$ProjectAssessment)
+  kappa.matrix.applicant <- table(proposal.rating$Ranking, proposal.rating$ApplicantTrack)
+  
+  # Define weight matrix
+  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+  
+  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
+         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+
+
+  proposal.kappa.project <- cohen.kappa(kappa.matrix.project, w=custom.weights) # try again with weights
+  proposal.kappa.applicant <- cohen.kappa(kappa.matrix.applicant, w=custom.weights) # try again with weights
+  return(list(project=proposal.kappa.project, applicant=proposal.kappa.applicant))
+}
+
+print("Cohen's Kappa for the Scientific Proposal")
+(ranking_kappa <- calculate_ranking_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
+```
+
+### External OverallGrade Cohen's Kappa with ApplicantTrack, ScientificProposal, & Suitability
+
+```{r}
+```{r internal kappa with ranking}
+
+library(psych)
+library(biostatUZH)
+
+calculate_overallgrade_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
+  # First, combine data of external & internal applicant rating
+  kappa.external.proposal <- prepare_data_external_log_regression(final.apps,final.external)
+  
+  proposal.rating <- kappa.external.proposal[,c("ProjectID", "OverallGrade", "ApplicantTrack", "ScientificRelevance", "Suitability")]
+  
+
+  # create matrix to show how external and internal raters rate applicant
+  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
+  colnames(kappa.matrix.proposal) <- 1:6
+  rownames(kappa.matrix.proposal) <- 1:6
+
+  # count number of times things agree/don't agree
+  kappa.matrix.scientificrelevance <- table(proposal.rating$OverallGrade, proposal.rating$ScientificRelevance)
+  kappa.matrix.suitability <- table(proposal.rating$OverallGrade, proposal.rating$Suitability)
+  kappa.matrix.applicant <- table(proposal.rating$OverallGrade, proposal.rating$ApplicantTrack)
+
+  # Define weight matrix
+  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+  
+  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
+         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+
+
+  proposal.kappa.scientificrelevance <- cohen.kappa(kappa.matrix.scientificrelevance, w=custom.weights) # try again with weights
+  proposal.kappa.suitability <- cohen.kappa(kappa.matrix.suitability, w=custom.weights) # try again with weights
+  proposal.kappa.applicant <- cohen.kappa(kappa.matrix.applicant, w=custom.weights) # try again with weights
+  return(list(scientificrelevance=proposal.kappa.scientificrelevance, suitability=proposal.kappa.suitability,
+              applicant=proposal.kappa.applicant))
+}
+
+print("Cohen's Kappa for the Scientific Proposal")
+(overallgrade_kappa <- calculate_overallgrade_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
+```
+
+```
+
+
 ## Analysis
 
 
