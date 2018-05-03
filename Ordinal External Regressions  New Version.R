@@ -27,8 +27,6 @@ rm(applications,reviews,referee_grades, test)
 # Get the Regression data
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
-external_regression_data$ProposalCombined <- factor(external_regression_data$ProposalCombined, ordered = T)
-
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
 
 # Select the final variables
@@ -44,7 +42,7 @@ str(data)
     # Visualization----
       ggplot(external_regression_data, aes(x = ProposalCombined, y = PercentFemale, col=Gender)) +
         geom_jitter(alpha = .5) +
-        facet_grid(InstType ~ Division, margins = TRUE) +
+        #facet_grid(InstType ~ Division, margins = TRUE) +
         theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
     
     
@@ -54,10 +52,10 @@ str(data)
                   data=data)
     # fit a null Model
       fit.null<- clm(ProposalCombined~1, data=data)
-      fit.null$df.residual- fit1$df.residual
+      diff.df<-fit.null$df.residual- fit1$df.residual
       
-      LR<-fit.null$logLik/fit1$logLik
-      1-pchisq(LR,df=15)
+      LR<-(-2*(fit.null$logLik-fit1$logLik))
+      1-pchisq(LR,df=diff.df)
       
       # I am not using Gender:Applicant track here as ApplicantTrack is not in the model
       summary(fit1)  # cond.H very high
@@ -82,9 +80,14 @@ str(data)
       drop1(fit1, test = "Chi")
       # Gender:Division is the first candidate to leave out, then Semester, PreviousRequest and Age
       
-      fit2<-update(fit2,.~.-Gender:Division)
-      summary(fit2)
-      drop1(fit2, test = "Chi")
+      fit1<-update(fit1,.~.-Gender:Division)
+      fit1<-update(fit1,.~.-Semester)
+      fit1<-update(fit1,.~.-PreviousRequest)
+      fit1<-update(fit1,.~.-Age)
+      
+      
+      summary(fit1)
+      drop1(fit1, test = "Chi")
       
       # After variable Selection, the final model
       Model<- clm(ProposalCombined ~ Gender + Division + PercentFemale + IsContinuation + 
