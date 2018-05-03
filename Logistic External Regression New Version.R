@@ -199,11 +199,11 @@ library(ggplot2)
 # Plots Gender effect accross divisions 
 # another way, still not good Anz ideas to make plots look nicer?
 
-ggplot(GendDivEff[,which(GendDivEff$Division=="Div 1")],aes(x=Gender, y=fit))+
-  geom_line()
+# ggplot(GendDivEff[,which(GendDivEff$Division=="Div 1")],aes(x=Gender, y=fit))+
+#  geom_line()
 
-ggplot(GendDivEff, aes(x=Gender, y=fit)) + 
-  geom_segment(data=GendDivEff, mapping=aes(x=Gender, y=lower, xend=Gender, yend=upper, colour=Division)) 
+# ggplot(GendDivEff, aes(x=Gender, y=fit)) + 
+#  geom_segment(data=GendDivEff, mapping=aes(x=Gender, y=lower, xend=Gender, yend=upper, colour=Division)) 
 
 
 # Relative variable importance --------------------------------------------
@@ -212,9 +212,6 @@ ggplot(GendDivEff, aes(x=Gender, y=fit)) +
 calc_pseudo_r <- function(Model,n) {
   (1-exp((Model$dev-Model$null)/n))/(1-exp(-Model$null/n))
 }
-
-# Area under the curve. For logistic regression this makes sense as a meassure for the variable 
-# importance. Here a code to calculate it taken from 
 
 # Set Predictors and output variables
   outcomeName <- 'IsApproved'
