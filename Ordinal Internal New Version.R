@@ -40,15 +40,32 @@ rm(applications,reviews,referee_grades, test)
   fit.null<- clm(ProjectAssessment~1, data=data)
   
   fit.null$df.residual- fit$df.residual
-  LR<-fit.null$logLik/fit$logLik
+  LR<-(-2*(fit.null$logLik-fit$logLik))  # Yesteday, we did this wrong...
   1-pchisq(LR,df=15)
-
-  # [1] 0.9999997 : null Model seems to be better than the full model
-  # The variables we are using have no predictive power for the ProjectAssessment
-  # (Good!)
+  # p-value=0
   
-  #  anova(fit.null, fit)
+  # check with anova function
+  anova(fit.null,fit)
 
+  # So our model is better than the null model... 
+  
+  # I fit the same model without Gender and compare it with fit:
+  
+  fit2 <- clm(ProjectAssessment ~ Division*PercentFemale+Age+Division+IsContinuation+
+               PreviousRequest+InstType+Semester+logAmount,
+             data=data)
+
+  fit$df.residual- fit2$df.residual
+  LR<-(-2*(fit2$logLik-fit$logLik))
+  1-pchisq(LR,df=2)
+  # p-value= 0.07675479
+  
+  # check with anova function
+  anova(fit2,fit)
+  
+  # We don't need to include Gender in the model -> Good!
+  # Gender has no predictive power
+  
 ## Variable selection (AIC):
   
   drop1(fit, test = "Chi")
@@ -65,9 +82,30 @@ rm(applications,reviews,referee_grades, test)
   
   # Still huge cond.H
   
-  fit.null$df.residual- Model$df.residual
-  LR<-fit.null$logLik/Model$logLik
-  1-pchisq(LR,df=10)
+  # Interpretation: I found this in clm_tutorial Janine cited in her mail
+  # "the odds ratio of bitterness being rated in category j or above at warm relative 
+  #  to cold temperatures is exp(coef(fm1)[5])"
+  
+  # In our case I think it would be something like:
+  # the log odds of ProjectAssessment being rated in category j or above decreases by 22% being a female
+  exp(-0.247031)
+  # [1] 0.7811165
+  exp( 0.737721)
+  # the odds ratio of ProjectAssessment being rated in category j or above when the project is a
+  # continuation is 2.091164 (it's two times more likely to be rated in j or above)
+
+## Compare this model with the one without Gender:
+  
+  Model2<- clm(ProjectAssessment ~ Division + PercentFemale + IsContinuation + 
+                Age + logAmount + InstType ,data=data)
+  
+  Model2$df.residual- Model$df.residual
+  LR<-Model2$logLik/Model$logLik
+  1-pchisq(LR,df=1)
+  # 0.3170531
+  
+  # Again, we don't need to include Gender! 
+  # No predictive power! (Good)
 
 ## Confidence intervals:
   
@@ -86,6 +124,14 @@ rm(applications,reviews,referee_grades, test)
   plot(Effect("Division", mod=Model))  
   plot(Effect("InstType", mod=Model))
   plot(Effect("IsContinuation",mod=Model))
+  
+  # From the same clm_tutorial: 
+  # "To determine the accuracy of the parameter estimates we use the convergence method"
+  convergence(Model)
+  # The most important information is the number of correct decimals (Cor.Dec) and the number
+  # of significant digits (Sig.Dig) with which the parameters are determined. 
+  # The logLik.error shows that the error in the reported value of the log-likelihood
+  # is below 10???10, which is by far small enough that LR tests based on this model are accurate.
   
 
 ######################################################
@@ -119,14 +165,32 @@ rm(applications,reviews,referee_grades, test)
   fit.null<- clm(ApplicantTrack~1, data=data)
   
   fit.null$df.residual- fit$df.residual
-  LR<-fit.null$logLik/fit$logLik
+  LR<-(-2*(fit.null$logLik-fit$logLik))  # Yesteday, we did this wrong...
   1-pchisq(LR,df=15)
+  # p-value=0
   
-  # [1] 0.9999996 : null Model seems to be better than the full model
-  # The variables we are using have no predictive power for the ProjectAssessment
-  # (Good!)
+  # check with anova function
+  anova(fit.null,fit)
   
-  #  anova(fit.null, fit)
+  # So our model is better than the null model... 
+  
+  # I fit the same model without Gender and compare it with fit:
+  
+  fit2 <- clm(ApplicantTrack ~ Division*PercentFemale+Age+Division+IsContinuation+
+                PreviousRequest+InstType+Semester+logAmount,
+              data=data)
+  
+  fit2$df.residual- fit$df.residual
+  LR<-(-2*(fit2$logLik-fit$logLik))
+  1-pchisq(LR,df=2)
+  # p-value= 0.002841867
+  
+  # check with anova function
+  anova(fit2,fit)
+  
+  # It seems we need to include Gender in the model -> Bad!
+  # Gender has some predictive power...
+  
   
   ## Variable selection (AIC):
   
