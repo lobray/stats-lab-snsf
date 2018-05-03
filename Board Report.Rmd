@@ -38,6 +38,7 @@ board_data <- prepare_data_board_log_regression(apps=final.apps, internal = fina
 
 kappa.matrix <- table(board_data$OverallGrade, board_data$Ranking)
 
+
 custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
          0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
          0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)

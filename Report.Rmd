@@ -128,22 +128,24 @@ First, let's check the histogram of the ApplicantTrack in the internal vs. exter
 ex_applicant_track <- as.data.frame(prop.table(table(external_regression_data$ApplicantTrack)))
 ex_applicant_track$Freq <- as.numeric(ex_applicant_track$Freq)
 colnames(ex_applicant_track)[1] <- "ApplicantTrackScore"
-ggplot(ex_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
+p1 <- ggplot(ex_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
   geom_histogram(stat="identity") +
   ggtitle("External Applicant Track Frequency Distribution") + 
   geom_text(aes(label=round(Freq, 2),vjust=1.5))
 
 
+
 in_applicant_track <- as.data.frame(prop.table(table(internal_regression_data$ApplicantTrack)))
 in_applicant_track$Freq <- as.numeric(in_applicant_track$Freq)
 colnames(in_applicant_track)[1] <- "ApplicantTrackScore"
-ggplot(in_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
+p2 <- ggplot(in_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
   geom_histogram(stat="identity") +
   ggtitle("Internal Applicant Track Frequency Distribution") +
   geom_text(aes(label=round(Freq, 2),vjust=1.5))
 
 
 # prop.table(table(internal_regression_data$ApplicantTrack))
+
 
 ## Check if gender makes a difference
 # prop.table(table(ex.f$ApplicantTrack))
@@ -159,7 +161,7 @@ ProposalCombined <- external_regression_data$ProposalCombined
 ex_proposal <- as.data.frame(prop.table(table(ProposalCombined)))
 ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
 colnames(ex_proposal)[1] <- "ProposalScore"
-ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
+p1 <- ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
   geom_histogram(stat="identity") +
   ggtitle("External Proposal Frequency Distribution") +
   geom_text(aes(label=round(Freq, 2),vjust=1.5))
@@ -167,12 +169,14 @@ ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
 in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAssessment)))
 in_proposal$Freq <- as.numeric(in_proposal$Freq)
 colnames(in_proposal)[1] <- "ProposalScore"
-ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
+p2  <- ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
   geom_histogram(stat="identity") +
   ggtitle("Internal Proposal Frequency Distribution") +
   geom_text(aes(label=round(Freq, 2),vjust=1.5))
 
-
+# jpeg("/home/leslie/Desktop/StatsLab/Graphs/IntProposalDist.jpg")
+# p2
+# dev.off()
 
 ```
 

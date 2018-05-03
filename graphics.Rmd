@@ -77,6 +77,7 @@ p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "OverallGrade", plot_titl
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
+
 ```
 
 #### ApplicantTrack and IsApproved 
@@ -100,6 +101,8 @@ p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ApplicantTrack", plot_ti
 p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+
 
 ```
 
@@ -125,6 +128,8 @@ p5 <- plot_mirror_barplot(dataset=ex.div2, variable1 = "ScientificRelevance", pl
 p6 <- plot_mirror_barplot(dataset=ex.div3, variable1 = "ScientificRelevance", plot_title = "External Scientific Proposal vs. IsApproved, Div3")
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+
 ```
 
 
@@ -178,7 +183,10 @@ p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "Ranking", plot_title = "
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 
+
+
 ```
+
 
 #### ApplicantTrack and IsApproved
 
@@ -201,6 +209,7 @@ p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ApplicantTrack", plot_ti
 p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ApplicantTrack", plot_title = "Applicant Track vs. Approved, Div3")
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
 
 ```
 
@@ -226,6 +235,8 @@ p5 <- plot_mirror_barplot(dataset=in.div2, variable1 = "ProjectAssessment", plot
 p6 <- plot_mirror_barplot(dataset=in.div3, variable1 = "ProjectAssessment", plot_title = "Scientific Proposal vs. Approved, Div3")
 
 grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+
 ```
 
 
@@ -317,6 +328,11 @@ Apparently there is no association between gender and approval (generally + in e
 library(vcd)
 par(mfrow=c(1,2))
 cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+
+# jpeg("/home/leslie/Desktop/StatsLab/Graphs/mosaicISApproved.jpg")
+# cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+# dev.off()
+
 cotabplot(~ IsApproved + Gender | Division, data = final.apps, shade = TRUE)
 ```
 
@@ -368,7 +384,7 @@ r.tab.dataframe.2 <- as.data.frame(r.tab.2)
 colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
 
 # How men and women allocate overallgrades
-ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+p1 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="OverallGrade",
                       breaks=c(1, 2),
@@ -383,7 +399,7 @@ r.tab.dataframe.f <- as.data.frame(r.tab.f)
 colnames(r.tab.dataframe.f) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
 
 
-ggplot(r.tab.dataframe.f,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+p2 <- ggplot(r.tab.dataframe.f,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="OverallGrade",
                       breaks=c(1, 2),
@@ -399,13 +415,15 @@ colnames(r.tab.dataframe.m) <- c("OverallGrade", "ReviewerGender", "Gender", "Fr
 
 
 
-ggplot(r.tab.dataframe.m,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+p3 <- ggplot(r.tab.dataframe.m,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="OverallGrade",
                       breaks=c(1, 2),
                       labels=c("Male", "Female"))+
   xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
   ggtitle("Difference in how Female & Male Allocate OverallGrades to Male Applicants")
+
+
 
 # grid.arrange(p1, p2, p1, ncol=1)
 ```
@@ -738,7 +756,7 @@ r.tab.dataframe.2 <- as.data.frame(r.tab.2)
 colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Gender", "Freq")
 
 # How men and women allocate Rankings
-ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+p1 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="Ranking",
                       breaks=c(1, 2),
@@ -753,7 +771,7 @@ r.tab.dataframe.f <- as.data.frame(r.tab.f)
 colnames(r.tab.dataframe.f) <- c("Ranking", "RefereeGender", "Gender", "Freq")
 
 
-ggplot(r.tab.dataframe.f,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+p2 <- ggplot(r.tab.dataframe.f,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="Ranking",
                       breaks=c(1, 2),
@@ -769,13 +787,17 @@ colnames(r.tab.dataframe.m) <- c("Ranking", "RefereeGender", "Gender", "Freq")
 
 
 
-ggplot(r.tab.dataframe.m,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+p3 <- ggplot(r.tab.dataframe.m,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
   geom_bar(stat="identity",position="dodge")+
   scale_fill_discrete(name="Ranking",
                       breaks=c(1, 2),
                       labels=c("Male", "Female"))+
   xlab("Ranking")+ylab("Proportion of Rankings allocated by Male & Female Reviewers") +
   ggtitle("Difference in how Female & Male Allocate Rankings to Male Applicants")
+
+# jpeg("/home/leslie/Desktop/StatsLab/Graphs/femalemaleRANKINGvsMALE.jpg")
+# p3
+# dev.off()
 
 ```
 
