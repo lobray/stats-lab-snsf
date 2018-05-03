@@ -59,14 +59,14 @@ summary(fit2)
 
 fit$df.residual- fit2$df.residual
 LR<-(-2*(fit2$logLik-fit$logLik))
-1-pchisq(LR,df=2)
-# p-value= 0.07675479
+1-pchisq(LR,df=4)
+# p-value= 0.2321687
 
 # check with anova function
 anova(fit2,fit)
 
 # We don't need to include Gender in the model -> Good!
-# Gender has no predictive power
+# Gender has no predictive power for ProjectAssessment
 
 ## Variable selection (AIC):
 
@@ -98,13 +98,13 @@ exp( 0.737721)
 
 ## Compare this model with the one without Gender:
 
-Model2<- clm(ProjectAssessment ~ Division + PercentFemale + IsContinuation + 
+Model2<- clm(ProjectAssessment ~ Division*PercentFemale + IsContinuation + 
                Age + logAmount + InstType ,data=data)
 
 Model2$df.residual- Model$df.residual
 LR<-Model2$logLik/Model$logLik
 1-pchisq(LR,df=1)
-# 0.3170531
+# 0.3170705
 
 # Again, we don't need to include Gender! 
 # No predictive power! (Good)
@@ -184,14 +184,14 @@ fit2 <- clm(ApplicantTrack ~ Division*PercentFemale+Age+Division+IsContinuation+
 
 fit2$df.residual- fit$df.residual
 LR<-(-2*(fit2$logLik-fit$logLik))
-1-pchisq(LR,df=2)
-# p-value= 0.002841867
+1-pchisq(LR,df=4)
+# p-value= 0.00121072
 
 # check with anova function
 anova(fit2,fit)
 
 # It seems we need to include Gender in the model -> Bad!
-# Gender has some predictive power...
+# Gender has some predictive power for ApplicantTrack...
 
 
 ## Variable selection (AIC):
@@ -212,6 +212,20 @@ summary(Model)
 fit.null$df.residual- Model$df.residual
 LR<-fit.null$logLik/Model$logLik
 1-pchisq(LR,df=12)
+
+## Compare this model with the one without Gender:
+
+Model2<- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation + 
+               Semester + logAmount + InstType ,data=data)
+
+Model2$df.residual- Model$df.residual
+LR<-Model2$logLik/Model$logLik
+1-pchisq(LR,df=3)
+# 0.8000558
+
+# Again, we don't need to include Gender! 
+# No predictive power for ApplicantTrack (when removing useless variables)! (Good)
+
 
 ## Confidence intervals:
 
