@@ -27,21 +27,43 @@ summary(external_regression_data)
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
 data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested))
 
-barplot(table(data$IsApproved,data$ApplicantTrack),col=c("red","green"), beside=TRUE,
-        main = "Applicant Track Grade vs. Approval")
+# visualization of grades to check for perfect separation----
+  par(mfrow=c(2,2))
+  #ApplicantTrack
+  barplot(table(data$IsApproved,data$ApplicantTrack),col=c("red","green"), beside=TRUE,
+          main = "Applicant Track Grade vs. Approval")
+  
+  legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
+  
+  # ScientificRelevance
+  barplot(table(data$IsApproved,data$ScientificRelevance),col=c("red","green"), beside=TRUE,
+          main = "ScientificRelevance vs. Approval")
+  
+  legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
+  
+  # Suitability
+  barplot(table(data$IsApproved,data$Suitability),col=c("red","green"), beside=TRUE,
+          main = "Suitability vs. Approval")
+  
+  legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
+  
+  # ProposalCombined
+  barplot(table(data$IsApproved,data$ProposalCombined),col=c("red","green"), beside=TRUE,
+          main = "ProposalCombined vs. Approval")
+  
+  legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
 
-legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
+  par(mfrow=c(1,1))
 
 # As we define the grades as ordered factors, contrast.poly() is used as default to compute the
 # coefficient estimates
 
-# Fit first model with all variables and interactions
-  fit <- glm(IsApproved ~ .+Gender:Division+
-               Gender:PercentFemale+Gender:ApplicantTrack,data=data, 
+# Fit first model with all variables and interactions----
+  Model <- glm(IsApproved ~ .+Gender:Division+
+               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division -ProposalCombined,data=data, 
              family="binomial")
   summary(fit)
-  # We have NA, and coefficients with large variances. A model diagnostic will help solve this 
-  # Issue
+  # We have NA, and coefficients with large variances. 
 
 # Model Diagnostic
     # Predicted values
@@ -76,10 +98,12 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
       # I will remove this variable
         Model<-update(Model,.~.-ApplicantTrack:Gender) 
         Model<-update(Model,.~.-Division:Gender)   
-        Model<-update(Model,.~.-InstType)
+        #Model<-update(Model,.~.-InstType)  # With the interaction this is significant
         Model<-update(Model,.~.-logAmount)
         Model<-update(Model,.~.-PercentFemale:Gender)
         Model<-update(Model,.~.-PreviousRequest)
+        
+        drop1(Model,test="Chisq")
         summary(Model)
         # We stop before removing Gender
         # No more NA, but still very large variances
@@ -108,11 +132,10 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
         data$Suitability<-ifelse(data$Suitability<=3,3,data$Suitability)
         data$Suitability<-factor(data$Suitability, ordered=TRUE)
         
-# Fit again with new definition of variables:
+# Fit again with new definition and all variables:
         
-        Model <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + 
-                       Suitability + PercentFemale + Age + Gender*Division + InstType*Division + IsContinuation + 
-                       Semester,data=data, 
+        Model <- glm(IsApproved ~ .+Gender:Division+
+                       Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division -ProposalCombined,data=data, 
                    family="binomial")
         summary(Model)
         # We have no NA's now, and the variance are reasonable
@@ -146,23 +169,25 @@ legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red",
  
         # optimize model
         drop1(Model, test="Chisq")
-        Model <- update(Model, .~.-Age)
-        # Model <- update(Model, .~.-Suitability)
+        Model <- update(Model,.~.-ApplicantTrack:Gender)
+        Model <- update(Model,.~.-Gender:Division)
+        Model <- update(Model,.~.-logAmount)
+        Model <- update(Model,.~.- PreviousRequest)
+        Model <- update(Model,.~.-PercentFemale:Gender)
         # Again, Removing interaction between ApplicantTrack and gender reduces the AIC the most
         # I will remove this variable
         
-
         summary(Model)
         # Pseudos-R^2
-        1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623)) #[1] 0.4142912
+        (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623)) # [1] 0.4203388
         # Although AIC is less, the pseudo r's are worst. But is to be expected, as the more
         # Variables the less the deviance, and therfore, the less proportion explained
       
         # In the following I will work with this final model
         Model$call
         # glm(formula = IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
-        # PercentFemale + Age + Gender + Division + IsContinuation + 
-        #  Semester, 
+        # PercentFemale + Age + Gender + Division + IsContinuation + InstType + 
+        # Semester + Division:InstType, 
         # family = "binomial", data = data)
        
 # Effect Visualization ----------------------------------------------------
@@ -177,24 +202,90 @@ library(ggplot2)
   eff.fit <- allEffects(Model)
   
 # Obtain Gender effect as a separate data frame        
-  GendDivEff<-as.data.frame(eff.fit[[6]])               
-
-# Plot different things
-  #Global Gender effect on the approval of applications  
-  plot(Effect(focal.predictors = c("Gender"), Model),
-     rug=FALSE,style="stacked")
+  plot(Effect("Gender",Model),
+            ci.style="bands",
+            band.transparency=0.2)
+  # Lines are almost horizotal, an indication of no gender effect. Good news!!
   
-  # Effect of gender in approval, per division
-    plot(predictorEffects(Model, ~ Gender))
-    # Lines are almost horizotal, an indication of no gender effect. Good news!!
+# Plot different things
+  #Gender effect on the approval of applications per division  
+      plot(Effect(focal.predictors = c("Gender","Division"), Model),
+      rug=FALSE,style="stacked", ci.style="bands")
+  
   # All effects at once
     plot(eff.fit)
 
 
-# Visualization with effects package
-  plot(Effect(c("Gender","ApplicantTrack"), mod=Model))
+# Visualization with effects package and others----
+  
+    plot(Effect(c("Gender","ApplicantTrack"), mod=Model))
+  # Males and females is the same graph to compare better. There might be a simpler way..
+      # 1. Get the effect
+      GApp<-Effect(c("Gender","ApplicantTrack"), mod=Model)
+      GApp
+      # 2. GApp is a very big list, and I couldn't find a place where they store the
+      # values as display (the ones they plot), but I was able to reproduce it.
+      GA<-matrix(exp(GApp$fit)/(1+exp(GApp$fit)),nrow = 2,byrow = F)
+      rownames(GA)<-levels(data$Gender)
+      colnames(GA)<-levels(data$ApplicantTrack)
+      
+      x<-as.numeric(levels(data$ApplicantTrack))
+      plot(x,GA[1,], type="l", col= "blue",
+           main="Gender Effect on Applicant Track",
+           xlab="Reviewers Grade",
+           ylab="Probability of being Approved",
+           xaxp=c(3,6,3))
+      points(x,GA[1,],pch=20)
+      points(x,GA[2,],pch=20)
+      lines(x,GA[2,], type="l", col="green")
+      legend("topleft", lty=1, col=c("blue","green"), legend = c("male","female"))
+      
+  # Gender vs Scientific Relevance
   plot(Effect(c("Gender","ScientificRelevance"), mod=Model))
+      # 1. Get the effect
+      GSci<-Effect(c("Gender","ScientificRelevance"), mod=Model)
+      GSci
+      # 2. GApp is a very big list, and I couldn't find a place where they store the
+      # values as display (the ones they plot), but I was able to reproduce it.
+      GSc<-matrix(exp(GSci$fit)/(1+exp(GSci$fit)),nrow = 2,byrow = F)
+      rownames(GSc)<-levels(data$Gender)
+      colnames(GSc)<-levels(data$ScientificRelevance)
+      GSc
+      # 3. plot
+      x<-as.numeric(levels(data$ScientificRelevance))
+      plot(x,GSc[1,], type="l", col= "blue",
+           main="Gender Effect on Scientific Relevance",
+           xlab="Reviewers Grade",
+           ylab="Probability of being Approved",
+           xaxp=c(3,6,3))
+      points(x,GSc[1,],pch=20)
+      points(x,GSc[2,],pch=20)
+      lines(x,GSc[2,], type="l", col="green")
+      legend("topleft", lty=1, col=c("blue","green"), legend = c("male","female"))
+    
+  # Gender vs Suitability    
   plot(Effect(c("Gender","Suitability"), mod=Model))
+      GSui<-Effect(c("Gender","Suitability"), mod=Model)
+      GSui
+      # 2. GApp is a very big list, and I couldn't find a place where they store the
+      # values as display (the ones they plot), but I was able to reproduce it.
+      GSu<-matrix(exp(GSui$fit)/(1+exp(GSui$fit)),nrow = 2,byrow = F)
+      rownames(GSu)<-levels(data$Gender)
+      colnames(GSu)<-levels(data$Suitability)
+      GSu
+      # 3. plot
+      x<-as.numeric(levels(data$Suitability))
+      plot(x,GSu[1,], type="l", col= "blue",
+           main="Gender Effect on Suitability",
+           xlab="Reviewers Grade",
+           ylab="Probability of being Approved",
+           xaxp=c(3,6,3))
+      points(x,GSu[1,],pch=20)
+      points(x,GSu[2,],pch=20)
+      lines(x,GSu[2,], type="l", col="green")
+      legend("topleft", lty=1, col=c("blue","green"), legend = c("male","female"))
+  
+  
 
 # Plots Gender effect accross divisions 
 # another way, still not good Anz ideas to make plots look nicer?
@@ -215,9 +306,9 @@ calc_pseudo_r <- function(Model,n) {
 
 # Set Predictors and output variables
   outcomeName <- 'IsApproved'
-  predictorNames <- setdiff(c('ApplicantTrack','ScientificRelevance', 'Suitability',
+  predictorNames <- c('ApplicantTrack','ScientificRelevance', 'Suitability',
                               'PercentFemale','Age','Gender','Division','InstType',
-                              'IsContinuation', 'Semester'),outcomeName)
+                              'IsContinuation', 'Semester')
 
 # To see variable importance based on pseudo r^2
   refR2<-calc_pseudo_r(Model,nrow(data))
@@ -236,6 +327,7 @@ calc_pseudo_r <- function(Model,n) {
     featuresMeanR2 <- c(featuresMeanR2, mean(featureR2-refR2))
   }  
   
-  PseudoRShuffle <- data.frame('feature'=predictorNames, 'importance'=featuresMeanR2)
-  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
+  PseudoRShuffle <- data.frame('Feature'=predictorNames, 'Importance'=featuresMeanR2)
+  #minor detail, I'll order so that the most important variable is at the top
+  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=FALSE),]
   print(PseudoRShuffle)
