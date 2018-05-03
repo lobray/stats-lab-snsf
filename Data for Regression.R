@@ -86,7 +86,7 @@ prepare_data_internal_log_regression <- function(apps, internal) {
 
 
 prepare_data_board_log_regression <- function(apps, internal, external) {
-  
+ 
   # Extract columns from applications data
   board_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested","IsContinuation",
                                          "InstType","PreviousRequest")]
@@ -98,12 +98,14 @@ prepare_data_board_log_regression <- function(apps, internal, external) {
   internal_reviews_gender <- calculate_percent_female(combined_reviewer_gender, "RefereeGender")
   
   # Calculate average ratings for internal and external reviews
-  average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
-  average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
+  # average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
+  # average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
+  ex_data <- prepare_data_external_log_regression(apps=apps, external=external)
+  int_data <- prepare_data_internal_log_regression(apps=apps, internal=internal)
   
   # Merge with external reviews & referee data & % female
-  board_regression_data <- merge(board_regression_data, average_internal_ratings, by = "ProjectID")
-  board_regression_data <- merge(board_regression_data, average_ratings, by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, int_data[,c("ProjectID", "Ranking")], by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, ex_data[,c("ProjectID", "OverallGrade")], by = "ProjectID")
   board_regression_data <- merge(board_regression_data, internal_reviews_gender, by="ProjectID")
   
   # Create logistic regression & return object

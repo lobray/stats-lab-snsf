@@ -19,6 +19,8 @@ library(car)
 library(caret)
 library(glmnet)
 library(combinat)
+library(psych)
+library(biostatUZH)
 
 ### Initialize data
 
@@ -32,20 +34,25 @@ source("/home/leslie/Desktop/StatsLab/stats-lab-snsf/Data for Regression.R")
 Prepare the data and fit the full model:
 ```{r}
 
-board_data <- prepare_data_board_log_regression(final.apps, internal = final.internal, external = final.external)
+board_data <- prepare_data_board_log_regression(apps=final.apps, internal = final.internal, external = final.external)
 
+kappa.matrix <- table(board_data$OverallGrade, board_data$Ranking)
 
-table(board_data$OverallGrade, board_data$Ranking)
+custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
+         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
+
+kappa <- cohen.kappa(kappa.matrix)
 table(board_data$OverallGrade, board_data$IsApproved)
 
-board_data$Ranking <- ifelse(board_data$Ranking < 4, 3, board_data$Ranking)
-board_data$OverallGrade <- ifelse(board_data$OverallGrade < 4, 3, board_data$OverallGrade)
-board_data$Ranking <- factor(board_data$Ranking,ordered=TRUE)
-board_data$OverallGrade <- factor(board_data$Ranking, ordered=TRUE)
+
+board_data$Ranking <- ifelse(board_data$Ranking %in% c(1,2,3), 3, board_data$Ranking)
+board_data$OverallGrade <- ifelse(board_data$OverallGrade %in% c(1,2,3), 3, board_data$OverallGrade)
 
 
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) + 
-                              Ranking + OverallGrade + Gender:Division + PercentFemale*Gender, family="binomial", data = board_data)
+                              Ranking + OverallGrade + Gender:Division + PercentFemale + 
+                              PercentFemale:Gender, family="binomial", data = board_data)
 
 
 ```
@@ -59,10 +66,9 @@ In fitting the regression, the summary shos that OverallGrade, Ranking, InstType
 ```
 
 
-In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). 
+In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). However, gender is nearly 5 (4.99), so we would like to address this. 
 ```{r}
 (vif(board_log_regression))
-
 ```
 
 
@@ -80,19 +86,9 @@ calc_pseudo_r <- function(log_regression_object) {
 }
 
 # Check pseudo r for model: 
-calc_pseudo_r(board_log_regression)
+base_pseudo_r <- calc_pseudo_r(board_log_regression)
 
 
-```
-
-
-```{r}
-## IF GOING TO USE VARIMP, NEED TO UPDATE TO USE STANDARDIZED VARIABLES. BUT, WHAT DOES A STANDARDIZED BINARY VARIABLE EVEN MEAN? CHECK IF USEMODEL=F IS SUFFICIENT
-(board_variable_importance <- varImp(board_log_regression, useModel=FALSE))
-(board_variable_importance <- varImp(board_log_regression, nonpara=TRUE))
-
-
-table(board_data$IsApproved, board_data$OverallGrade)
 ```
 
 Alternative Method for seeing variable importance: For each predictor, permute the values. See difference in fit.
@@ -101,65 +97,40 @@ Alternative Method for seeing variable importance: For each predictor, permute t
 
 ```{r permute data }
 
-predictors <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "AmountRequested", 
-                "Ranking", "OverallGrade")
+predictorNames <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "AmountRequested", 
+                "Ranking", "OverallGrade", "PercentFemale")
 
-# Function to permute values
-permute_values <- function(data_vector) {
-  n <- length(data_vector)
-  permuted_vector <- data_vector
-  permuted_matrix <- matrix(0, nrow=n, ncol=100000)
-    for (i in 1:100000) {
-    permuted_matrix[,i] <- sample(n, n, x=permuted_vector)
-  }
+refR2<-calc_pseudo_r(board_log_regression)
+  PseudoRShuffle <- NULL
+  shuffletimes <- 50  #number of interactions
   
-  return(permuted_matrix)
-}
-
-# Function to calculate variable importance via permutation
-calc_variable_importance <- function(predictors = predictors, data = board_data, regression_object) {
-  variable_imp_matrix <- matrix(0, nrow=length(predictors), ncol=2)
-  variable_imp_matrix[,1] <- predictors
-  print(variable_imp_matrix)
-  base_pseudo_r <- calc_pseudo_r(regression_object)
-  
-  for (i in predictors) {
-    permuted_board_data <- data
-    permuted_predictor <- permute_values(permuted_board_data[,i])
-    pseudo_r <- c(length=ncol(permuted_predictor))
-    
-        
-    for (j in 1:ncol(permuted_predictor)) {
-      permuted_board_data[,j] <- permuted_predictor[,j]
-      
-      # run regression on permuted value
-      permuted_board_log_regression <- glm(permuted_board_data$IsApproved ~ Gender + Division + Age +
-                                           IsContinuation + InstType + AmountRequested +
-                                           Ranking + OverallGrade + Gender:Division, family="binomial", data = permuted_board_data)
-      # calculate pseudo r squared
-      pseudo_r[j] <- calc_pseudo_r(permuted_board_log_regression)  
-    
+  featuresMeanR2 <- c()
+  for (feature in predictorNames) {
+    featureR2 <- c()
+    shuffledData <- board_data
+    for (iter in 1:shuffletimes) {
+      shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+      Model.tmp <- update(board_log_regression,.~.,data=shuffledData)
+      featureR2 <- c(featureR2,calc_pseudo_r(Model.tmp))
     }
-    
-    variable_imp_matrix[which(variable_imp_matrix[,1] == i),2] <- mean(permuted_pseudo_r) - (base_pseudo_r)
-  } 
-  colnames(variable_imp_matrix) <- c("Variable", "Difference to Base Pseudo R^2")
-  return(variable_imp_matrix)
-}
+    featuresMeanR2 <- c(featuresMeanR2, mean(featureR2-refR2))
+  }  
+  
+  PseudoRShuffle <- data.frame('feature'=predictorNames, 'importance'=featuresMeanR2)
+  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
+  print(PseudoRShuffle)
 
-
-aa <- (calc_variable_importance(predictors=predictors, data=board_data, regression_object=board_log_regression))
 
 ```
-In this step, for each explanatory variable, I randomly permuted the values for that variable, and refitted the logistic regression model. I then compared the pseudo R^2 metric with the initial pseudo R^2 metric computed in the original model. In the output matrix, you can see how much the pseudo R^2 changed when that variable was permuted. In this case, we see that permuting Ranking had the biggest impact on the pseudo R^2 - decreasing it by 0.16. The next biggest impact was overall grade, which decreased the pseudo R^2 0.003. From this, we can conclude that Ranking is the most important explanatory variable in predicting IsApproved.
+In this step, for each explanatory variable, I randomly permuted the values for that variable, and refitted the logistic regression model. I then compared the pseudo R^2 metric with the initial pseudo R^2 metric computed in the original model. In the output matrix, you can see how much the mean pseudo R^2 changed when that variable was permuted. In this case, we see that permuting Ranking had the biggest impact on the pseudo R^2 - decreasing it by 0.16. The next biggest impact was overall grade, which decreased the pseudo R^2 0.003. From this, we can conclude that Ranking is the most important explanatory variable in predicting IsApproved.
 
-**QUESITON** Is my definition of pseudo R^2 okay? Make sure to be consistent across our work. 
 
-Check diagnostics: residuals:
+
+Check diagnostics: residuals. We see that we have smaller residuals for ranking 6 and 5, which intuitively makes sense. But this is a violation of our assumption of independently and identically distributed residuals, as there is clear structure in the residuals.
 ```{r}
-plot(resid(board_log_regression, type="pearson")) 
-plot(resid(board_log_regression, type="deviance"))
 
+plot(resid(board_log_regression, type="deviance"), col=board_data$Ranking)
+legend("topright", legend = 1:6, col=1:6, pch=1)
 ```
 
 Checking the residuals, they seem to be expectation 0, with a few outliers. However, in looking at the deviance, there appears to be some structure in the data. Should this indicate we need a new model fit?
@@ -171,83 +142,21 @@ drop1(board_log_regression, test="Chisq")
 fit1 <- update(board_log_regression, .~.-InstType)
 drop1(fit1, test="Chisq")
 fit2 <- update(fit1, .~.-Gender:Division)
-drop1(fit2, test="F")
-fit3 <- update(fit2, .~.-Division)
-drop1(fit3)
-fit4 <- update(fit3, .~.-AmountRequested)
-drop1(fit4)
+drop1(fit2, test="Chisq")
+fit3 <- update(fit2, .~.-Gender:PercentFemale)
+drop1(fit3, test="Chisq")
+fit4 <- update(fit3, .~.-PercentFemale)
+drop1(fit4, test="Chisq")
+fit5 <- update(fit4, .~.-Gender)
+drop1(fit5, test="Chisq")
+fit6 <- update(fit5, .~.-log(AmountRequested))
+drop1(fit6, test="Chisq")
+fit7 <- update(fit6, .~.-Division)
+drop1(fit7)
 
 ```
+The final model purely uses Age, IsContinuation, Ranking, & OverallGrade as predictors. 
 
-I stopped when removing Gender became the next target.
-
-Do CV to see if model fit is decent:
-```{r}
-#####################################################################
-#################### CV to assess model fit ##########################
-#####################################################################
-
-
-assess_board_model<- function(data=board_data, Div="All",
-                      SplitRatio=0.8, cutoff=0.5 ){ 
-  
-  if (Div == "All"){ 
-    final.data <- data
-  }
-  else {
-    final.data<- subset(data,Division==Div, select = -(Division)) 
-  }
-  
-  ### spliting the data into train and test set
-  
-  if (SplitRatio<1){
-    split<-sample.split(final.data$IsApproved, SplitRatio = SplitRatio)
-    Train<-subset(final.data, split=="TRUE")
-    Test <-subset(final.data, split=="FALSE") 
-  } else {
-    Test<-Train<-final.data
-  }
-  
-  #### fitting the model
-  
-  # Cutoff
-  cutoff <- cutoff
-  
-  # Optimize the model
-  
-  Model <- glm(Train$IsApproved ~ .-(ProjectID),data=Train, 
-               family="binomial")
-  
-  ### Testing the Treshold
-  par(mfrow=c(1,2))
-  predictor<-predict(Model, Test, type="response")
-  ROCRPred<- prediction(predictor,Test$IsApproved)
-  ROCRPerf<- performance(ROCRPred,"tpr","fpr")
-  plot(ROCRPerf, colorize=TRUE, print.cutoffs.at=seq(0,1,by=0.1))
-  
-  ### with respect to accuracy
-  ROCRACC<- performance(ROCRPred,"acc")
-  plot(ROCRACC)  
-  
-  ### Confusion Matrices
-  AccTable<-table(ActualValue=Test$IsApproved,Prediction=predictor>=cutoff)
-  accuracy<-(sum(diag(AccTable))/sum(AccTable))
-  
-  ### Return
-  print(paste("Regresion for External Reviews.   ", "Division: ", Div))
-  return(list(Model= summary(Model), 
-              #`Confidence Intervals`=confint(Model),
-              `Confusion Matrix`=AccTable,
-              `Percentage of data used for Training`=paste(SplitRatio*100,"%"),
-              `Accuracy`=paste(round(accuracy,2)*100,"%")))
-}
-
-
-board.all <- assess_board_model(data=board_data, Div="All",
-                        SplitRatio=1,cutoff=0.5)
-board.all$Accuracy
-
-```
 
 
 
