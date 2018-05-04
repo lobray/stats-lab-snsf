@@ -326,3 +326,95 @@ lbl_test(t)
 
 # Compare to chi-square test without ordered categories
 chisq_test(t)   # p-value = 0.001099
+
+
+###############################################
+######   Ordinal regression for Ranking  ######
+###############################################
+
+## Get the Regression data:
+
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
+data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
+
+# str(data)
+
+## Visualization:
+
+ggplot(internal_regression_data, aes(x = Ranking, y = PercentFemale, col=Gender)) +
+  geom_jitter(alpha = .5) +  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+## Fit full the model:
+
+fit <- clm(Ranking ~Gender*Division+Gender*PercentFemale+Division*PercentFemale+Age+Division+IsContinuation+
+             PreviousRequest+InstType+Semester+logAmount,
+           data=data)
+summary(fit)
+
+# cond.H very large
+
+## Fit the null Model:
+
+fit.null<- clm(ProjectAssessment~1, data=data)
+
+fit.null$df.residual- fit$df.residual
+LR<-(-2*(fit.null$logLik-fit$logLik))  # Yesteday, we did this wrong...
+1-pchisq(LR,df=17)
+# p-value=0
+
+# check with anova function
+anova(fit.null,fit)
+
+# So our model is better than the null model... 
+
+# I fit the same model without Gender and compare it with fit:
+
+fit2 <- clm(Ranking ~ Division*PercentFemale+Age+Division+IsContinuation+
+              PreviousRequest+InstType+Semester+logAmount,
+            data=data)
+summary(fit2)
+
+fit$df.residual- fit2$df.residual
+LR<-(-2*(fit2$logLik-fit$logLik))
+1-pchisq(LR,df=4)
+# p-value= 0.08703665
+
+# check with anova function
+anova(fit2,fit)
+
+# We don't need to include Gender in the model -> Good!
+# Gender has no predictive power for ProjectAssessment
+
+## Variable selection (AIC):
+
+drop1(fit, test = "Chi")
+fit <- update(fit, .~.-Gender:Division)
+fit <- update(fit, .~.-Division:PercentFemale)
+fit <- update(fit, .~.-Gender:PercentFemale)
+fit <- update(fit, .~.-Age)
+fit <- update(fit, .~.-Semester)
+
+# Final model:
+
+Model<- clm(Ranking ~ Gender + Division + PercentFemale + IsContinuation + 
+              PreviousRequest + InstType + logAmount ,data=data)
+summary(Model)
+
+# Still huge cond.H
+
+
+## Compare this model with the one without Gender:
+
+Model2<- clm(Ranking ~ Division + PercentFemale + IsContinuation + 
+               PreviousRequest + InstType + logAmount ,data=data)
+
+Model2$df.residual- Model$df.residual
+LR<-Model2$logLik/Model$logLik
+1-pchisq(LR,df=1)
+# 0.3168946
+
+# Again, we don't need to include Gender! 
+# No predictive power! (Good)
+
