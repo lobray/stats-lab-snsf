@@ -315,8 +315,8 @@ str(data)
             PseudoRShuffle2 <- PseudoRShuffle2[order(PseudoRShuffle2$'Average.Diff', decreasing=TRUE),]
             print(PseudoRShuffle2)
             
-            # We do get the same variables as important. The one with the largest effect is Amount Requested.
-            # Interesting. Remeber we are evaluating Project Assessment
+            # The one with the largest effect is IstitutionType.
+            
             
             
             
