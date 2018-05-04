@@ -143,12 +143,12 @@ str(data)
           #Still classifies in mostly in category 4
           sum(predictions$fit=="4") # 1530 out of 1623 ???
 
-      # Initialize vectors fro randomization
+      # Initialize vectors for randomization
       ll.Reference<-Model$logLik
-      LlShuffle <- NULL
-      shuffletimes <- 10  #number of interactions
+      # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
+      shuffletimes <- 100  #number of interactions
 
-      featuresMeanLR <- c()
+      featuresMeanLR <- featuresProportions<-c()
       for (feature in predictorNames) {
         featureLl <- c()
         shuffledData <- data[,c(outcomeName, predictorNames)]
@@ -157,16 +157,56 @@ str(data)
           Model.tmp <- update(Model,.~.,data=shuffledData)
           featureLl <- c(featureLl,Model.tmp$logLik)
         }
-        featuresMeanLR <- c(featuresMeanLR, mean(-2*(ll.Reference-featureLl)))
+        featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+        featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
+        # IF the new likelihood is smaller than the ref. -> we have a worst model
+        # In how many runs does the likelihood is less
       }
 
-      # PseudoRShuffle <- data.frame('feature'=predictorNames, 'average LR.stat'=featuresMeanLR)
-      # PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
-      # print(PseudoRShuffle)
-    #   
-    #     This part needs work. 
+       PseudoRShuffle <- data.frame('feature'=predictorNames, 'Average.Diff'=featuresMeanLR,
+                                    'Proportion'=featuresProportions)
+       PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$'Average.Diff', decreasing=TRUE),]
+       print(PseudoRShuffle)
+       
+       #doing it like this, it turns out that all the variables are important. But this is to be expected
+       # As we have previously select the variables.
+       # Just to play around I will do the same, but with the original model and see if we get
+       # the same result
+       
+       predictorNames2 <- c('Gender', 'Division', 'PercentFemale', 'Age','IsContinuation',
+                           'PreviousRequest','InstType', 'Semester','logAmount')
+       ll.Reference<-fit1$logLik
+       # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
+      
+       shuffletimes <- 100  #number of interactions
+       
+       featuresMeanLR <- featuresProportions<-c()
+       for (feature in predictorNames2) {
+         featureLl <- c()
+         shuffledData <- data[,c(outcomeName, predictorNames2)]
+         for (iter in 1:shuffletimes) {
+           shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+           Model.tmp <- update(fit1,.~.,data=shuffledData)
+           featureLl <- c(featureLl,Model.tmp$logLik)
+         }
+         featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+         featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
+         # IF the new likelihood is smaller than the ref. -> we have a worst model
+         # In how many runs does the likelihood is less
+       }
+       
+       PseudoRShuffle2 <- data.frame('feature'=predictorNames2, 'Average.Diff'=featuresMeanLR,
+                                    'Proportion'=featuresProportions)
+       PseudoRShuffle2 <- PseudoRShuffle2[order(PseudoRShuffle2$'Average.Diff', decreasing=TRUE),]
+       print(PseudoRShuffle2)
+       
+       # We do get the same variables as important. The one with the largest effect is Amount Requested.
+       # Interesting. Remeber we are evaluating Project Assessment
+    
+       
   
-# Fitting the Model for ApplicantTrack  ---- 
+
+  # Fitting the Model for ApplicantTrack  ---- 
       
       fit2 <- clm(ApplicantTrack ~Gender*(Division+PercentFemale)+Age+Division+IsContinuation+
                     PreviousRequest+InstType+Semester+logAmount,
@@ -204,6 +244,83 @@ str(data)
             # Odds ratio and confidence intervals for Odds Ratio
             round(exp(Model$beta), 1)
             round(exp(confint(Model, type = "Wald")), 1) # There are some huge intervals
+  
+  # Variable Importance----
+            # Not sure which meassure to use here. I'll try with LogLikelihood, I don't know
+            # how to estimate the Deviance for this models. Any one knows?
+            
+            outcomeName <- 'ApplicantTrack'
+            predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation',
+                                'InstType', 'logAmount')
+            predictions <- predict(object=Model, data[,predictorNames], type="class")
+            # A quick check
+            table(data$ProposalCombined,predictions$fit)
+            #Still classifies in mostly in category 4
+            sum(predictions$fit=="4") # 1530 out of 1623 ???
+            
+            # Initialize vectors for randomization
+            ll.Reference<-Model$logLik
+            # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
+            shuffletimes <- 100  #number of interactions
+            
+            featuresMeanLR <- featuresProportions<-c()
+            for (feature in predictorNames) {
+              featureLl <- c()
+              shuffledData <- data[,c(outcomeName, predictorNames)]
+              for (iter in 1:shuffletimes) {
+                shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+                Model.tmp <- update(Model,.~.,data=shuffledData)
+                featureLl <- c(featureLl,Model.tmp$logLik)
+              }
+              featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+              featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
+              # IF the new likelihood is smaller than the ref. -> we have a worst model
+              # In how many runs does the likelihood is less
+            }
+            
+            PseudoRShuffle <- data.frame('feature'=predictorNames, 'Average.Diff'=featuresMeanLR,
+                                         'Proportion'=featuresProportions)
+            PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$'Average.Diff', decreasing=TRUE),]
+            print(PseudoRShuffle)
+            
+            #doing it like this, it turns out that all the variables are important. But this is to be expected
+            # As we have previously select the variables.
+            # Just to play around I will do the same, but with the original model and see if we get
+            # the same result
+            
+            predictorNames2 <- c('Gender', 'Division', 'PercentFemale', 'Age','IsContinuation',
+                                 'PreviousRequest','InstType', 'Semester','logAmount')
+            ll.Reference<-fit2$logLik
+            # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
+            
+            shuffletimes <- 100  #number of interactions
+            
+            featuresMeanLR <- featuresProportions<-c()
+            for (feature in predictorNames2) {
+              featureLl <- c()
+              shuffledData <- data[,c(outcomeName, predictorNames2)]
+              for (iter in 1:shuffletimes) {
+                shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+                Model.tmp <- update(fit2,.~.,data=shuffledData)
+                featureLl <- c(featureLl,Model.tmp$logLik)
+              }
+              featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+              featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
+              # IF the new likelihood is smaller than the ref. -> we have a worst model
+              # In how many runs does the likelihood is less
+            }
+            
+            PseudoRShuffle2 <- data.frame('feature'=predictorNames2, 'Average.Diff'=featuresMeanLR,
+                                          'Proportion'=featuresProportions)
+            PseudoRShuffle2 <- PseudoRShuffle2[order(PseudoRShuffle2$'Average.Diff', decreasing=TRUE),]
+            print(PseudoRShuffle2)
+            
+            # We do get the same variables as important. The one with the largest effect is Amount Requested.
+            # Interesting. Remeber we are evaluating Project Assessment
+            
+            
+            
+            
             
       # Effects ----      
             # Effect plots, we should explore other ways to plot this. This graphs are not very
