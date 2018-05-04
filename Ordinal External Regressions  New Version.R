@@ -55,10 +55,23 @@ str(data)
       diff.df<-fit.null$df.residual- fit1$df.residual
       
       LR<-(-2*(fit.null$logLik-fit1$logLik))
-      1-pchisq(LR,df=diff.df)
+      1-pchisq(LR,df=diff.df) # 0   I am nto sure this is a good thing
       
       # I am not using Gender:Applicant track here as ApplicantTrack is not in the model
       summary(fit1)  # cond.H very high
+      
+    # Veall and Zimmerman R^2 for models with ordial data ----
+      # Ref: Generalized Linear Models and Extentions. W.Hardin and J.Hilbe
+      # https://books.google.ch/books?id=tOeqO6Hs-6gC&lpg=PP1&hl=el&pg=PA52&redir_esc=y#v=onepage&q&f=false
+      # R^2=[(delta-1)/(delta -R_m^2)]*R_m^2
+      # where delta=n/(2*loglikelihood(null))
+      # and R_m^2 = [1-logLik.model/loglik.null]
+      
+      n<-length(data$ProposalCombined)
+      d<-n/(2*fit.null$logLik)
+      R2.M <- 1-fit1$logLik/fit.null$logLik
+      PseudoR2<- ((d-1)/(d-R2.M))*R2.M
+      
       
     # Test the equidistant Thresholds--------  
       # Are treshold Equidistant
