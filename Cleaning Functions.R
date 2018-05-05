@@ -75,6 +75,8 @@ d.apps<- function(data){
   id.g <- which(is.na(apps$Gender)) 
   apps <- apps[-id.g,]
   
+  
+  
   # Reorder data set
   apps<- apps[,c("ProjectID","Gender","Age","Nationality", "IsApproved","Year","Semester", "AmountRequested" ,
                  "AmountGranted", "GradeFinal","Division","MD Name","InstType",
@@ -257,7 +259,7 @@ calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender")
   projID <- unique(data$ProjectID)
   
   # Create empty matrix to store % female
-  percent_female_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=2)
+  percent_female_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=3)
   
   # Initialize j
   j <- 1
@@ -278,12 +280,13 @@ calculate_percent_female <- function(data, ReviewerTypeGender = "RefereeGender")
     
     # Put percent female into the matrix
     percent_female_matrix[j,2] <- percent_female 
+    percent_female_matrix[j,3] <- number_reviewers
     
     # Increment j
     j <- j+1
   }
   percent_female_matrix <- as.data.frame(percent_female_matrix)
-  colnames(percent_female_matrix) <- c("ProjectID", "PercentFemale")
+  colnames(percent_female_matrix) <- c("ProjectID", "PercentFemale", "NumberExternalReviewers")
   return(percent_female_matrix)
 }
 
@@ -312,7 +315,7 @@ calculate_average_referee <- function(data) {
       projID <- unique(data$ProjectID)
   
   # Create matrix to store the data
-      average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=4)
+      average_review_matrix <- matrix(0, nrow=length(unique(data$ProjectID)), ncol=5)
       
       j <- 1
       for (i in projID) {
@@ -337,6 +340,7 @@ calculate_average_referee <- function(data) {
         average_review_matrix[j,2] <- average_ApplicantTrack
         average_review_matrix[j,3] <- average_ProjectAssessment
         average_review_matrix[j,4] <- average_Ranking
+        average_review_matrix[j,5] <- number_reviewers
         
         # Increment j
         j <- j+1
@@ -344,7 +348,7 @@ calculate_average_referee <- function(data) {
       
       
       
-      colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ProjectAssessment", "Ranking")
+      colnames(average_review_matrix)<- c("ProjectID", "ApplicantTrack", "ProjectAssessment", "Ranking", "NumberInternalReviewers")
       return(as.data.frame(average_review_matrix))
     }
 
@@ -444,4 +448,75 @@ calculate_average_reviewers<- function(data) {
                                       "OverallGrade", "ProposalCombined")
   return(as.data.frame(average_review_matrix))
 }
+
+calculate_external_reveiewer_metrics <- function(data = final.external) {
+  unique_reviewers <- unique(data$ReviewerID)
+  reviewer_matrix <- matrix(0, nrow=length(unique_reviewers), ncol=2)
+  j <- 1
+
+    
+  for (i in unique_reviewers) {
+    reviewer_matrix[j,1] <- i
+    reviewer_matrix[j,2] <- nrow(data[which(data$ReviewerID == i),])
+    j <- j+1
+  }
+  
+  return(prop.table(table(reviewer_matrix[,2])))
+  
+}
+
+
+calculate_internal_reveiewer_metrics <- function(data = final.internal) {
+
+  data$Ranking <- revalue(data$Ranking, c("D"= 1, "C"= 2, "BC" = 3, "B" = 4, "AB" = 5, "A" = 6))
+  data$Ranking <- as.numeric(data$Ranking)
+  
+  
+  unique_reviewers <- unique(data$RefereeID)
+  reviewer_matrix <- matrix(0, nrow=length(unique_reviewers), ncol=9)
+  colnames(reviewer_matrix)  <- c("ReviewerID", "NumberReviewsGiven", "Category", "Ranking1", "Ranking2", "Ranking3",
+                                  "Ranking4", "Ranking5", "Ranking6")
+  reviewer_matrix <- as.data.frame(reviewer_matrix)
+  
+  j <- 1
+  
+  for (i in unique_reviewers) {
+    index <- which(data[,"RefereeID"]==i)
+    reviewer_matrix[j,1] <- i
+    reviewer_matrix[j,2] <- nrow(data[which(data$RefereeID == i),])
+    reviewer_matrix[j,3] <- ifelse(reviewer_matrix[j,2] < 10, "Below10", 
+                                   ifelse(reviewer_matrix[j,2] < 20, "Between10&20", ">20"))
+    
+    for (k in index) {
+      reviewer_matrix[j,4] <- ifelse(data[k,"Ranking"]==1, reviewer_matrix[j,4]+1, 0)
+      reviewer_matrix[j,5] <- ifelse(data[k,"Ranking"]==2, reviewer_matrix[j,5]+1, 0)
+      reviewer_matrix[j,6] <- ifelse(data[k,"Ranking"]==3, reviewer_matrix[j,6]+1, 0)
+      reviewer_matrix[j,7] <- ifelse(data[k,"Ranking"]==4, reviewer_matrix[j,7]+1, 0)
+      reviewer_matrix[j,8] <- ifelse(data[k,"Ranking"]==5, reviewer_matrix[j,8]+1, 0)
+      reviewer_matrix[j,9] <- ifelse(data[k,"Ranking"]==6, reviewer_matrix[j,9]+1, 0)
+    }
+    
+    j <- j+1
+  }
+  
+  
+  summary_matrix <- as.data.frame(matrix(0, nrow=3, ncol = 7))
+  summary_matrix[,1] <- c("Below10", "Between10&20", ">20")
+  colnames(summary_matrix) <- c("Category", "1", "2", "3", "4", "5", "6")
+  for (m in 1:nrow(reviewer_matrix)) {
+    if (reviewer_matrix[m,"Category"]=="Below10") {
+      summary_matrix[1,2:7] <- summary_matrix[1,2:7] + reviewer_matrix[m,4:9]
+    }
+    if (reviewer_matrix[m,"Category"]=="Between10&20") {
+      summary_matrix[2,2:7] <- summary_matrix[2,2:7] + reviewer_matrix[m,4:9]
+    }
+    if (reviewer_matrix[m,"Category"]==">20") {
+      summary_matrix[3,2:7] <- summary_matrix[3,2:7] + reviewer_matrix[m,4:9]
+    }
+    summary_matrix <- (as.data.frame(summary_matrix))
+    # summary_matrix <- gather(data=summary_matrix, attribute=-"Category") 
+  }
+  return(summary_matrix)
+}
+
 

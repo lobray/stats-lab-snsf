@@ -5,7 +5,7 @@ date: "April 22, 2018"
 output: pdf_document
 ---
 
-```{r, echo=FALSE, warning=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 #################################################################
 ###########  Regression Analysis - Board reviews  ###############
 #################################################################
@@ -37,23 +37,31 @@ Prepare the data and fit the full model:
 board_data <- prepare_data_board_log_regression(apps=final.apps, internal = final.internal, external = final.external)
 
 kappa.matrix <- table(board_data$OverallGrade, board_data$Ranking)
+kappa.matrix.boardranking <- table(board_data$GradeFinal, board_data$Ranking)
 
 
 custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
          0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
          0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
 
-kappa <- cohen.kappa(kappa.matrix)
-table(board_data$OverallGrade, board_data$IsApproved)
-
+kappa <- cohen.kappa(kappa.matrix.boardranking)
+# table(board_data$OverallGrade, board_data$IsApproved)
+print("Cohen's Kappa, Ranking & OverallGrade")
+print(kappa)
 
 board_data$Ranking <- ifelse(board_data$Ranking %in% c(1,2,3), 3, board_data$Ranking)
+
 board_data$OverallGrade <- ifelse(board_data$OverallGrade %in% c(1,2,3), 3, board_data$OverallGrade)
 
 
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) + 
                               Ranking + OverallGrade + Gender:Division + PercentFemale + 
                               PercentFemale:Gender, family="binomial", data = board_data)
+
+# board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) +
+#                               Ranking + InternalApplicantTrack + ProjectAssessment + ExternalApplicantTrack +
+#                               ProposalCombined + OverallGrade + Gender:Division + PercentFemale +
+#                               PercentFemale:Gender, family="binomial", data = board_data)
 
 
 ```
@@ -64,10 +72,12 @@ In fitting the regression, the summary shos that OverallGrade, Ranking, InstType
 (summary(board_log_regression))
 
 
+
 ```
 
 
-In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). However, gender is nearly 5 (4.99), so we would like to address this. 
+In checking for correlation among coefficients, we only don't see any alarming values (VIF > 5). However, gender is nearly 5 (4.99), so we would like to investigate the correlation among variables. 
+
 ```{r, echo=FALSE, warning=FALSE}
 (vif(board_log_regression))
 
@@ -133,9 +143,13 @@ Alternative Method for seeing variable importance: For each predictor, permute t
 predictorNames <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "AmountRequested", 
                 "Ranking", "OverallGrade", "PercentFemale")
 
+# predictorNames <- c("Gender", "Division", "Age", "IsContinuation", "InstType", "AmountRequested", 
+#                 "Ranking", "OverallGrade", "PercentFemale", "InternalApplicantTrack", "ExternalApplicantTrack",
+#                 "ProposalCombined", "ProjectAssessment")
+
 refR2<-calc_pseudo_r(board_log_regression)
   PseudoRShuffle <- NULL
-  shuffletimes <- 50  #number of interactions
+  shuffletimes <- 100  #number of interactions
   
   featuresMeanR2 <- c()
   for (feature in predictorNames) {
@@ -159,7 +173,8 @@ In this step, for each explanatory variable, I randomly permuted the values for 
 
 
 
-Check diagnostics: residuals. We see that we have smaller residuals for ranking 6 and 5, which intuitively makes sense that they get funded with consistency, and similarly we 1-3 dont get funded, and thus are also classified correctly. Our resiudals with level 4 have the largest average deviance, and we have a few large outliers with 3 & 5, which likely means a 3 got funded, or a 5 did not get funded, despite our classification of the opposite.  But this is a violation of our assumption of independently and identically distributed residuals, as there is clear structure in the residuals.
+Check diagnostics: residuals. We see that we have smaller residuals for ranking 6 and 5, which intuitively makes sense that they get funded with consistency, and similarly we 1-3 dont get funded, and thus are also classified correctly. Our resiudals with level 4 have the largest average deviance, and we have a few large outliers with 3 & 5, which likely means a 3 got funded, or a 5 did not get funded, despite our classification of the opposite.  
+
 ```{r, echo=FALSE, warning=FALSE}
 
 plot(resid(board_log_regression, type="deviance"), col=board_data$Ranking)
@@ -200,6 +215,8 @@ fit6 <- update(fit5, .~.-log(AmountRequested))
 drop1(fit6, test="Chisq")
 fit7 <- update(fit6, .~.-Division)
 drop1(fit7)
+
+
 
 print("PseudoR^2 in Smaller Model")
 (small_model_pseudo_r <- calc_pseudo_r(fit7))

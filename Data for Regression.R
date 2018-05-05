@@ -89,8 +89,16 @@ prepare_data_board_log_regression <- function(apps, internal, external) {
  
   # Extract columns from applications data
   board_regression_data <- apps[,c("IsApproved", "ProjectID", "Gender", "Division", "Age", "AmountRequested","IsContinuation",
-                                         "InstType","PreviousRequest")]
-
+                                         "GradeFinal", "InstType","PreviousRequest")]
+  
+  # Fix GradeFinal
+  board_regression_data$GradeFinal <- ifelse(board_regression_data$GradeFinal %in% c("B", "B-", "B+"), "B",
+                            ifelse(board_regression_data$GradeFinal %in% c("BC", "BC-", "BC+", "BC "), "BC", 
+                                   board_regression_data$GradeFinal))
+  board_regression_data$GradeFinal <- ordered(board_regression_data$GradeFinal, levels=c("D", "C", "BC", "B", "AB", "A"))
+  board_regression_data$GradeFinal <- revalue(board_regression_data$GradeFinal, c("D" =1, "C" = 2, "BC" = 3, "B" = 4, "AB" =5, "A" =6))
+  
+  
   # Calculate % female reviewers in external+internal
   tmp_ex_gender <- external[,c("ProjectID", "ReviewerGender")]
   colnames(tmp_ex_gender) <- c("ProjectID", "RefereeGender")
@@ -101,11 +109,17 @@ prepare_data_board_log_regression <- function(apps, internal, external) {
   # average_internal_ratings <- calculate_average_referee(internal)[,c(1,4)]
   # average_ratings <- calculate_average_reviewers(external)[,c(1,5)]
   ex_data <- prepare_data_external_log_regression(apps=apps, external=external)
+  colnames(ex_data)[which(colnames(ex_data)=="ApplicantTrack")] <- "ExternalApplicantTrack"
+
+  
   int_data <- prepare_data_internal_log_regression(apps=apps, internal=internal)
+  colnames(int_data)[which(colnames(int_data)=="ApplicantTrack")] <- "InternalApplicantTrack"
   
   # Merge with external reviews & referee data & % female
-  board_regression_data <- merge(board_regression_data, int_data[,c("ProjectID", "Ranking")], by = "ProjectID")
-  board_regression_data <- merge(board_regression_data, ex_data[,c("ProjectID", "OverallGrade")], by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, int_data[,c("ProjectID", "Ranking", "InternalApplicantTrack",
+                                                                    "ProjectAssessment")], by = "ProjectID")
+  board_regression_data <- merge(board_regression_data, ex_data[,c("ProjectID", "OverallGrade", "ProposalCombined",
+                                                                   "ExternalApplicantTrack")], by = "ProjectID")
   board_regression_data <- merge(board_regression_data, internal_reviews_gender, by="ProjectID")
   
   # Create logistic regression & return object
