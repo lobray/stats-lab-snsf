@@ -136,6 +136,66 @@ convergence(Model)
 # is below 10???10, which is by far small enough that LR tests based on this model are accurate.
 
 
+
+## Variable importance:
+
+outcomeName <- 'ProjectAssessment'
+predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation', 'Age',
+                    'InstType', 'logAmount')
+predictions <- predict(object=Model, data[,predictorNames], type="class")
+
+  # A quick check
+  table(data$ProjectAssessment,predictions$fit)
+  # classifies in mostly in category 3, 4 and 5
+  sum(predictions$fit=="4") # 852
+  sum(internal_regression_data$ProjectAssessment=="4") #[1] 518
+  sum(predictions$fit=="5") # 286
+  sum(internal_regression_data$ProjectAssessment=="5") #[1] 392
+  sum(predictions$fit=="3") # 483
+  sum(internal_regression_data$ProjectAssessment=="3") #[1] 428
+  # Not too bad...
+
+# Initialize vectors for randomization
+ll.Reference<-Model$logLik                           # Reference LogLikelihood
+k <- length(coef(Model))                             # Number of estimated parameters
+AIC.Reference<-(-2*Model$logLik+2*k)                 # Reference AIC 
+
+# We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+# We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+shuffletimes <- 100  #number of interactions
+
+featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+for (feature in predictorNames) {
+  featureLl <- c()
+  featureAIC<-c()
+  shuffledData <- data[,c(outcomeName, predictorNames)]
+  for (iter in 1:shuffletimes) {
+    shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+    Model.tmp <- update(Model,.~.,data=shuffledData)
+    featureLl <- c(featureLl,Model.tmp$logLik)
+    featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+  }
+  featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+  featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
+  ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+  AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+  AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
+  # Proportions -> In how many runs does the Reference is less than the shuffled
+}
+
+#Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+#                                  'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+#                                  'Proportion.AIC'=AIC.featuresProportions)
+#Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.Ll', decreasing=TRUE),]
+#print(Shuffle.Result.Prop)
+
+Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                  'Proportion.AIC'=AIC.featuresProportions,
+                                  'Percent.AIC'=AIC.percentvariation)
+Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.AIC', decreasing=TRUE),]
+print(Shuffle.Result.Prop)
+
+
 ######################################################
 ######   Ordinal regression for ApplicantTrack  ######
 ######################################################
@@ -243,6 +303,64 @@ plot(Effect("logAmount", mod=Model))
 plot(Effect("Division", mod=Model))  
 plot(Effect("InstType", mod=Model))
 plot(Effect("IsContinuation",mod=Model))
+
+
+## Variable importance:
+
+outcomeName <- 'ApplicantTrack'
+predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation', 'Semester',
+                    'InstType', 'logAmount')
+predictions <- predict(object=Model, data[,predictorNames], type="class")
+
+# A quick check
+table(data$ApplicantTrack,predictions$fit)
+# classifies in mostly in category 4 and 5
+sum(predictions$fit=="4") # 815
+sum(internal_regression_data$ApplicantTrack=="4") #[1] 623
+sum(predictions$fit=="5") # 805
+sum(internal_regression_data$ApplicantTrack=="5") #[1] 611
+# Not too bad...
+
+# Initialize vectors for randomization
+ll.Reference<-Model$logLik                           # Reference LogLikelihood
+k <- length(coef(Model))                             # Number of estimated parameters
+AIC.Reference<-(-2*Model$logLik+2*k)                 # Reference AIC 
+
+# We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+# We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+shuffletimes <- 100  #number of interactions
+
+featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+AIC.percentvariation <- c()
+for (feature in predictorNames) {
+  featureLl <- c()
+  featureAIC<-c()
+  shuffledData <- data[,c(outcomeName, predictorNames)]
+  for (iter in 1:shuffletimes) {
+    shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+    Model.tmp <- update(Model,.~.,data=shuffledData)
+    featureLl <- c(featureLl,Model.tmp$logLik)
+    featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+  }
+  featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+  featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
+  ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+  AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+  AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
+  # Proportions -> In how many runs does the Reference is less than the shuffled
+}
+
+#Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+#                                  'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+#                                  'Proportion.AIC'=AIC.featuresProportions)
+#Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.Ll', decreasing=TRUE),]
+#print(Shuffle.Result.Prop)
+
+Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                  'Proportion.AIC'=AIC.featuresProportions,
+                                  'Percent.AIC'=AIC.percentvariation)
+Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.AIC', decreasing=TRUE),]
+print(Shuffle.Result.Prop)
 
 
 ########################################################
@@ -417,4 +535,53 @@ LR<-Model2$logLik/Model$logLik
 
 # Again, we don't need to include Gender! 
 # No predictive power! (Good)
+
+
+## Variable importance:
+
+outcomeName <- 'Ranking'
+predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation', 'PreviousRequest',
+                    'InstType', 'logAmount')
+predictions <- predict(object=Model, data[,predictorNames], type="class")
+
+# Initialize vectors for randomization
+ll.Reference<-Model$logLik                           # Reference LogLikelihood
+k <- length(coef(Model))                             # Number of estimated parameters
+AIC.Reference<-(-2*Model$logLik+2*k)                 # Reference AIC 
+
+# We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+# We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+shuffletimes <- 100  #number of interactions
+
+featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+AIC.percentvariation <- c()
+for (feature in predictorNames) {
+  featureLl <- c()
+  featureAIC<-c()
+  shuffledData <- data[,c(outcomeName, predictorNames)]
+  for (iter in 1:shuffletimes) {
+    shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+    Model.tmp <- update(Model,.~.,data=shuffledData)
+    featureLl <- c(featureLl,Model.tmp$logLik)
+    featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+  }
+  featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+  featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
+  ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+  AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+  AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
+  # Proportions -> In how many runs does the Reference is less than the shuffled
+}
+
+#Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+#                                  'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+#                                  'Proportion.AIC'=AIC.featuresProportions)
+#Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.Ll', decreasing=TRUE),]
+#print(Shuffle.Result.Prop)
+
+Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                  'Proportion.AIC'=AIC.featuresProportions,
+                                  'Percent.AIC'=AIC.percentvariation)
+Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.AIC', decreasing=TRUE),]
+print(Shuffle.Result.Prop)
 
