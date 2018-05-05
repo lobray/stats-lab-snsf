@@ -22,6 +22,7 @@ library(ordinal)
 library(ggplot2)
 library(MASS)
 library(effects)
+library(coin)
 
 rm(applications,reviews,referee_grades, test)
 
@@ -39,7 +40,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
 str(data)
 
 
-# Fitting the Model for the Combined Proposal-------------------------------------------------------
+# COMBINE PROPOSAL -------------------------------------------------------
 ## Run an Ordinal Logistic Regression with the ordinal package
 
     # Visualization----
@@ -58,7 +59,7 @@ str(data)
       diff.df<-fit.null$df.residual- fit1$df.residual
       
       LR<-(-2*(fit.null$logLik-fit1$logLik))
-      1-pchisq(LR,df=diff.df) # 0   I am nto sure this is a good thing
+      1-pchisq(LR,df=diff.df) # 0   I am not sure this is a good thing
       
       # I am not using Gender:Applicant track here as ApplicantTrack is not in the model
       summary(fit1)  # cond.H very high
@@ -88,6 +89,7 @@ str(data)
       
       #Compare the two models to see if there is evidence against equidistant thresholds
       anova(fit1,fm2)
+      
       #p-value is almost 0, there is evidence against equidistant thresholds. Therefore,
       # continue using flexible thresholds
       
@@ -119,6 +121,8 @@ str(data)
       # Odds ratio and confidence intervals for Odds Ratio
       round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2)
       
+      convergence(Model.Prop) 
+      
     # Variable Importance----
       # Not sure which meassure to use here. I'll try with LogLikelihood
 
@@ -142,6 +146,7 @@ str(data)
           shuffletimes <- 100  #number of interactions
           
           featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+          AIC.percentvariation <-c()
           for (feature in predictorNames) {
             featureLl <- c()
             featureAIC<-c()
@@ -153,16 +158,22 @@ str(data)
               featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
             }
             featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-            featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+            featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
             ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
             AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+            AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
             # Proportions -> In how many runs does the Reference is less than the shuffled
           }
 
-          Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
-                                       'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                       'Proportion.AIC'=AIC.featuresProportions)
-          Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.Ll', decreasing=TRUE),]
+          # Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+          #                              'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+          #                              'Proportion.AIC'=AIC.featuresProportions)
+          
+          Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                            'Proportion.AIC'=AIC.featuresProportions,
+                                            'Percent.AIC'=AIC.percentvariation)
+          
+          Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.AIC', decreasing=TRUE),]
           print(Shuffle.Result.Prop)
           
        
@@ -184,6 +195,7 @@ str(data)
        shuffletimes <- 100  #number of interactions
        
        featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+       AIC.percentvariation <-c()
        for (feature in predictorNames2) {
          featureLl <- c()
          featureAIC<-c()
@@ -195,22 +207,36 @@ str(data)
            featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
          }
          featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-         featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+         featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
          ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
          AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+         AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
          # Proportions -> In how many runs does the Reference is less than the shuffled
        }
        
-       Shuffle.Result.Prop2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
-                                         'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                         'Proportion.AIC'=AIC.featuresProportions)
-       Shuffle.Result.Prop2 <- Shuffle.Result.Prop2[order(Shuffle.Result.Prop2$'Diff.Ll', decreasing=TRUE),]
+       # Shuffle.Result.Prop2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+       #                                   'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+       #                                   'Proportion.AIC'=AIC.featuresProportions)
+       
+       Shuffle.Result.Prop2 <- data.frame('feature'=predictorNames2, 'Diff.AIC'=featuresMeanAIC,
+                                         'Proportion.AIC'=AIC.featuresProportions,
+                                         'Percent.AIC'=AIC.percentvariation)
+       
+       Shuffle.Result.Prop2 <- Shuffle.Result.Prop2[order(Shuffle.Result.Prop2$'Diff.AIC', decreasing=TRUE),]
        print(Shuffle.Result.Prop2)
        
        # We do get the same variables as important. The one with the largest effect is Amount Requested.
        # Interesting. Remeber we are evaluating Project Assessment
     
-       
+       mycol=colorRampPalette(c("red","green"))(length(predictorNames2))
+       par(las=2,mfrow=c(1,1),mai=c(2,2,2,2))
+       barplot(Shuffle.Result.Prop2[,4], names.arg = Shuffle.Result.App2[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Combined Project Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim=c(0,1.2),
+               cex.axis = 0.6,
+               cex.main=0.8)
   
 
     # Effects ---- 
@@ -232,6 +258,7 @@ str(data)
        lines(x,gender.prob[2,], col="green")
        legend("topleft", legend=c("male","female"), lty=1,
               col=c("blue","green"),bty="n")
+       
        
        # Plot of ApplicantTrack vs Gender to try to understand better the above
        barplot(t(with(external_regression_data,prop.table(table(ProposalCombined,Gender),2))),
@@ -255,7 +282,7 @@ str(data)
        
        
        
-# Fitting the Model for ApplicantTrack  ---- 
+# APPLICANT TRACK  ---- 
     # Visualization----
        ggplot(external_regression_data, aes(x = ApplicantTrack, y = PercentFemale, col=Gender)) +
          geom_jitter(alpha = .5) +
@@ -304,6 +331,8 @@ str(data)
               
             # Any of the c.i. include 1 (only Division 3). 
             # There is an slightly effect of Gender in the Application Track grade
+              
+              convergence(Model.App)  #looks ok
             
   
     # Variable Importance----
@@ -314,9 +343,9 @@ str(data)
                                 'InstType', 'logAmount')
             predictions <- predict(object=Model.App, data[,predictorNames], type="class")
             # A quick check
-            table(data$ProposalCombined,predictions$fit)
+            table(data$ApplicantTrack,predictions$fit)
             #Still classifies mostly in category 4
-            sum(predictions$fit=="4") # 1530 out of 1623 ???
+            sum(predictions$fit=="4") # 248 out of 1623 ???
             
             # Initialize vectors for randomization
             ll.Reference<-Model.App$logLik                           # Reference LogLikelihood
@@ -325,9 +354,10 @@ str(data)
             
             # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
             # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
-            shuffletimes <- 50  #number of interactions
+            shuffletimes <- 100  #number of interactions
             
             featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+            AIC.percentvariation <-c()
             for (feature in predictorNames) {
               featureLl <- c()
               featureAIC<-c()
@@ -339,17 +369,25 @@ str(data)
                 featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
               }
               featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-              featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+              featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
               ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
               AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+              AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
               # Proportions -> In how many runs does the Reference is less than the shuffled
             }
             
-            Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
-                                         'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                         'Proportion.AIC'=AIC.featuresProportions)
-            Shuffle.Result <- Shuffle.Result[order(Shuffle.Result$'Diff.Ll', decreasing=TRUE),]
-            print(Shuffle.Result)
+            # Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+            #                              'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+            #                              'Proportion.AIC'=AIC.featuresProportions)
+            # Shuffle.Result <- Shuffle.Result[order(Shuffle.Result$'Diff.Ll', decreasing=TRUE),]
+            # print(Shuffle.Result)
+            
+            
+            Shuffle.Result.App <- data.frame('Feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                              'Proportion.AIC'=AIC.featuresProportions,
+                                              'Percent.AIC'=AIC.percentvariation)
+            Shuffle.Result.App <- Shuffle.Result.App[order(Shuffle.Result.App$'Diff.AIC', decreasing=TRUE),]
+            print(Shuffle.Result.App)
             
             # doing it like this, it turns out that all the variables are important. But this is to be expected
             # as we have previously select the variables.
@@ -366,6 +404,7 @@ str(data)
             shuffletimes <- 100                                 # Number of interactions
             
             featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+            AIC.percentvariation <-c()
             for (feature in predictorNames2) {
               featureLl <- c()
               featureAIC<- c()
@@ -377,19 +416,34 @@ str(data)
                 featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
               }
               featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-              featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+              featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
               ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
               AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+              AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
             }
             
-            Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
-                                          'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                          'Proportion.AIC'=AIC.featuresProportions)
-            Shuffle.Result2 <- Shuffle.Result2[order(Shuffle.Result2$'Diff.Ll', decreasing=TRUE),]
-            print(Shuffle.Result2)
+            # Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+            #                               'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+            #                               'Proportion.AIC'=AIC.featuresProportions)
             
+            Shuffle.Result.App2 <- data.frame('Feature'=predictorNames2, 'Diff.AIC'=featuresMeanAIC,
+                                             'Proportion.AIC'=AIC.featuresProportions,
+                                             'Percent.AIC'=AIC.percentvariation)
+            Shuffle.Result.App2 <- Shuffle.Result.App2[order(Shuffle.Result.App2$'Diff.AIC', decreasing=TRUE),]
+            print(Shuffle.Result.App2)
             
+            mycol=colorRampPalette(c("red","geen"))(length(predictorNames2))
+            
+            par(las=2,mfrow=c(1,1),mai=c(2,2,2,2))
+            barplot(Shuffle.Result.App2[,4], names.arg = Shuffle.Result.App2[,1],
+                    horiz = TRUE,col = mycol,cex.names = 0.7,
+                    main="Variable Importance of Applicant Track",
+                    xlab = "Percent of variation on the AIC",
+                    xlim=c(0,1.2),
+                    cex.axis = 0.6,
+                    cex.main=0.8)
             # We do get the same results...
+            # Institution Type is the most important variable ApplicantTrack
             
             
     # Effects ---- 
@@ -428,7 +482,7 @@ str(data)
               
             
             
-# Fitting OverallGrade~ApplicantTrack + ProposalCombine + All----
+# OVERALL GRADE----
             
     data<- subset(external_regression_data,select = -c(ProjectID, AmountRequested, IsApproved,ScientificRelevance,Suitability))  
     
@@ -478,7 +532,7 @@ str(data)
     # Odds ratio and confidence intervals for Odds Ratio
     round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2)
     
-    
+    convergence(Model.Overall)
     
     # Variable Importance----
     # Not sure which meassure to use here. I'll try with LogLikelihood
@@ -493,9 +547,10 @@ str(data)
     
     # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
     # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
-    shuffletimes <- 50  #number of interactions
+    shuffletimes <- 10  #number of interactions
     
     featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+    AIC.percentvariation <-c()
     for (feature in predictorNames) {
       featureLl <- c()
       featureAIC<-c()
@@ -507,16 +562,21 @@ str(data)
         featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
       }
       featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-      featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+      featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
       ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
       AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+      AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
       # Proportions -> In how many runs does the Reference is less than the shuffled
     }
     
-    Ov.Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
-                                 'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                 'Proportion.AIC'=AIC.featuresProportions)
-    Ov.Shuffle.Result <- Ov.Shuffle.Result[order(Ov.Shuffle.Result$'Diff.Ll', decreasing=TRUE),]
+    #Ov.Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+    #                              'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+    #                              'Proportion.AIC'=AIC.featuresProportions)
+    Ov.Shuffle.Result <- data.frame('Feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
+                                      'Proportion.AIC'=AIC.featuresProportions,
+                                      'Percent.AIC'=AIC.percentvariation)
+    
+    Ov.Shuffle.Result <- Ov.Shuffle.Result[order(Ov.Shuffle.Result$'Diff.AIC', decreasing=TRUE),]
     print(Ov.Shuffle.Result)
     
     # doing it like this, it turns out that all the variables are important. But this is to be expected
@@ -538,6 +598,7 @@ str(data)
     shuffletimes <- 100                                 # Number of interactions
     
     featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+    AIC.percentvariation <-c()
     for (feature in predictorNames2) {
       featureLl <- c()
       featureAIC<- c()
@@ -549,22 +610,35 @@ str(data)
         featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
       }
       featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-      featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+      featuresMeanAIC<- c(featuresMeanAIC, mean(featureAIC-AIC.Reference))
       ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
       AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+      AIC.percentvariation <- c(AIC.percentvariation, (mean(featureAIC)/AIC.Reference-1)*100)
     }
     
-    Ov.Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
-                                  'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
-                                  'Proportion.AIC'=AIC.featuresProportions)
-    Ov.Shuffle.Result2 <- Ov.Shuffle.Result2[order(Ov.Shuffle.Result2$'Diff.Ll', decreasing=TRUE),]
+    # Ov.Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+    #                               'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+    #                               'Proportion.AIC'=AIC.featuresProportions)
+   
+    Ov.Shuffle.Result2 <- data.frame('Feature'=predictorNames2, 'Diff.AIC'=featuresMeanAIC,
+                                    'Proportion.AIC'=AIC.featuresProportions,
+                                    'Percent.AIC'=AIC.percentvariation)
+    Ov.Shuffle.Result2 <- Ov.Shuffle.Result2[order(Ov.Shuffle.Result2$'Diff.AIC', decreasing=TRUE),]
     print(Ov.Shuffle.Result2)
     
     
     # We do get the same results...
     # Proposal Combined is more important than ApplicantTrack, and there is some effect of gender
     
-    
+    mycol=colorRampPalette(c("red","blue"))(length(predictorNames2))
+    par(las=2,mfrow=c(1,1),mai=c(2,2,2,2))
+    barplot(Ov.Shuffle.Result[,4], names.arg = Ov.Shuffle.Result[,1],
+            horiz = TRUE,col = mycol,cex.names = 0.6,
+            main="Variable Importance of OverallGrade",
+            xlab = "Percent of variation on the AIC",
+            xlim = c(0,80),
+            cex.axis = 0.7,
+            cex.main=0.8)
     
     # Effects ---- 
     
@@ -586,6 +660,7 @@ str(data)
     legend("topleft", legend=c("male","female"), lty=1,
            col=c("blue","green"),bty="n")
     
+    
     # Plot of ApplicantTrack vs Gender to try to understand better the above
     barplot(t(with(external_regression_data,prop.table(table(OverallGrade,Gender),2))),
             beside = TRUE,
@@ -599,6 +674,98 @@ str(data)
     # 1     2     3     4     5     6 
     # 0.02  1.46  0.73 -2.19 -0.02  0.00 
     # womans are 0.02% more likely of getting 1's, and 5.96% less likely of getting 6?
+    par(mfrow=c(1,1))
     
+    
+    
+  # DIFFERENCE IN EVALUATION BETWEEN MALE AND FEMALE ----
+    
+    r.tab<-prop.table(table(external_reviews$ReviewerGender,external_reviews$OverallGrade),1)
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    par(las=1,mai=c(1,2,2,1))
+    barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+              main=paste("Difference on how Female and Male grade \n","Overall Grade"),
+            sub="External Reviewers")
+    legend("topleft",legend = c("female","male"), pch=15,
+           col=c("pink","lightblue"), bty="n")
+    
+    # Women seem to be stricter than men (OverallGrade)
+    
+    r.tab<-prop.table(table(external_reviews$ReviewerGender,external_reviews$ApplicantTrack),1)
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+            main=paste("Difference on how Female and Male grade \n","Applicant Track"),
+            sub="External Reviewers")
+    legend("topleft",legend = c("female","male"), pch=15,
+           col=c("pink","lightblue"), bty="n")
+    
+    
+    # Women on average give less outstanding and excellent grades for ApplicantTrack
+    
+    r.tab<-prop.table(table(external_reviews$ReviewerGender,external_reviews$ScientificRelevance),1)
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+             main=paste("Difference on how Female and Male grade \n","Scientific Relevance"),
+            sub="External Reviewers")
+    legend("topleft",legend = c("female","male"), pch=15,
+           col=c("pink","lightblue"), bty="n")
+    
+    r.tab<-prop.table(table(external_reviews$ReviewerGender,external_reviews$Suitability),1)
+    #mycol<-colorRampPalette(c("red", "green"))(6)
+    barplot(r.tab, beside = TRUE, col = c("pink","lightblue"), 
+            main=paste("Difference on how Female and Male grade \n","Suitability"),
+            sub="External Reviewers")
+    legend("topleft",legend = c("female","male"), pch=15,
+           col=c("pink","lightblue"), bty="n")
+    
+    # Women on average give less outstanding and excellent grades for ProposalCombined
+    
+  # LINEAR-BY-LINEAR association----
+  
+
+    ## Ranking:
+    
+    data <- external_regression_data
+    data$OverallGrade <- ifelse(data$OverallGrade < 4, 3, data$OverallGrade)
+    
+    table(data$Gender, data$OverallGrade)
+    cTab <- xtabs(~ Gender +OverallGrade, data=data)
+    
+    mycol<-colorRampPalette(c("green","blue"))(4)
+    spineplot(cTab, col=mycol)
+    lbl_test(cTab)
+    ## p-value=0.0001658 -> reject H0 -> no independence of Overall Grade on Gender
+    
+    # Compare to chi-square test without ordered categories
+    chisq_test(cTab)  # p-value = 0.0006229
+    
+    ## ApplicantTrack:
+    
+    data$ApplicantTrack <- ifelse(data$ApplicantTrack < 4, 3, data$ApplicantTrack)
+    table(data$Gender, data$ApplicantTrack)
+    
+    t <- xtabs(~ Gender+ApplicantTrack, data=data)
+    
+    spineplot(t,col=mycol)
+    lbl_test(t)
+    # p-value = 9.481e-06 -> reject H0 -> no dependence of Applicant Track on gender
+    
+    # Compare to chi-square test without ordered categories
+    chisq_test(t)   # p-value = 0.0001358
+    
+    
+    ## Project:
+    
+    data$ProposalCombined <- ifelse(data$ProposalCombined < 4, 3, data$ProposalCombined)
+    table(data$Gender, data$ProposalCombined)
+    
+    t <- xtabs(~ Gender+ProposalCombined, data=data)
+    
+    spineplot(t, col=mycol)
+    lbl_test(t)
+    # p-value = 0.0005938 -> reject H0 -> no dependence of ProposalCombined and gender
+    
+    # Compare to chi-square test without ordered categories
+    chisq_test(t)   # p-value = 0.0006203
     
     
