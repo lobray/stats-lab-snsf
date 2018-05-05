@@ -20,11 +20,13 @@ source("Data for Regression.R")
 
 library(ordinal)
 library(ggplot2)
+library(MASS)
+library(effects)
 
 rm(applications,reviews,referee_grades, test)
 
 
-# Get the Regression data
+# Get the Regression data----
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
@@ -36,6 +38,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
 
 str(data)
 
+
 # Fitting the Model for the Combined Proposal-------------------------------------------------------
 ## Run an Ordinal Logistic Regression with the ordinal package
 
@@ -46,7 +49,7 @@ str(data)
         theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
     
     
-    # fit a full model----
+    # Fit a full model----
       fit1 <- clm(ProposalCombined ~Gender*(Division+PercentFemale)+Age+Division+IsContinuation+
                     PreviousRequest+InstType+Semester+logAmount,
                   data=data)
@@ -88,7 +91,7 @@ str(data)
       #p-value is almost 0, there is evidence against equidistant thresholds. Therefore,
       # continue using flexible thresholds
       
-    # Select Variables -----
+    # Variable Selection -----
     
       drop1(fit1, test = "Chi")
       # Gender:Division is the first candidate to leave out, then Semester, PreviousRequest and Age
@@ -102,103 +105,107 @@ str(data)
       summary(fit1)
       drop1(fit1, test = "Chi")
       
-      # After variable Selection, the final model
-      Model<- clm(ProposalCombined ~ Gender + Division + PercentFemale + IsContinuation + 
+    # After variable Selection, the final model----
+      Model.Prop<- clm(ProposalCombined ~ Gender + Division + PercentFemale + IsContinuation + 
                     InstType + logAmount + Gender:PercentFemale,data=data)
-      summary(Model) #cond.H still high
+      summary(Model.Prop) #cond.H still high
       
       table(data$ProposalCombined)
       
-      drop1(Model, test = "Chi")
-      # Cannot be imporved
-      
-      confint(Model, type = "Wald")
+      drop1(Model.Prop, test = "Chi")       # Cannot be imporved
+                                        
+      confint(Model.Prop)
       
       # Odds ratio and confidence intervals for Odds Ratio
-      round(exp(Model$beta), 1)
-      round(exp(confint(Model, type = "Wald")), 1) # There are some huge intervals
-      
-      # Use deviance as goodness of fit??
-      
-      # Effect plots, we should explore other ways to plot this. This graphs are not very
-      # Informative
-      plot(Effect("Gender", mod=Model))    # There most be a better way of plotting this
-      plot(Effect("logAmount", mod=Model)) # The  higher the amount the likely it is to have a 
-                                           # higher grade.
-                                            
-      plot(Effect("Division", mod=Model))  
-      plot(Effect("InstType", mod=Model))
-      plot(Effect("IsContinuation",mod=Model))
+      round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2)
       
     # Variable Importance----
-      # Not sure which meassure to use here. I'll try with LogLikelihood, I don't know
-      # how to estimate the Deviance for this models. Any one knows?
+      # Not sure which meassure to use here. I'll try with LogLikelihood
 
       outcomeName <- 'ProposalCombined'
       predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation',
                             'InstType', 'logAmount')
-      predictions <- predict(object=Model, data[,predictorNames], type="class")
+      predictions <- predict(object=Model.Prop, data[,predictorNames], type="class")
         # A quick check
           table(data$ProposalCombined,predictions$fit)
           #Still classifies in mostly in category 4
-          sum(predictions$fit=="4") # 1530 out of 1623 ???
+          sum(predictions$fit=="4") # 923 out of 1623 ???
+          sum(external_regression_data$ProposalCombined=="4") #[1] 671
 
-      # Initialize vectors for randomization
-      ll.Reference<-Model$logLik
-      # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
-      shuffletimes <- 100  #number of interactions
+          # Initialize vectors for randomization
+          ll.Reference<-Model.Prop$logLik                           # Reference LogLikelihood
+          k <- length(coef(Model.Prop))                             # Number of estimated parameters
+          AIC.Reference<-(-2*Model.Prop$logLik+2*k)                 # Reference AIC 
+          
+          # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+          # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+          shuffletimes <- 100  #number of interactions
+          
+          featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+          for (feature in predictorNames) {
+            featureLl <- c()
+            featureAIC<-c()
+            shuffledData <- data[,c(outcomeName, predictorNames)]
+            for (iter in 1:shuffletimes) {
+              shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+              Model.tmp <- update(Model.Prop,.~.,data=shuffledData)
+              featureLl <- c(featureLl,Model.tmp$logLik)
+              featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+            }
+            featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+            featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+            ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+            AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+            # Proportions -> In how many runs does the Reference is less than the shuffled
+          }
 
-      featuresMeanLR <- featuresProportions<-c()
-      for (feature in predictorNames) {
-        featureLl <- c()
-        shuffledData <- data[,c(outcomeName, predictorNames)]
-        for (iter in 1:shuffletimes) {
-          shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
-          Model.tmp <- update(Model,.~.,data=shuffledData)
-          featureLl <- c(featureLl,Model.tmp$logLik)
-        }
-        featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-        featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
-        # IF the new likelihood is smaller than the ref. -> we have a worst model
-        # In how many runs does the likelihood is less
-      }
-
-       PseudoRShuffle <- data.frame('feature'=predictorNames, 'Average.Diff'=featuresMeanLR,
-                                    'Proportion'=featuresProportions)
-       PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$'Average.Diff', decreasing=TRUE),]
-       print(PseudoRShuffle)
+          Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+                                       'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                       'Proportion.AIC'=AIC.featuresProportions)
+          Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.Ll', decreasing=TRUE),]
+          print(Shuffle.Result.Prop)
+          
        
-       #doing it like this, it turns out that all the variables are important. But this is to be expected
+       # doing it like this, it turns out that all the variables are important. But this is to be expected
        # As we have previously select the variables.
        # Just to play around I will do the same, but with the original model and see if we get
-       # the same result
+       # the same result, i.e. the same important variables
        
        predictorNames2 <- c('Gender', 'Division', 'PercentFemale', 'Age','IsContinuation',
                            'PreviousRequest','InstType', 'Semester','logAmount')
-       ll.Reference<-fit1$logLik
-       # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
       
+       # Initialize vectors for randomization
+       ll.Reference<-fit1$logLik                           # Reference LogLikelihood
+       k <- length(coef(fit1))                             # Number of estimated parameters
+       AIC.Reference<-(-2*fit1$logLik+2*k)                 # Reference AIC 
+       
+       # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+       # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
        shuffletimes <- 100  #number of interactions
        
-       featuresMeanLR <- featuresProportions<-c()
+       featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
        for (feature in predictorNames2) {
          featureLl <- c()
+         featureAIC<-c()
          shuffledData <- data[,c(outcomeName, predictorNames2)]
          for (iter in 1:shuffletimes) {
            shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
            Model.tmp <- update(fit1,.~.,data=shuffledData)
            featureLl <- c(featureLl,Model.tmp$logLik)
+           featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
          }
          featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-         featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
-         # IF the new likelihood is smaller than the ref. -> we have a worst model
-         # In how many runs does the likelihood is less
+         featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+         ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+         AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+         # Proportions -> In how many runs does the Reference is less than the shuffled
        }
        
-       PseudoRShuffle2 <- data.frame('feature'=predictorNames2, 'Average.Diff'=featuresMeanLR,
-                                    'Proportion'=featuresProportions)
-       PseudoRShuffle2 <- PseudoRShuffle2[order(PseudoRShuffle2$'Average.Diff', decreasing=TRUE),]
-       print(PseudoRShuffle2)
+       Shuffle.Result.Prop2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+                                         'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                         'Proportion.AIC'=AIC.featuresProportions)
+       Shuffle.Result.Prop2 <- Shuffle.Result.Prop2[order(Shuffle.Result.Prop2$'Diff.Ll', decreasing=TRUE),]
+       print(Shuffle.Result.Prop2)
        
        # We do get the same variables as important. The one with the largest effect is Amount Requested.
        # Interesting. Remeber we are evaluating Project Assessment
@@ -206,158 +213,392 @@ str(data)
        
   
 
-  # Fitting the Model for ApplicantTrack  ---- 
-      
+    # Effects ---- 
+       
+       # Effect of Gender on the Combined Project Grade
+       
+       par(mfrow=c(1,2))
+       # 1. get the effects and prepare a matrix to plot
+       gender.prob<-Effect("Gender", mod=Model.Prop)
+       gender.prob<-gender.prob$prob
+       row.names(gender.prob)<-levels(external_regression_data$Gender)
+       colnames(gender.prob)<-levels(external_regression_data$ProposalCombined)
+       
+       # 2. Plot
+       x<-as.numeric(levels(external_regression_data$ProposalCombined))
+       plot(x,gender.prob[1,], ylab="Probabilities", 
+            xlab="Grade",main="Effect of Gender on Combined Project Grade",
+            type="l", col="blue", cex.main=0.8)
+       lines(x,gender.prob[2,], col="green")
+       legend("topleft", legend=c("male","female"), lty=1,
+              col=c("blue","green"),bty="n")
+       
+       # Plot of ApplicantTrack vs Gender to try to understand better the above
+       barplot(t(with(external_regression_data,prop.table(table(ProposalCombined,Gender),2))),
+               beside = TRUE,
+               col=c("blue","green" ))
+       legend("topleft", legend=c("male","female"), pch=15,
+              col=c("blue","green"),bty="n")
+       
+       # If I understand correctly, the difference in probability if the effect on gender
+       diff<- round((gender.prob[2,]-gender.prob[1,])*100,2)
+       diff
+       # 1     2     3     4     5     6 
+       # 1.43  1.51  1.42  0.96 -0.51 -4.82 
+       # Project were the main Applicant is a woman are 1.43% more likely of getting 1's,
+       # and 4.82% less likely of getting 6?
+       par(mfrow=c(1,1))
+       
+       # Plot the effect of log Amount
+       plot(Effect("logAmount",mod=Model.Prop))
+       
+       
+       
+       
+# Fitting the Model for ApplicantTrack  ---- 
+    # Visualization----
+       ggplot(external_regression_data, aes(x = ApplicantTrack, y = PercentFemale, col=Gender)) +
+         geom_jitter(alpha = .5) +
+         #facet_grid(InstType ~ Division, margins = TRUE) +
+         theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))    
+       
+    # Fit a full model ----
       fit2 <- clm(ApplicantTrack ~Gender*(Division+PercentFemale)+Age+Division+IsContinuation+
                     PreviousRequest+InstType+Semester+logAmount,
-                  data=data)
+                    data=data)
       
       summary(fit2)  # cond.H very high 
-      # Variable Selection ----      
+      
+    # Variable Selection ----      
             
             drop1(fit2, test = "Chi")
             # Gender:Division is the first candidate to leave out, then Semester, PreviousRequest and Age
             
+            fit2<-update(fit2,.~.-Gender:Division)
+            fit2<-update(fit2,.~.-PreviousRequest)
+            fit2<-update(fit2,.~.-Semester)
             fit2<-update(fit2,.~.-Age)
-            summary(fit2)
-            drop1(fit2, test = "Chi")
             
-      # After variable Selection, the final model ----
-            Model<- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation + 
+            
+    # After variable Selection, the final model ----
+            Model.App<- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation + 
                           InstType + logAmount + Gender:PercentFemale,data=data)
-            summary(Model) #cond.H still high
+            summary(Model.App) #cond.H still high
+            # In this Model, Gender is Significant, 
             
-            # fit a null Model
+            # fit a null Model.App
             fit.null<- clm(ApplicantTrack~1, data=data)
-            fit.null$df.residual- Model$df.residual
+            fit.null$df.residual- Model.App$df.residual
             
-            LR<-fit.null$logLik/Model$logLik
+            LR<--2*(fit.null$logLik-Model.App$logLik)
             1-pchisq(LR,df=10)
             
-            prop.table(table(data$ApplicantTrack,data$Gender),2)
+            anova(fit.null,Model.App) 
+            # gives the same result. Our model explains better than the empty model
             
-            drop1(Model, test = "Chi")
-            # Cannot be imporved
+            drop1(Model.App, test = "Chi")         # Cannot be imporved
             
-            confint(Model, type = "Wald")
             
             # Odds ratio and confidence intervals for Odds Ratio
-            round(exp(Model$beta), 1)
-            round(exp(confint(Model, type = "Wald")), 1) # There are some huge intervals
+              round(exp(cbind(OR=Model.App$beta,confint(Model.App))), 2)
+              
+            # Any of the c.i. include 1 (only Division 3). 
+            # There is an slightly effect of Gender in the Application Track grade
+            
   
-  # Variable Importance----
-            # Not sure which meassure to use here. I'll try with LogLikelihood, I don't know
-            # how to estimate the Deviance for this models. Any one knows?
+    # Variable Importance----
+            # Not sure which meassure to use here. I'll try with LogLikelihood
             
             outcomeName <- 'ApplicantTrack'
             predictorNames <- c('Gender', 'Division', 'PercentFemale','IsContinuation',
                                 'InstType', 'logAmount')
-            predictions <- predict(object=Model, data[,predictorNames], type="class")
+            predictions <- predict(object=Model.App, data[,predictorNames], type="class")
             # A quick check
             table(data$ProposalCombined,predictions$fit)
-            #Still classifies in mostly in category 4
+            #Still classifies mostly in category 4
             sum(predictions$fit=="4") # 1530 out of 1623 ???
             
             # Initialize vectors for randomization
-            ll.Reference<-Model$logLik
-            # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
-            shuffletimes <- 100  #number of interactions
+            ll.Reference<-Model.App$logLik                           # Reference LogLikelihood
+            k <- length(coef(Model.App))                             # Number of estimated parameters
+            AIC.Reference<-(-2*Model.App$logLik+2*k)                 # Reference AIC 
             
-            featuresMeanLR <- featuresProportions<-c()
+            # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+            # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+            shuffletimes <- 50  #number of interactions
+            
+            featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
             for (feature in predictorNames) {
               featureLl <- c()
+              featureAIC<-c()
               shuffledData <- data[,c(outcomeName, predictorNames)]
               for (iter in 1:shuffletimes) {
                 shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
-                Model.tmp <- update(Model,.~.,data=shuffledData)
+                Model.tmp <- update(Model.App,.~.,data=shuffledData)
                 featureLl <- c(featureLl,Model.tmp$logLik)
+                featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
               }
               featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-              featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
-              # IF the new likelihood is smaller than the ref. -> we have a worst model
-              # In how many runs does the likelihood is less
+              featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+              ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+              AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+              # Proportions -> In how many runs does the Reference is less than the shuffled
             }
             
-            PseudoRShuffle <- data.frame('feature'=predictorNames, 'Average.Diff'=featuresMeanLR,
-                                         'Proportion'=featuresProportions)
-            PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$'Average.Diff', decreasing=TRUE),]
-            print(PseudoRShuffle)
+            Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+                                         'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                         'Proportion.AIC'=AIC.featuresProportions)
+            Shuffle.Result <- Shuffle.Result[order(Shuffle.Result$'Diff.Ll', decreasing=TRUE),]
+            print(Shuffle.Result)
             
-            #doing it like this, it turns out that all the variables are important. But this is to be expected
-            # As we have previously select the variables.
+            # doing it like this, it turns out that all the variables are important. But this is to be expected
+            # as we have previously select the variables.
             # Just to play around I will do the same, but with the original model and see if we get
-            # the same result
+            # the same result,i.e. the same important variables
             
             predictorNames2 <- c('Gender', 'Division', 'PercentFemale', 'Age','IsContinuation',
                                  'PreviousRequest','InstType', 'Semester','logAmount')
-            ll.Reference<-fit2$logLik
-            # If we shuffle and refit. If we have a smaller logLike -> the model is worst?
             
-            shuffletimes <- 100  #number of interactions
+            # Initialize vectors for randomization
+            ll.Reference<-fit2$logLik                           # Reference LogLikelihood
+            k <- length(coef(fit2))                             # Number of estimated parameters
+            AIC.Reference<-(-2*fit2$logLik+2*k)                 # Reference AIC 
+            shuffletimes <- 100                                 # Number of interactions
             
-            featuresMeanLR <- featuresProportions<-c()
+            featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
             for (feature in predictorNames2) {
               featureLl <- c()
+              featureAIC<- c()
               shuffledData <- data[,c(outcomeName, predictorNames2)]
               for (iter in 1:shuffletimes) {
                 shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
                 Model.tmp <- update(fit2,.~.,data=shuffledData)
                 featureLl <- c(featureLl,Model.tmp$logLik)
+                featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
               }
               featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
-              featuresProportions<-c(featuresProportions,mean(ll.Reference>featureLl))
-              # IF the new likelihood is smaller than the ref. -> we have a worst model
-              # In how many runs does the likelihood is less
+              featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+              ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+              AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
             }
             
-            PseudoRShuffle2 <- data.frame('feature'=predictorNames2, 'Average.Diff'=featuresMeanLR,
-                                          'Proportion'=featuresProportions)
-            PseudoRShuffle2 <- PseudoRShuffle2[order(PseudoRShuffle2$'Average.Diff', decreasing=TRUE),]
-            print(PseudoRShuffle2)
-            
-            # The one with the largest effect is IstitutionType.
-            
+            Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+                                          'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                          'Proportion.AIC'=AIC.featuresProportions)
+            Shuffle.Result2 <- Shuffle.Result2[order(Shuffle.Result2$'Diff.Ll', decreasing=TRUE),]
+            print(Shuffle.Result2)
             
             
+            # We do get the same results...
             
             
+    # Effects ---- 
             
-      # Effects ----      
-            # Effect plots, we should explore other ways to plot this. This graphs are not very
-            # Informative
-            plot(Effect("Gender", mod=Model))    # There most be a better way of plotting this
-            plot(Effect("logAmount", mod=Model)) # The  higher the amount the likely it is to have a 
-            # higher grade.
+            # Effect of Gender on the Applicant Track grade
+            par(mfrow=c(1,2))
+            # 1. get the effects and prepare a matrix to plot
+            gender.prob<-Effect("Gender", mod=Model.App)
+            gender.prob<-gender.prob$prob
+            row.names(gender.prob)<-levels(external_regression_data$Gender)
+            colnames(gender.prob)<-levels(external_regression_data$ApplicantTrack)
             
-            plot(Effect("Division", mod=Model))  
-            plot(Effect("InstType", mod=Model))
-            plot(Effect("IsContinuation",mod=Model))
+            # 2. Plot
+            x<-as.numeric(levels(external_regression_data$ApplicantTrack))
+            plot(x,gender.prob[1,], ylab="Probabilities", 
+                 xlab="Grade",main="Effect of Gender on Applicant Track grade",
+                 type="l", col="blue", cex.main=0.8)
+            lines(x,gender.prob[2,], col="green")
+            legend("topleft", legend=c("male","female"), lty=1,
+                   col=c("blue","green"),bty="n")
             
-         
+            # Plot of ApplicantTrack vs Gender to try to understand better the above
+            barplot(t(with(external_regression_data,prop.table(table(ApplicantTrack,Gender),2))),
+                    beside = TRUE,
+                    col=c("blue","green" ))
+            legend("topleft", legend=c("male","female"), pch=15,
+                   col=c("blue","green"),bty="n")
             
-# Fitting OverallGrade~ApplicantTrack + ProposalCombine + All
+            # If I understand correctly, the difference in probability if the effect on gender
+            diff<- round((gender.prob[2,]-gender.prob[1,])*100,2)
+            diff
+            # 1     2     3     4     5     6 
+            # 0.44  0.63  0.92  1.48  2.49 -5.96 
+            # womans are 0.44% more likely of getting 1's, and 5.96% less likely of getting 6?
+           
+              
             
-    data<- subset(external_regression_data,select = -c(ProjectID, AmountRequested, IsApproved,
-                                                               ScientificRelevance, Suitability))      
+            
+# Fitting OverallGrade~ApplicantTrack + ProposalCombine + All----
+            
+    data<- subset(external_regression_data,select = -c(ProjectID, AmountRequested, IsApproved,ScientificRelevance,Suitability))  
     
-    fit3 <- clm(OverallGrade ~Gender*(Division+PercentFemale)+ ApplicantTrack+ProposalCombined+Age+Division+IsContinuation+
-                          PreviousRequest+InstType+Semester+logAmount,
-                        data=data)
+    # Visualization----
+        ggplot(external_regression_data, aes(x = OverallGrade, y = ApplicantTrack, col=ProposalCombined)) +
+          geom_jitter(alpha = .5) +
+          #facet_grid(InstType ~ Division, margins = TRUE) +
+          theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))    
+              
+    # Fit a full model ----  
+            
+    fit3 <- clm(OverallGrade ~Gender*(Division+PercentFemale)+ ProposalCombined+ApplicantTrack+
+                  Age+IsContinuation+PreviousRequest+InstType+Semester+logAmount,
+                  data=data)
     
     summary(fit3)
     
-    # Select Variables -----
+    # Variable Selection -----
     
     drop1(fit3, test = "Chi")
-    # Gender:Division is the first candidate to leave out, then Semester, PreviousRequest and Age
     
+    fit3<-update(fit3,.~.-InstType)
+    fit3<-update(fit3,.~.-Gender:Division)
     fit3<-update(fit3,.~.-logAmount)
-    summary(fit3)
-    drop1(fit3, test = "Chi")
+    fit3<-update(fit3,.~.-PreviousRequest)
+    fit3<-update(fit3,.~.-Semester)
+    fit3<-update(fit3,.~.-Division)
+    fit3<-update(fit3,.~.-Age)
     
-    Model3<-clm(OverallGrade ~ ApplicantTrack + ProposalCombined , data=data)
-    summary(Model3)
+    # It seems like Gender:Female has some effect
     
-    #Odd Ratios
-    round(exp(Model3$beta), 2)  # The odd ratio for proposal combined is Higher. 
+    # After variable Selection, the final model ----   
+    
+    Model.Overall<-clm(OverallGrade ~ Gender + PercentFemale + ProposalCombined + ApplicantTrack + 
+                         IsContinuation + Gender:PercentFemale , data=data)
+    summary(Model.Overall)
+    
+    # fit a null Model
+    fit.null<- clm(OverallGrade~1, data=data)
+    fit.null$df.residual- Model.Overall$df.residual
+    
+    LR<--2*(fit.null$logLik-Model.Overall$logLik)
+    1-pchisq(LR,df=10)
+    
+    anova(fit.null,Model.Overall)  # gives the same result. Our model explains better than the empty model
+    
+    # Odds ratio and confidence intervals for Odds Ratio
+    round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2)
+    
+    
+    
+    # Variable Importance----
+    # Not sure which meassure to use here. I'll try with LogLikelihood
+    
+    outcomeName <- 'OverallGrade'
+    predictorNames <- c('Gender', 'PercentFemale','ProposalCombined','ApplicantTrack','IsContinuation')
+    
+    # Initialize vectors for randomization
+    ll.Reference<-Model.Overall$logLik                           # Reference LogLikelihood
+    k <- length(coef(Model.Overall))                             # Number of estimated parameters
+    AIC.Reference<-(-2*Model.Overall$logLik+2*k)                 # Reference AIC 
+    
+    # We shuffle and refit. If we have a smaller logLike -> the model is worst -> Variable is important
+    # We shuffle and refit. If we have a bigger AIC -> the model is worst -> variable is important
+    shuffletimes <- 50  #number of interactions
+    
+    featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+    for (feature in predictorNames) {
+      featureLl <- c()
+      featureAIC<-c()
+      shuffledData <- data[,c(outcomeName, predictorNames)]
+      for (iter in 1:shuffletimes) {
+        shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+        Model.tmp <- update(Model.Overall,.~.,data=shuffledData)
+        featureLl <- c(featureLl,Model.tmp$logLik)
+        featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+      }
+      featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+      featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+      ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+      AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+      # Proportions -> In how many runs does the Reference is less than the shuffled
+    }
+    
+    Ov.Shuffle.Result <- data.frame('feature'=predictorNames, 'Diff.Ll'=featuresMeanLR,
+                                 'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                 'Proportion.AIC'=AIC.featuresProportions)
+    Ov.Shuffle.Result <- Ov.Shuffle.Result[order(Ov.Shuffle.Result$'Diff.Ll', decreasing=TRUE),]
+    print(Ov.Shuffle.Result)
+    
+    # doing it like this, it turns out that all the variables are important. But this is to be expected
+    # as we have previously select the variables.
+    # Just to play around I will do the same, but with the original model and see if we get
+    # the same result,i.e. the same important variables
+    
+    fit3 <- clm(OverallGrade ~Gender*(Division+PercentFemale)+ ProposalCombined+ApplicantTrack+
+                  Age+IsContinuation+PreviousRequest+InstType+Semester+logAmount,
+                data=data)
+    
+    predictorNames2 <- c('Gender', 'Division', 'PercentFemale','ProposalCombined','ApplicantTrack', 'Age','IsContinuation',
+                         'PreviousRequest','InstType', 'Semester','logAmount')
+    
+    # Initialize vectors for randomization
+    ll.Reference<-fit3$logLik                           # Reference LogLikelihood
+    k <- length(coef(fit3))                             # Number of estimated parameters
+    AIC.Reference<-(-2*fit3$logLik+2*k)                 # Reference AIC 
+    shuffletimes <- 100                                 # Number of interactions
+    
+    featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+    for (feature in predictorNames2) {
+      featureLl <- c()
+      featureAIC<- c()
+      shuffledData <- data[,c(outcomeName, predictorNames2)]
+      for (iter in 1:shuffletimes) {
+        shuffledData[,feature] <- sample(shuffledData[,feature], length(shuffledData[,feature]))
+        Model.tmp <- update(fit3,.~.,data=shuffledData)
+        featureLl <- c(featureLl,Model.tmp$logLik)
+        featureAIC <- c(featureAIC, (-2*Model.tmp$logLik+2*k) )
+      }
+      featuresMeanLR <- c(featuresMeanLR, mean((ll.Reference-featureLl)))
+      featuresMeanAIC<- c(featuresMeanAIC, mean(AIC.Reference-featureAIC))
+      ll.featuresProportions<-c(ll.featuresProportions,mean(ll.Reference>featureLl))
+      AIC.featuresProportions<-c(AIC.featuresProportions,mean(AIC.Reference<featureAIC))
+    }
+    
+    Ov.Shuffle.Result2 <- data.frame('feature'=predictorNames2, 'Diff.Ll'=featuresMeanLR,
+                                  'Proportion.Ll'=ll.featuresProportions, 'Diff.AIC'=featuresMeanAIC,
+                                  'Proportion.AIC'=AIC.featuresProportions)
+    Ov.Shuffle.Result2 <- Ov.Shuffle.Result2[order(Ov.Shuffle.Result2$'Diff.Ll', decreasing=TRUE),]
+    print(Ov.Shuffle.Result2)
+    
+    
+    # We do get the same results...
+    # Proposal Combined is more important than ApplicantTrack, and there is some effect of gender
+    
+    
+    
+    # Effects ---- 
+    
+    # Effect of Gender on the OverallGrade grade
+    par(mfrow=c(1,2))
+    # 1. get the effects and prepare a matrix to plot
+    gender.prob<-Effect("Gender", mod=Model.Overall)
+    gender.prob<-gender.prob$prob
+    row.names(gender.prob)<-levels(external_regression_data$Gender)
+    colnames(gender.prob)<-levels(external_regression_data$OverallGrade)
+    gender.prob
+    
+    # 2. Plot
+    x<-as.numeric(levels(external_regression_data$OverallGrade))
+    plot(x,gender.prob[1,], ylab="Probabilities", 
+         xlab="Grade",main="Effect of Gender on Overall Grade",
+         type="l", col="blue", cex.main=0.8)
+    lines(x,gender.prob[2,], col="green")
+    legend("topleft", legend=c("male","female"), lty=1,
+           col=c("blue","green"),bty="n")
+    
+    # Plot of ApplicantTrack vs Gender to try to understand better the above
+    barplot(t(with(external_regression_data,prop.table(table(OverallGrade,Gender),2))),
+            beside = TRUE,
+            col=c("blue","green" ))
+    legend("topleft", legend=c("male","female"), pch=15,
+           col=c("blue","green"),bty="n")
+    
+    # If I understand correctly, the difference in probability if the effect on gender
+    diff<- round((gender.prob[2,]-gender.prob[1,])*100,2)
+    diff
+    # 1     2     3     4     5     6 
+    # 0.02  1.46  0.73 -2.19 -0.02  0.00 
+    # womans are 0.02% more likely of getting 1's, and 5.96% less likely of getting 6?
+    
+    
     
