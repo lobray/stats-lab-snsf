@@ -732,8 +732,12 @@ str(data)
     cTab <- xtabs(~ Gender +OverallGrade, data=data)
     
     mycol<-colorRampPalette(c("green","blue"))(4)
-    spineplot(cTab, col=mycol)
-    lbl_test(cTab)
+    lbl<-lbl_test(cTab)
+    lbl<-round(pvalue(lbl),5)
+    
+    spineplot(cTab, col=mycol, main=paste("Independence Test \n", "External Step"),
+              cex.main=0.8,xlab=paste0("Gender \n", "p-value = ", lbl))
+    
     ## p-value=0.0001658 -> reject H0 -> no independence of Overall Grade on Gender
     
     # Compare to chi-square test without ordered categories
@@ -746,8 +750,11 @@ str(data)
     
     t <- xtabs(~ Gender+ApplicantTrack, data=data)
     
-    spineplot(t,col=mycol)
-    lbl_test(t)
+    lbl<-lbl_test(t)
+    lbl<-round(pvalue(lbl),5)
+    spineplot(t,col=mycol,main=paste("Independence Test \n", "External Step"),
+              cex.main=0.8,xlab=paste0("Gender \n", "p-value = ", lbl))
+    
     # p-value = 9.481e-06 -> reject H0 -> no dependence of Applicant Track on gender
     
     # Compare to chi-square test without ordered categories
@@ -760,12 +767,66 @@ str(data)
     table(data$Gender, data$ProposalCombined)
     
     t <- xtabs(~ Gender+ProposalCombined, data=data)
+    lbl<-lbl_test(t)
+    lbl<-round(pvalue(lbl),5)
+    spineplot(t, col=mycol,main=paste("Independence Test \n", "External Step"),
+              cex.main=0.8,xlab=paste0("Gender \n", "p-value = ", lbl))
     
-    spineplot(t, col=mycol)
-    lbl_test(t)
     # p-value = 0.0005938 -> reject H0 -> no dependence of ProposalCombined and gender
     
     # Compare to chi-square test without ordered categories
     chisq_test(t)   # p-value = 0.0006203
     
+# Kappa Approach ----
+    library(biostatUZH) 
+    library(psy)        
+    library(psych) 
     
+    # Weights
+    
+      linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
+                                 0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
+                                 0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), 
+                               nrow=6, ncol=6, byrow=T)
+      
+      
+      custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+                               0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
+                               0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), 
+                             nrow=6, ncol=6, byrow=T)
+    
+    
+    # OverallGrade vs Applicant Track
+      
+      kappa.matrix <- as.matrix(table('Overall Grade'=external_regression_data$OverallGrade,
+                                      'Applicant Track'=external_regression_data$ApplicantTrack))
+      plot(kappa.matrix, main= "Agreement Between Grades")
+      kappa <- cohen.kappa(kappa.matrix, w=custom.weights)
+      kappa  # 0.52  # with custom. weights 0.55
+      
+      
+    # OverallGrade vs Scientific Relevance
+     
+      kappa.matrix <- as.matrix(table('Overall Grade'=external_regression_data$OverallGrade,
+                                      'Scientific Relevance'=external_regression_data$ScientificRelevance))
+      plot(kappa.matrix, main= "Agreement Between Grades")
+      kappa <- cohen.kappa(kappa.matrix, w=custom.weights)
+      kappa  # 0.71  # with custom. weights 0.73
+
+    
+    # OverallGrade vs Scientific Relevance
+      
+      kappa.matrix <- as.matrix(table('Overall Grade'=external_regression_data$OverallGrade,
+                                      'Suitability'=external_regression_data$Suitability))
+      plot(kappa.matrix, main= "Agreement Between Grades")
+      kappa <- cohen.kappa(kappa.matrix, w=custom.weights)
+      kappa  # 0.67  # with custom. weights 0.70
+    
+    # OverallGrade vs Combined Project Assessment
+      
+      kappa.matrix <- as.matrix(table('Overall Grade'=external_regression_data$OverallGrade,
+                                      'Proposal Combined'=external_regression_data$ProposalCombined))
+      plot(kappa.matrix, main= "Agreement Between Grades")
+      kappa <- cohen.kappa(kappa.matrix, w=custom.weights)
+      kappa  # 0.79   # with custom. weights 0.80 
+      
