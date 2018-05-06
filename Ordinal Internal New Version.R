@@ -165,6 +165,7 @@ AIC.Reference<-(-2*Model$logLik+2*k)                 # Reference AIC
 shuffletimes <- 100  #number of interactions
 
 featuresMeanLR <- featuresMeanAIC <- ll.featuresProportions<-AIC.featuresProportions<-c()
+AIC.percentvariation <- c()
 for (feature in predictorNames) {
   featureLl <- c()
   featureAIC<-c()
@@ -190,8 +191,7 @@ for (feature in predictorNames) {
 #print(Shuffle.Result.Prop)
 
 Shuffle.Result.Prop <- data.frame('feature'=predictorNames, 'Diff.AIC'=featuresMeanAIC,
-                                  'Proportion.AIC'=AIC.featuresProportions,
-                                  'Percent.AIC'=AIC.percentvariation)
+                                  'Proportion.AIC'=AIC.featuresProportions, 'Percent.AIC'=AIC.percentvariation)
 Shuffle.Result.Prop <- Shuffle.Result.Prop[order(Shuffle.Result.Prop$'Diff.AIC', decreasing=TRUE),]
 print(Shuffle.Result.Prop)
 
