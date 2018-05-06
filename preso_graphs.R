@@ -24,6 +24,7 @@ plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot
     coord_flip() +
     ggtitle(plot_title) + 
     theme(plot.title = element_text(size = title_size))
+    
   
 }
 
@@ -104,3 +105,68 @@ ggsave(file="/home/leslie/Desktop/StatsLabs/stats-lab-snsf/Graphs/OverallGradevs
 pdf("/home/leslie/Desktop/StatsLabs/stats-lab-snsf/Graphs/OverallGradevsRankingIsApproved.pdf")
 grid.arrange(p4, p5, ncol = 2)
 dev.off()
+
+# mosaic plots
+library(vcd)
+cotabplot(~ Gender+IsApproved, data=final.apps, shade=T)
+
+
+tab <- xtabs(IsApproved ~ Gender, data = final.apps)
+tab
+tab <- structable(Freq ~ Gender + IsApproved, data = tab)
+tab <- as.data.frame(table(final.apps$IsApproved, final.apps$Gender))
+colnames(tab) <- c("IsApproved", "Gender", "Freq")
+tab <- xtabs(Freq ~ Gender + IsApproved, data=tab)
+mosaic(tab)
+
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 1",], shade=T)
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 2",], shade=T)
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 3",], shade=T)
+par(mfrow=c(1,3))
+cotabplot( ~ IsApproved + Gender | Division, data=final.apps, panel= cotab_mosaic, shade=T)
+
+
+ProposalCombined <- external_regression_data$ProposalCombined
+ex_proposal <- as.data.frame(prop.table(table(ProposalCombined)))
+ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
+colnames(ex_proposal)[1] <- "ProposalScore"
+p8 <- ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
+  geom_histogram(stat="identity") +
+  ggtitle("External Proposal Frequency Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) 
+  scale_y_continuous(limits = c(0, 0.45))
+
+in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAssessment)))
+in_proposal$Freq <- as.numeric(in_proposal$Freq)
+colnames(in_proposal)[1] <- "ProposalScore"
+p9  <- ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
+  geom_histogram(stat="identity") +
+  ggtitle("Internal Proposal Frequency Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) +
+  scale_y_continuous(limits = c(0, 0.41))
+grid.arrange(p8, p9, ncol=2)
+
+jpeg("/home/leslie/Desktop/StatsLabs/stats-lab-snsf/Graphs/ExProposalDist.jpg")
+p8
+dev.off()
+
+?grid.arrange
+
+568+692 = 1260
+194+169 = 363
+
+363/1623
+
+# approval rate``
+692/1260
+169/363
+
+# male female of approved
+692/(692+169)
+169/(692+169)
+
+
+
+prop.table(table(final.apps$Division, final.apps$IsApproved),1)
+
+    
