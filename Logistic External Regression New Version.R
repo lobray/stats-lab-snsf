@@ -25,11 +25,13 @@ summary(external_regression_data)
 
 
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
-data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested))
+data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested, 
+                                                   ProposalCombined))
 
 # visualization of grades to check for perfect separation----
   par(mfrow=c(2,2))
-  #ApplicantTrack
+  
+#ApplicantTrack
   barplot(table(data$IsApproved,data$ApplicantTrack),col=c("red","green"), beside=TRUE,
           main = "Applicant Track Grade vs. Approval")
   
@@ -42,8 +44,10 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
   legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
   
   # Suitability
-  barplot(table(data$IsApproved,data$Suitability),col=c("red","green"), beside=TRUE,
+  barplot(table(data$IsApproved,data$Suitability),col=c("brown2","turquoise3"), beside=TRUE,
           main = "Suitability vs. Approval")
+  
+  
   
   legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
   
@@ -60,15 +64,15 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
 
 # Fit first model with all variables and interactions----
   Model <- glm(IsApproved ~ .+Gender:Division+
-               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division -ProposalCombined,data=data, 
+               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data, 
              family="binomial")
-  summary(fit)
+  summary(Model)
   # We have NA, and coefficients with large variances. 
 
 # Model Diagnostic
     # Predicted values
-      pred<- predict(fit, data=data, type = "response")
-      fvl <- predict(fit, type="link")
+      pred<- predict(Model, data=data, type = "response")
+      fvl <- predict(Model, type="link")
       IsApproved<-data$IsApproved
 
     # Residual plot
@@ -88,7 +92,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
         kappa <- cohen.kappa(kappa.matrix, w=linear.weights)  # 0.5
         kappa
     # Pseudos-R^2
-        (PsR22<-(1-exp((fit$dev-fit$null)/1623))/(1-exp(-fit$null/1623))) #[1] 0.4198219
+        (PsR22<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))) #[1] 0.4198219
     
     
     # optimize model see if we can drop some variables
@@ -110,6 +114,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
         
         # Pseudos-R^2
         (PsR22<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))) #[1]  0.4165827
+        
         # Although AIC is less, the pseudo r's are worst.
         Model$formula
         
@@ -135,7 +140,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
 # Fit again with new definition and all variables:
         
         Model <- glm(IsApproved ~ .+Gender:Division+
-                       Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division -ProposalCombined,data=data, 
+                       Gender:PercentFemale+Gender:ApplicantTrack,data=data, 
                    family="binomial")
         summary(Model)
         # We have no NA's now, and the variance are reasonable
@@ -155,6 +160,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
         lines(sort(fvl+1), sort(pred+1), lty=3)
         title("Result vs. Linear Predictor")  
         
+        
         # Kappa Statistic
         # Define weight matrix
         linear.weights <- matrix(c(1, 0.8, 0.8, 1), 
@@ -165,7 +171,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
         kappa  # again 0.51
         
         # Pseudos-R^2
-        (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623)) #[1] 0.412507
+        (1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623)) #[1] 0.4155873
  
         # optimize model
         drop1(Model, test="Chisq")
@@ -203,8 +209,8 @@ library(ggplot2)
   
 # Obtain Gender effect as a separate data frame        
   plot(Effect("Gender",Model),
-            ci.style="bands",
-            band.transparency=0.2)
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
   # Lines are almost horizotal, an indication of no gender effect. Good news!!
   
 # Plot different things
@@ -213,7 +219,9 @@ library(ggplot2)
       rug=FALSE,style="stacked", ci.style="bands")
   
   # All effects at once
-    plot(eff.fit)
+    plot(eff.fit,
+         confint=list(style="band",alpha=0.2),
+         lines=list(col=1,lwd=1))
 
 
 # Visualization with effects package and others----
@@ -238,7 +246,7 @@ library(ggplot2)
       points(x,GA[1,],pch=20)
       points(x,GA[2,],pch=20)
       lines(x,GA[2,], type="l", col="green")
-      legend("topleft", lty=1, col=c("blue","green"), legend = c("male","female"))
+      legend("topleft", lty=1, bty="n", col=c("blue","green"), legend = c("male","female"))
       
   # Gender vs Scientific Relevance
   plot(Effect(c("Gender","ScientificRelevance"), mod=Model))
@@ -260,6 +268,8 @@ library(ggplot2)
            xaxp=c(3,6,3))
       points(x,GSc[1,],pch=20)
       points(x,GSc[2,],pch=20)
+      
+      
       lines(x,GSc[2,], type="l", col="green")
       legend("topleft", lty=1, col=c("blue","green"), legend = c("male","female"))
     
@@ -304,6 +314,7 @@ calc_pseudo_r <- function(Model,n) {
   (1-exp((Model$dev-Model$null)/n))/(1-exp(-Model$null/n))
 }
 
+
 # Set Predictors and output variables
   outcomeName <- 'IsApproved'
   predictorNames <- c('ApplicantTrack','ScientificRelevance', 'Suitability',
@@ -313,7 +324,7 @@ calc_pseudo_r <- function(Model,n) {
 # To see variable importance based on pseudo r^2
   refR2<-calc_pseudo_r(Model,nrow(data))
   PseudoRShuffle <- NULL
-  shuffletimes <- 50  #number of interactions
+  shuffletimes <- 100  #number of interactions
   
   featuresMeanR2 <- c()
   for (feature in predictorNames) {
@@ -324,10 +335,22 @@ calc_pseudo_r <- function(Model,n) {
       Model.tmp <- update(Model,.~.,data=shuffledData)
       featureR2 <- c(featureR2,calc_pseudo_r(Model.tmp,nrow(shuffledData)))
     }
-    featuresMeanR2 <- c(featuresMeanR2, mean(featureR2-refR2))
+    featuresMeanR2 <- c(featuresMeanR2,round(mean(featureR2-refR2),4))
   }  
   
   PseudoRShuffle <- data.frame('Feature'=predictorNames, 'Importance'=featuresMeanR2)
   #minor detail, I'll order so that the most important variable is at the top
-  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=FALSE),]
+  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$Importance, decreasing=TRUE),]
   print(PseudoRShuffle)
+  
+  PseudoRShuffle<-PseudoRShuffle[order(PseudoRShuffle$Importance, decreasing=FALSE),]
+  PseudoRShuffle$Importance<-abs(PseudoRShuffle$Importance)
+  mycol=colorRampPalette(c("blue","red"))(length(predictorNames))
+  
+  par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
+  barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
+          horiz = TRUE,col = mycol,cex.names = 0.7,
+          main="Variable Importance for Approval",
+          xlab = "Percent of variation on the Pseudo R",
+          cex.axis = 0.6,
+          cex.main=0.8)

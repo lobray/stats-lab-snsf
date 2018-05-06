@@ -8,7 +8,7 @@
 data<-prepare_data_external_log_regression(final.apps,final.external)
 
 
-# visualization of grades to check for perfect separation----
+# visualization of grades to check for perfect separation
 
 #ApplicantTrack
 
@@ -44,7 +44,7 @@ ggplot(r.tab.dataframe,aes(x=ProposalCombined,y=Freq,fill=factor(IsApproved)))+
   theme(legend.position="bottom")
 
 
-# Internal graphs
+# Internal graphs----
 data<-prepare_data_internal_log_regression(final.apps,final.internal)
 
 #ApplicantTrack
