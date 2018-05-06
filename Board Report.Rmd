@@ -50,19 +50,19 @@ print("Cohen's Kappa, Ranking & OverallGrade")
 print(kappa)
 
 board_data$Ranking <- ifelse(board_data$Ranking %in% c(1,2,3), 3, board_data$Ranking)
-
+board_data$Ranking <- factor(board_data$Ranking, ordered=T)
 board_data$OverallGrade <- ifelse(board_data$OverallGrade %in% c(1,2,3), 3, board_data$OverallGrade)
+board_data$OverallGrade <- factor(board_data$OverallGrade, ordered=T)
 
+str(board_data)
+### TEST COMMENT OUT LATER
+board_data$Ranking <- factor(board_data$Ranking, ordered=F)
+board_data$OverallGrade <- factor(board_data$OverallGrade, ordered=F)
+########
 
 board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) + 
                               Ranking + OverallGrade + Gender:Division + PercentFemale + 
                               PercentFemale:Gender, family="binomial", data = board_data)
-
-# board_log_regression <- glm(board_data$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) +
-#                               Ranking + InternalApplicantTrack + ProjectAssessment + ExternalApplicantTrack +
-#                               ProposalCombined + OverallGrade + Gender:Division + PercentFemale +
-#                               PercentFemale:Gender, family="binomial", data = board_data)
-
 
 ```
 
@@ -228,14 +228,13 @@ base_pseudo_r
 The final model purely uses Age, IsContinuation, Ranking, & OverallGrade as predictors. Since the pseudo R^2 in the small model is nearly identical to the pseudo R^2 in the full model, we prefer the smaller model. 
 
 Let's check variable importance in the smaller model:
-
-```{r permute data 2, echo=FALSE, warning=FALSE}
+```{r}
 
 predictorNames <- c("Age", "IsContinuation", "Ranking", "OverallGrade")
 
 refR2<-calc_pseudo_r(fit7)
   PseudoRShuffle <- NULL
-  shuffletimes <- 50  #number of interactions
+  shuffletimes <- 10000  #number of interactions
   
   featuresMeanR2 <- c()
   for (feature in predictorNames) {
@@ -253,5 +252,4 @@ refR2<-calc_pseudo_r(fit7)
   PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
   print(PseudoRShuffle)
 
-
-
+```
