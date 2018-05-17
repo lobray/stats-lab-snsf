@@ -38,13 +38,16 @@ board_data <- prepare_data_board_log_regression(apps=final.apps, internal = fina
 
 kappa.matrix <- table(board_data$OverallGrade, board_data$Ranking)
 kappa.matrix.boardranking <- table(board_data$GradeFinal, board_data$Ranking)
-
+kappa.applicant <- table(board_data$ExternalApplicantTrack, board_data$InternalApplicantTrack)
+kappa.proposal <- table(board_data$ProposalCombined, board_data$ProjectAssessment)
 
 custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
          0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
          0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-
-kappa <- cohen.kappa(kappa.matrix.boardranking)
+300/(sum(kappa.applicant))
+pobs <- sum(diag(kappa.applicant))/sum(kappa.applicant)
+pex <- 
+kappa <- cohen.kappa(kappa.matrix, w=custom.weights)
 # table(board_data$OverallGrade, board_data$IsApproved)
 print("Cohen's Kappa, Ranking & OverallGrade")
 print(kappa)
@@ -252,4 +255,4 @@ refR2<-calc_pseudo_r(fit7)
   PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$importance, decreasing=TRUE),]
   print(PseudoRShuffle)
 
-```
+  ```

@@ -23,9 +23,9 @@ plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot
     scale_y_continuous(breaks=seq(-100,100,by=50),labels=abs(seq(-100,100,by=50))) +
     coord_flip() +
     ggtitle(plot_title) + 
-    theme(plot.title = element_text(size = title_size))
+    theme(plot.title = element_text(size = title_size)) 
+    # scale_fill_manual(values = c("firebrick","darkseagreen4"))
     
-  
 }
 
 # Data to use
@@ -150,7 +150,55 @@ jpeg("/home/leslie/Desktop/StatsLabs/stats-lab-snsf/Graphs/ExProposalDist.jpg")
 p8
 dev.off()
 
-?grid.arrange
+# How males and females allocate grades
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.40))
+
+# Internal Rankings
+
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "ProjectID")], final.internal, by="ProjectID")
+
+# just females
+tmp.internal.data.f <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="f",]
+
+# just males
+tmp.internal.data.m <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Difference in how Female & Male Allocate OverallGrades") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.4))
+
+
+
+grid.arrange(p10, p11, ncol=2)
 
 568+692 = 1260
 194+169 = 363

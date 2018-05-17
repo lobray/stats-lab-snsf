@@ -380,7 +380,7 @@ tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
 tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
 
 r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender, tmp.external.data$Gender),2)
-r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+r.tab.dataframe.2 <- as.data.frame(r.ftab.2)    
 colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Gender", "Freq")
 
 # How men and women allocate overallgrades
