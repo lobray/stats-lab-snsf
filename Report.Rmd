@@ -1,16 +1,17 @@
 ---
 title: "SNSF Report"
-author: "Chiara Gilardi, Leslie O’Bray, Carla Schärer  and Tommaso Portaluri"
-date: "5 April 2018"
+author: "Chiara Gilardi, Leslie O’Bray, Carla Schärer and Tommaso Portaluri"
+date: "13 June 2018"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
 ```
+
 ```{r Load Functions and Data }
 # setwd()
 # load("SNFS Data/snsf_data.RData")
@@ -32,12 +33,14 @@ library(ggmosaic)
 
 
 ## Introduction
-The Swiss National Science Foundation (SNF) is a research funding agency which disseminates yearlt, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three datasets provided by SNF, cointaing information on the applications for funding received in 2016, the corresponding and the scores given by both internal and external evaluators.  
+The Swiss National Science Foundation (SNF) is a research funding agency which disseminates yearly, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three data sets provided by SNF, containing information on the applications for funding received in 2016, the corresponding and the scores given by both internal and external evaluators.  
 
-The analysis performed for SNF had a two-fold aim, corresponding to the following two research questions:
+The analysis performed for SNF had a three-fold aim, corresponding to the following three research questions:
 1) Is gender bias occurring at any stage of the SNSF evaluation process? Is the gender of the main applicant influencing the rating of the application?
-2) To what extent the different steps of the evaluation and the different criteria determine the final funding decision?
-The SNSF evaluation procedure is indeed a multi-step process (involving external reviewers, internal referees, and an internal board) which takes into consideration both the track record of the applicant and the quality of the project (see Appendinx for a more detailed description of the evaluation procedure).
+2) To what extent the different steps of the evaluation and the different criteria within each step determine the final funding decision?
+3) When an application is approved, but the budget requested is cut, how can we explain this?
+
+The SNSF evaluation procedure is a multi-step process (involving external reviewers, internal referees, and an internal board) which takes into consideration both the track record of the applicant and the quality of the project (see Appendix for a more detailed description of the evaluation procedure).
 
 Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown that female applicants' projects get higher score when the application is blinded. Moreover,  female applicants receive usually higher grades for projects and lower grades for track record. Hence, after investigating the gender dimension to identify possible biases in the evaluation procedure, the focus of the analysis will be the relative importance of of the criteria for funding (applicant's track record vs. quality of the proposal) and, also, of each step of the evaluation procedure (which opinion is more likely to determine the final decision – the external referee's or the board's?). Possible interactions between the gender dimension and the second research question will also be investigated (for instance, by taking into account also the gender of evaluator or the percentage of female referees).
 
@@ -51,7 +54,11 @@ We have three data sets: Applications, External Reviewers and Internal Referees.
 
 We decide to work with only complete applications, i.e. project for which we have information from all the three data sets.
 
-As we have only information from reviewers and referees since 2016, we are considering applications only from that year. 
+To avoid a temporal trend, we are only considering application from 2016. 
+
+In both the external and internal step, we encountered applications which had several reviews per application. For the sake of our analysis, in these scenarios we computed the mean grade for each criteria, so that each application had a "single" score for each criteria assessed on. In doing so we also introduced a new variable, PercentFemale, which calculated the percent of female reviewers out of all reviewers of a single application (ranging from 0 to 1).
+
+All applications with a grade were converted to an ordinal factor.
 
 Specific to each data set, this are the detailed considerations:
 
@@ -62,6 +69,7 @@ We decide to consider only the MainDiscipline2 because for MainDiscipline we hav
 There is one application for which we do not know the gender of the applicant, and therefore we decided to omit that observation from the analysis.
 
 We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables (around 93% of the observations).
+
 
 ```{r Table Professorship and AcademicAge}
 # For Professorship
@@ -78,22 +86,26 @@ Reviewers always have the option to choose not to consider or to give the grade 
 
 One of the questions evaluated in the applications is "Broader impact (forms part of the assessment of scientific relevance, originality and topicality)". For the time frame we are considering, in all the applications this grade was NA. Hence, we omit this variable from our model.
 
+* **ProposalCombined**: We created a new variable to summarize the assessment of the scientific proposal in the external review step. This is a simple mean of the grade given for Suitability and Scientific Relevance. This helped to isolate the effect of the grade given to the scientific proposal, versus the applicant track record, as well as to ensure easier comparison with the internal review step.
+* **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
+
 ### Internal Referees
 
 There were 22 observations (1 for the time frame we are dealing with) for which only demographic information was available, no grades were given. We decide to omit those observations.
 
 Also we decide to not consider the Referee role as a variable in our model, as the majority of the evaluations has only one referee.
 
+* **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
+
+
 ```{r Table RefereeRole}
 table(referee_grades$RefereeRole, useNA = "always")
 ```
 
 
-
-
 # Exploratory Analysis
 
-```{r data to use for analysis}
+```{r data to use for analysis, echo=F, message=F}
 
 
 #### External datasets to use
@@ -117,270 +129,248 @@ in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
 
 ```
 
+In our exploratory analysis, we discovered a few interesting insights, that relates to the findings we will discuss from our analysis. 
 
-## Exploratory Analysis: measure agreement between stages of the process
+### Distribution of Grades between the External & Internal Review Step
 
-First, let's check the histogram of the ApplicantTrack in the internal vs. external process. We see that the external reviewers score candidates higher in Outstanding & Excellent, whereas the internal process ranks more as "Very Good". This is consistent when looking just at women. 
+Since the external & internal step both assess candidates on the same criteria (the strength of the scientific proposal, and the strength of the applicant), on the same ordinal scale (from poor to outstanding), we were interested to see if the distribution of grades are the same. We would expect different distributions for the Overall Grade vs the Ranking, since those have two different measurements, however we were interested to see if for the same absolute ranking, the external and internal reviewers had different perspectives on the application. After combining the Suitability & Scientific Relevance grades given to a candidate in the external review step, we can compare the average grade given for the Scientific Proposal in the two steps, as well as the grade given for the Applicant Track Record in both steps. 
 
-```{r}
+We see that the External Reviewers are more generous with their grades; for the strength of the Scientific Proposal, 48% of proposals are considered "excellent" or "outstanding", versus only 28% in the internal review step. 
 
-
-ex_applicant_track <- as.data.frame(prop.table(table(external_regression_data$ApplicantTrack)))
-ex_applicant_track$Freq <- as.numeric(ex_applicant_track$Freq)
-colnames(ex_applicant_track)[1] <- "ApplicantTrackScore"
-p1 <- ggplot(ex_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
-  geom_histogram(stat="identity") +
-  ggtitle("External Applicant Track Frequency Distribution") + 
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
-
-
-
-in_applicant_track <- as.data.frame(prop.table(table(internal_regression_data$ApplicantTrack)))
-in_applicant_track$Freq <- as.numeric(in_applicant_track$Freq)
-colnames(in_applicant_track)[1] <- "ApplicantTrackScore"
-p2 <- ggplot(in_applicant_track, aes(x=ApplicantTrackScore, y= Freq)) +
-  geom_histogram(stat="identity") +
-  ggtitle("Internal Applicant Track Frequency Distribution") +
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
-
-
-# prop.table(table(internal_regression_data$ApplicantTrack))
-
-
-## Check if gender makes a difference
-# prop.table(table(ex.f$ApplicantTrack))
-# prop.table(table(in.f$ApplicantTrack))
-
-```
-
-Now if we examine if this is also true in the proposal, which it is. In the top three categories, the external reviewer gave 91% of proposals, versus on 60% in the internal review step. In the OverallGrade, external reviewers rated 89% of candidates in the top three, versus only 61% of internal rankings being in the top three categories. For applicant track, external reviews rated 95% of candidates in the top three categories, while internal rated 88% in the top three. It appears there is much more influence of the science proposal on the ranking/grade compared to the applicant track.
-
-```{r, scientific proposal}
-
+```{r scientific grade distribution external vs internal}
 ProposalCombined <- external_regression_data$ProposalCombined
 ex_proposal <- as.data.frame(prop.table(table(ProposalCombined)))
 ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
 colnames(ex_proposal)[1] <- "ProposalScore"
-p1 <- ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
+p8 <- ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
   geom_histogram(stat="identity") +
-  ggtitle("External Proposal Frequency Distribution") +
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
+  ggtitle("External Scientific Proposal Grade Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) 
+  scale_y_continuous(limits = c(0, 0.45))
 
 in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAssessment)))
 in_proposal$Freq <- as.numeric(in_proposal$Freq)
 colnames(in_proposal)[1] <- "ProposalScore"
-p2  <- ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
+p9  <- ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
   geom_histogram(stat="identity") +
-  ggtitle("Internal Proposal Frequency Distribution") +
-  geom_text(aes(label=round(Freq, 2),vjust=1.5))
+  ggtitle("Internal Scientific Proposal Grade Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) +
+  scale_y_continuous(limits = c(0, 0.41))
 
-# jpeg("/home/leslie/Desktop/StatsLab/Graphs/IntProposalDist.jpg")
-# p2
-# dev.off()
-
+grid.arrange(p8, p9, ncol=2)
 ```
 
-
-```{r, echo=FALSE}
-
-
-sum(prop.table(table(external_regression_data$ApplicantTrack))[4:6])
-sum(prop.table(table(internal_regression_data$ApplicantTrack))[4:6])
-
-
-sum(prop.table(table(external_regression_data$ProposalCombined))[4:6])
-sum(prop.table(table(internal_regression_data$ProjectAssessment))[4:6])
-
-sum(prop.table(table(external_regression_data$OverallGrade))[4:6])
-sum(prop.table(table(internal_regression_data$Ranking))[4:6])
-
-
-
-```
-
-We see almost moderate external and internal ratings of an applicant, and of the proposal. We see this using Cohen's kappas, which measures how closely two different raters assessed the candidate, and accounts for random aggrement. TO CHECK: make sure that the percent of grades (outstanding) are similar amongst the internal and external reviewers for each step. In the proposal, 37% of applicants recieved the same score from the internal and external reviewer. But this is again a flawed metric since it doesn't account for random agreement, which is why we use Cohen's Kappa.
-
-### Agreement over the Applicant grade
-
-```{r Cohens-Kappa}
-
-
-calculate_applicant_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
-  # First, combine data of external & internal applicant rating
-  kappa.internal.applicant <- prepare_data_internal_log_regression(final.apps,final.internal)
-  kappa.external.applicant <- prepare_data_external_log_regression(final.apps, final.external)
-  candidate.rating <- merge(x=kappa.external.applicant[,c("ProjectID", "ApplicantTrack")], 
-                            y = kappa.internal.applicant[,c("ProjectID","ApplicantTrack")],
-                            by="ProjectID")
-  colnames(candidate.rating) <- c("ProjectID", "ApplicantTrackExt", "ApplicantTrackInt")
-  
-  # create matrix to show how external and internal raters rate applicant
-  kappa.matrix.applicant <- matrix(0, nrow=6, ncol=6)
-  colnames(kappa.matrix.applicant) <- 1:6
-  rownames(kappa.matrix.applicant) <- 1:6
-
-    # count number of times things agree/don't agree
-  for (i in 1:nrow(candidate.rating)) {
-    kappa.matrix.applicant[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] <- 
-      kappa.matrix.applicant[candidate.rating[i,][[2]],candidate.rating[i,][[3]]] + 1
-  }
-
-  # Define weight matrix
-  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
-         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
-         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-
-
-  applicant.kappa <- cohen.kappa(kappa.matrix.applicant, w=linear.weights)
-}
-
-print("Cohen's Kappa for the ApplicantTrack")
-(applicant_kappa <- calculate_applicant_kappa(final.apps=final.apps, final.external=final.external, final.internal=final.internal))
-
-
-```
-
-### Agreement over the Project grade
-```{r}
-
-calculate_proposal_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
-  # First, combine data of external & internal applicant rating
-  kappa.internal.proposal <- prepare_data_internal_log_regression(final.apps,final.internal)
-  kappa.external.proposal <- prepare_data_external_log_regression(final.apps, final.external)
-  kappa.external.proposal$ProposalCombined <- kappa.external.proposal$ProposalCombined
-  proposal.rating <- merge(x=kappa.external.proposal[,c("ProjectID", "ProposalCombined")], 
-                            y = kappa.internal.proposal[,c("ProjectID","ProjectAssessment")],
-                            by="ProjectID")
-  
-  colnames(proposal.rating) <- c("ProjectID", "ProposalExt", "ProposalInt")
-  
-  # create matrix to show how external and internal raters rate applicant
-  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
-  colnames(kappa.matrix.proposal) <- 1:6
-  rownames(kappa.matrix.proposal) <- 1:6
-
-  # count number of times things agree/don't agree
-  for (i in 1:nrow(proposal.rating)) {
-    kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] <- 
-      kappa.matrix.proposal[proposal.rating[i,][[2]],proposal.rating[i,][[3]]] + 1
-  }
-  print(sum(diag(kappa.matrix.proposal)) / 1643)
-  # Define weight matrix
-  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
-         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
-         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-  
-  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
-         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
-         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-
-
-  proposal.kappa <- cohen.kappa(kappa.matrix.proposal, w=custom.weights) # try again with weights
-  return(proposal.kappa)
-}
-
-print("Cohen's Kappa for the Scientific Proposal")
-(proposal_kappa <- calculate_proposal_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
-
-
-```
-
-
-```{r internal kappa with ranking 1}
-
-library(psych)
-library(biostatUZH)
-
-calculate_ranking_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
-  # First, combine data of external & internal applicant rating
-  kappa.internal.proposal <- prepare_data_internal_log_regression(final.apps,final.internal)
-  
-  proposal.rating <- kappa.internal.proposal[,c("ProjectID", "Ranking", "ApplicantTrack", "ProjectAssessment")]
-  
-
-  # create matrix to show how external and internal raters rate applicant
-  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
-  colnames(kappa.matrix.proposal) <- 1:6
-  rownames(kappa.matrix.proposal) <- 1:6
-
-  # count number of times things agree/don't agree
-  kappa.matrix.project <- table(proposal.rating$Ranking, proposal.rating$ProjectAssessment)
-  kappa.matrix.applicant <- table(proposal.rating$Ranking, proposal.rating$ApplicantTrack)
-  
-  # Define weight matrix
-  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
-         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
-         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-  
-  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
-         0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
-         0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-
-
-  proposal.kappa.project <- cohen.kappa(kappa.matrix.project, w=custom.weights) # try again with weights
-  proposal.kappa.applicant <- cohen.kappa(kappa.matrix.applicant, w=custom.weights) # try again with weights
-  return(list(project=proposal.kappa.project, applicant=proposal.kappa.applicant))
-}
-
-print("Cohen's Kappa for the Scientific Proposal")
-(ranking_kappa <- calculate_ranking_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
-```
-
-### External OverallGrade Cohen's Kappa with ApplicantTrack, ScientificProposal, & Suitability
+Similarly we see the same pattern with Applicant Track Record: 66% of Applicant Track records are considered "excellent" or "outstanding" by the External Reviewers, versus merely 50% by the Internal Reviewers. 
 
 ```{r}
-```{r internal kappa with ranking}
+ApplicantTrack <- external_regression_data$ApplicantTrack
+ex_proposal <- as.data.frame(prop.table(table(ApplicantTrack)))
+ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
+colnames(ex_proposal)[1] <- "ApplicantScore"
+p8 <- ggplot(ex_proposal, aes(x=ApplicantScore, y= Freq)) +
+  geom_histogram(stat="identity") +
+  ggtitle("External Applicant Track Grade Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) 
+  scale_y_continuous(limits = c(0, 0.45))
 
-library(psych)
-library(biostatUZH)
+in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ApplicantTrack)))
+in_proposal$Freq <- as.numeric(in_proposal$Freq)
+colnames(in_proposal)[1] <- "ApplicantScore"
+p9  <- ggplot(in_proposal, aes(x=ApplicantScore, y= Freq)) +
+  geom_histogram(stat="identity") +
+  ggtitle("Internal Applicant Track Grade Distribution") +
+  geom_text(aes(label=round(Freq, 2),vjust=1.5)) +
+  scale_y_continuous(limits = c(0, 0.43))
 
-calculate_overallgrade_kappa <- function(final.apps = final.apps, final.external = final.external, final.internal = final.internal) {
-  # First, combine data of external & internal applicant rating
-  kappa.external.proposal <- prepare_data_external_log_regression(final.apps,final.external)
-  
-  proposal.rating <- kappa.external.proposal[,c("ProjectID", "OverallGrade", "ApplicantTrack", "ScientificRelevance", "Suitability")]
-  
+grid.arrange(p8, p9, ncol=2)
+```
 
-  # create matrix to show how external and internal raters rate applicant
-  kappa.matrix.proposal <- matrix(0, nrow=6, ncol=6)
-  colnames(kappa.matrix.proposal) <- 1:6
-  rownames(kappa.matrix.proposal) <- 1:6
+Since we noticed this discrepancy, we wanted to quantify how differently the grades were to one another. To assess the agreement between the two steps, for the same criteria, we used Cohen's Kappa. Cohen's Kappa measures the proportion of agreement between two raters assessing something on an ordinal scale, accounting for the fact that there will always be some proportion by random chance. An important specification of Cohen's Kappa is the weight given to the measurements. If the external & internal reviewers both assessed the Applicant Track Record as "excellent", that would be considered full agreement. However, we want to allocate partial credit if the rating is a level close to it. We used a linear weight up to distance 2, and after that gave no credit. (In this example, if one rater gave an "outstanding" or "very good", that would be considered a distance of one and be weighted by 0.8. If the second rater assessed the Applicant Track to be "good", which is a distance of two away from excellent, that would be weighted as 0.6). Anything with a distance of 3 or more (in this example, if the second rater gave a rating of "average"), we allocated no weight, as the difference between average and excellent is quite large.
 
-  # count number of times things agree/don't agree
-  kappa.matrix.scientificrelevance <- table(proposal.rating$OverallGrade, proposal.rating$ScientificRelevance)
-  kappa.matrix.suitability <- table(proposal.rating$OverallGrade, proposal.rating$Suitability)
-  kappa.matrix.applicant <- table(proposal.rating$OverallGrade, proposal.rating$ApplicantTrack)
+From this, we found that there was just moderate agreement between the two steps when using the weighted kappa, for both the grades given for the Scientific Proposal & the Applicant Track Record.
 
-  # Define weight matrix
-  linear.weights <- matrix(c(1, 0.8, 0.6, 0.4, 0.2, 0, 0.8, 1, 0.8, 0.6, 0.4, 0.2, 
-         0.6, 0.8, 1, 0.8, 0.6, 0.4, 0.4, 0.6, 0.8, 1, 0.8, 0.6,
-         0.2, 0.4, 0.6, 0.8, 1, 0.8, 0, 0.2, 0.4, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
-  
-  custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
+```{r cohens kappa}
+board_data <- prepare_data_board_log_regression(apps=final.apps, internal = final.internal, external = final.external)
+
+custom.weights <- matrix(c(1, 0.8, 0.6, 0, 0, 0, 0, 1, 0.8, 0.6, 0, 0, 
          0.6, 0.8, 1, 0.8, 0.6, 0, 0, 0.6, 0.8, 1, 0.8, 0.6,
          0, 0, 0.6, 0.8, 1, 0.8, 0, 0, 0, 0.6, 0.8, 1), nrow=6, ncol=6, byrow=T)
 
 
-  proposal.kappa.scientificrelevance <- cohen.kappa(kappa.matrix.scientificrelevance, w=custom.weights) # try again with weights
-  proposal.kappa.suitability <- cohen.kappa(kappa.matrix.suitability, w=custom.weights) # try again with weights
-  proposal.kappa.applicant <- cohen.kappa(kappa.matrix.applicant, w=custom.weights) # try again with weights
-  return(list(scientificrelevance=proposal.kappa.scientificrelevance, suitability=proposal.kappa.suitability,
-              applicant=proposal.kappa.applicant))
+kappa.applicant <- table(board_data$ExternalApplicantTrack, board_data$InternalApplicantTrack)
+
+print("Cohen's Kappa for Applicant Track Record")
+kappa.app <- cohen.kappa(kappa.applicant, w=custom.weights)
+kappa.app
+
+print("Cohen's Kappa for Scientific Proposal")
+kappa.proposal <- table(board_data$ProposalCombined, board_data$ProjectAssessment)
+kappa.pro <- cohen.kappa(kappa.applicant, w=custom.weights)
+kappa.pro
+
+```
+
+
+
+### Impact of Internal Reviewers on Funding
+
+We wanted to understand if this discrepancy between grades had an impact on whether an application is funded. To do this, we visualized the summary grade given to an application, and whether that application is funded or not. As we can see here, there are several applications with an OverallGrade of "excellent" or "outstanding" that end up not approved. It highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix to see the specific graphic. 
+
+Our conclusion for this is that the internal step is very consequential, and the difference in the rating they give translates into differences in whether an application gets funded or not. 
+
+```{r}
+plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot_title="Plot Title", title_size=8) {
+  table_data_frame <- as.data.frame(table(dataset[,variable1], dataset[,"IsApproved"]))
+  colnames(table_data_frame) <- c(variable1, variable2, "Frequency")
+  levels(table_data_frame[,variable1]) <- list("Outstanding"="6", "Excellent"="5", 
+                                               "Very Good"="4", "Good"="3", "Average"="2", "Poor"="1")
+  table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0] <- -table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0]
+  
+  ggplot(table_data_frame, aes_string(x=variable1, y="Frequency", fill=variable2)) + 
+    geom_bar(stat="identity", position="identity") + 
+    scale_y_continuous(breaks=seq(-100,100,by=50),labels=abs(seq(-100,100,by=50))) +
+    coord_flip() +
+    ggtitle(plot_title) + 
+    theme(plot.title = element_text(size = title_size)) 
+    # scale_fill_manual(values = c("firebrick","darkseagreen4"))
+    
 }
 
-print("Cohen's Kappa for the Scientific Proposal")
-(overallgrade_kappa <- calculate_overallgrade_kappa(final.apps=final.apps, final.external=final.external, final.internal = final.internal))
-```
+p4 <- plot_mirror_barplot(dataset=external_regression_data, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; All Data")
+
+p4
+
 
 ```
 
+
+### Distribution of Grades by the Gender of the Reviewer
+
+The third interesting insight we found was when we investigated the impact of the gender of the person reviewing the data. We look at the relative frequencies of grades given by male and female reviewers, to applicants, regardless of gender. Within the external step in particular, we found that female reviewers give proportionally fewer "excellent" and "outstanding" grades, compared to their male counterparts. Within the internal step, we did not notice a particular difference, though we will consider the impact of the gender of the reviewer more rigorously in our analysis. 
+
+```{r}
+
+####################### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "ProjectID")], external_reviews, by="ProjectID")
+
+# just females
+tmp.external.data.f <- tmp.external.data[tmp.external.data[,"Gender"]=="f",]
+
+# just males
+tmp.external.data.m <- tmp.external.data[tmp.external.data[,"Gender"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("External Step: Female vs. Male Reviewers Distribution of OverallGrades") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.40))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "ProjectID")], final.internal, by="ProjectID")
+
+# just females
+tmp.internal.data.f <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="f",]
+
+# just males
+tmp.internal.data.m <- tmp.internal.data[tmp.internal.data[,"Gender.x"]=="m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of OverallGrades allocated by Male & Female Reviewers") +
+  ggtitle("Internal Step:Female vs. Male Reviewers Distribution of Rankings") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.4))
+
+p10
+p11
+
+```
+
+# Gender Bias
 
 ## Analysis
+
+## Results
+
+
+# Relative Importance of the Different Steps
+
+Our second research question was to assess the relative importance of each step in the process, and the relative importance of each criteria within each step.
+
+## Analysis
+
+### Most Important Step
+
+```{r board regression}
+
+board_data1 <- prepare_data_board_log_regression(apps=final.apps, internal = final.internal, external = final.external)
+
+board_data1$Ranking <- ifelse(board_data1$Ranking %in% c(1,2,3), 3, board_data1$Ranking)
+board_data1$Ranking <- factor(board_data1$Ranking, ordered=T)
+board_data1$OverallGrade <- ifelse(board_data1$OverallGrade %in% c(1,2,3), 3, board_data1$OverallGrade)
+board_data1$OverallGrade <- factor(board_data1$OverallGrade, ordered=T)
+
+board_log_regression <- glm(board_data1$IsApproved ~ Gender + Division + Age + IsContinuation + InstType + log(AmountRequested) + 
+                              Ranking + OverallGrade + Gender:Division + PercentFemale + 
+                              PercentFemale:Gender, family="binomial", data = board_data1)
+
+calc_pseudo_r <- function(log_regression_object) {
+  n <- dim(log_regression_object$data)[1]
+  pseudo <- (1 - exp((log_regression_object$dev - log_regression_object$null)/n)) / (1-exp(-log_regression_object$null/n))
+  return(pseudo)
+}
+
+full.board.psuedo.r <- calc_pseudo_r(board_log_regression)
+
+```
+
+
+To approach the question of which step in the process is most important, we first fit a logistic regression with IsApproved as our binary response variable using the glm function in R. We fit a full model with all potential demographic predictors and interactions across the different steps of the process, and the summary grade given to an application in the external (OverallGrade) and internal (Ranking) step. To address the first part of the question (relative importance of each step in the process), we used only the summary grade in each step due to the correlation between the individual grades given within each step and the summary grade given. With the full model (predictors: Gender, Division, Age, IsContinuation, InstType, log(AmountRequested), PercentFemale, Ranking, OverallGrade, Gender:Division, PercentFemale:Gender), we achieved a pseudo-R^2 value of  `r round(full.board.psuedo.r,4)`, indicating that percent of the variation in Y can be explained by the model. 
+
+```{r}
+board_log_regression_small <- glm(board_data1$IsApproved ~ Age + IsContinuation + Ranking + OverallGrade, family="binomial", data = board_data1)
+
+board_r_small <- calc_pseudo_r(board_log_regression_small)
+```
+
+As our goal was to explain the most important factors, we then did backwards variable selection using the AIC. This left us with a model with only 4 predictors: Ranking, OverallGrade, Age, and IsContinuation. The pseudo R^2 measure of this model is `r round(board_r_small,4)`, which indicates that this simplified model nearly explains exactly as much variance in the data as the full model, and so we can be content to use just the small model.
+
+Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we performed permutation tests on the variables. For each of these 4 predictors, we randomly permuted the values of that predictor and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression.
+
+The results from this permutation test were the following: permuting Ranking decreased the pseudo R^2 on average by 0.3028. Since the pseudo R^2 metric is between 0 and 1, this is a big difference. Permuting the OverallGrade decreased the pseudo R^2 on average by 0.0078, showing that the Ranking is much more important than the OverallGrade. Permuting Age and IsContinuation had very small impact, with an average decrease of 0.0021 and 0.0012 respectively. From this regression, and the subsequent permutation test, we can conclude that the Internal Step is by far the most important step in the process.
+
+### Most Important Criteria Within Each Step
+
+The second aspect of this question was to identify what was the most important criteria within each step. To understand this, we again did a permutation test of the different predictors determining the summary grade given in each the external and the internal review step. We used the Ordinal Regressions from earlier: one for the external OverallGrade using the demographic data, Scientific Proposal grade, and Applicant Track grade as predictors, and a second one predicting the Ranking using the demographic data, Scientific Proposal grade, and Applicant Track grade as predictors. 
+
+In each of these two regressions, we again computed the variable importance by permuting the values of the predictors one at a time. Since it is an Ordinal Regression, and there is no R^2 equivalent to measure the goodness of fit, we assessed goodness of fit based on the percent of variation in the AIC, another measure of goodness of fit. For both the external and the internal step, we found permuting the grade given to the Scientific Proposal by far had the biggest impact on the quality of the regression. This led us to conclude that the grade given to the Scientific Proposal far outweighs the grade given to the Applicant Track Record, or any of the demographic predictors, in explaining the overall grade given to an application.
 
 
 ## Results
 
-## Conclusion
+
+# Budget Cuts
+
+## Analysis
+
+## Results
+
+# Conclusion
 
 # Appendix
 
@@ -425,4 +415,39 @@ print("Cohen's Kappa for the Scientific Proposal")
   * **Country**: where the reviewer is located. Not always known
   * **EmailEnding**: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
   * **IDs**: Anonymized identifiers of the application, the reviewer and the review
+  
+## Exploratory Analysis
+
+## OverallGrade vs. IsApproved, by Division
+
+
+```{r}
+p5 <- plot_mirror_barplot(dataset=ex.div1, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Division 1")
+p6 <- plot_mirror_barplot(dataset=ex.div2, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Division 2")
+p7 <- plot_mirror_barplot(dataset=ex.div3, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Division 3")
+
+
+p5
+p6
+p7
+
+
+```
+
+## OverallGrade vs. IsApproved, by Gender
+
+
+```{r}
+
+p8 <- plot_mirror_barplot(dataset=ex.f, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Female Applicants")
+p9 <- plot_mirror_barplot(dataset=ex.m, 
+                          variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Male Applicants")
+
+p8
+p9
+```
 
