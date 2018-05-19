@@ -49,6 +49,7 @@ data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, Amou
   
   
   
+  
   legend("topleft",bty="n", legend=c("Not Approved","Approved"),lty=2,col=c("red","green"))
   
   # ProposalCombined
@@ -207,11 +208,26 @@ library(ggplot2)
 # Obtain all the effects        
   eff.fit <- allEffects(Model)
   
-# Obtain Gender effect as a separate data frame        
+# Obtain Gender effect as a separate data frame 
+  eff<-Effect("Gender",Model)
+  eff<-eff$fit
+  prob<- round((exp(eff)/(1+exp(eff)))*100,2)
+  
   plot(Effect("Gender",Model),
        confint=list(style="band",alpha=0.3,col="grey"),
        lines=list(col=1))
   # Lines are almost horizotal, an indication of no gender effect. Good news!!
+  
+  Males.data<- subset(data, Gender=="m")
+  Females.data<-subset(data,Gender=="f")
+  
+  predicted.prob.male<-predict(Model, newdata=Males.data, type="response")
+  pp<-mean(predicted.prob.male)
+  
+  predicted.prob.female<-predict(Model, newdata=Females.data, type="response")
+  pf<-mean(predicted.prob.female)
+  
+Average.Data<- colMeans(data)
   
 # Plot different things
   #Gender effect on the approval of applications per division  
