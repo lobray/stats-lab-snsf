@@ -2,6 +2,7 @@
 title: "SNSF Report"
 author: "Chiara Gilardi, Leslie O’Bray, Carla Schärer and Tommaso Portaluri"
 date: "13 June 2018"
+graphics: yes
 output:
   pdf_document: default
   html_document:
@@ -9,13 +10,13 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = "    ")
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE,comment = "   ")
 ```
 
 ```{r Load Functions and Data }
 # setwd()
-# load("SNFS Data/snsf_data.RData")
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+load("SNFS Data/snsf_data.RData") # carla's directory, comment out
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -28,6 +29,9 @@ library(ggplot2)
 library(gridExtra)
 library(coin)
 library(ggmosaic)
+library(effects)
+library(xtable)
+library(kableExtra)
 
 ```
 
@@ -68,17 +72,26 @@ We decide to consider only the MainDiscipline2 because for MainDiscipline we hav
 
 There is one application for which we do not know the gender of the applicant, and therefore we decided to omit that observation from the analysis.
 
-We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables (around 93% of the observations).
+
 
 
 ```{r Table Professorship and AcademicAge}
 # For Professorship
-table(applications$ResponsibleApplicantProfessorshipType, useNA = "always")
-sum(is.na(applications$ResponsibleApplicantProfessorshipType))/dim(applications)[1]
 
+tbl<-table(applications$ResponsibleApplicantProfessorshipType, useNA = "always")
+NA.prof<-sum(is.na(applications$ResponsibleApplicantProfessorshipType))/dim(applications)[1]
+
+Prof<-data.frame(tbl)
+colnames(Prof)<-c("Type","Frequency")
 # For AcademicAge
-sum(is.na(applications$ResponsibleApplicantAcademicAgeAtSubmission))/dim(applications)[1]
+NA.AC<-sum(is.na(applications$ResponsibleApplicantAcademicAgeAtSubmission))/dim(applications)[1]
 ```
+We will also not consider the variables "CallTitle", "Professorship", "AcademicAge". The first one, because we consider it has nothing to add to the model. The two last, due to the fact that there are a considerable number of NA's on those variables (around `r round(NA.prof*100)`% of the observations).
+```{r}
+kable(Prof,"latex", booktabs = T) %>%
+  kable_styling(position = "center")
+```
+
 
 ### External Reviewers
 
@@ -95,12 +108,14 @@ There were 22 observations (1 for the time frame we are dealing with) for which 
 
 Also we decide to not consider the Referee role as a variable in our model, as the majority of the evaluations has only one referee.
 
-* **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
-
-
 ```{r Table RefereeRole}
-table(referee_grades$RefereeRole, useNA = "always")
+Ref<-data.frame(table(referee_grades$RefereeRole, useNA = "always"))
+colnames(Ref)<-c("Type","Frequency")
+kable(Ref,"latex", booktabs = T) %>%
+  kable_styling(position = "center")
+
 ```
+* **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
 
 
 # Exploratory Analysis
@@ -303,7 +318,123 @@ p11
 
 # Gender Bias
 
+To see if gender has an influence in any of the steps of the evaluation process, we did several things. For the external and internal steps, we first fit a logistic regression with the function glm in R, where we used IsApproved (a binary variable) as a response and demographic information of the applicant, project information and the given grades as predictors. The aim of this regression is to see if gender has an influence on the final decision from the perspective of each step.
+
+As the final decision is determined by the different grades in the process, in order to see if gender has an influence on any of them, we fitted an Ordinal regression with the function clm of the package "ordinal" on each grade with demographic data and project information as predictors.
+
+Finally, we estimated the relative importance of each of the predictors in the model as a last check, in order to see the importance of gender in all the models.
+
 ## Analysis
+
+### External Step
+*Logistic Regression*
+
+Regression data:  To perform the analysis, we combined in one data frame information about the applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and about the grades given by the external reviewers (ApplicantTrack, ScientificRelevance, Suitability, OverallGrade, ProposalCombined, PercentFemale). 
+    
+As there are almost no application approved that have grades smaller than "good", we decide to aggregate grades "poor", "average" and "good" to avoid perfect separation problems. All grades are considered as ordered factors.
+                         
+```{r}
+# Obtain Regression Data
+external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
+
+# combine grades 1,2,3 and log AmountRequested
+external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
+data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested, ProposalCombined))
+data$ApplicantTrack<-ifelse(data$ApplicantTrack<=3,3,data$ApplicantTrack)
+data$ApplicantTrack<-factor(data$ApplicantTrack, ordered=TRUE)
+data$ScientificRelevance<-ifelse(data$ScientificRelevance<=3,3,data$ScientificRelevance)
+data$ScientificRelevance<-factor(data$ScientificRelevance, ordered=TRUE)
+data$Suitability<-ifelse(data$Suitability<=3,3,data$Suitability)
+data$Suitability<-factor(data$Suitability, ordered=TRUE)
+
+# Fit first model with all variables and interactions
+  Model <- glm(IsApproved ~ .+Gender:Division+
+               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data, 
+             family="binomial")
+  PsR2<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
+```
+We first fitted a full model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2 value of  `r round(PsR2,4)`, indicating that percent of the variation in Y can not be explained very well by the model. 
+
+```{r}
+log.ext.Model <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
+              PercentFemale + Age + Gender + Division + IsContinuation + InstType + 
+              Semester + Division:InstType, data=data, family="binomial")
+
+PsR2.small<-(1-exp((log.ext.Model$dev-log.ext.Model$null)/1623))/(1-exp(-log.ext.Model$null/1623))
+```
+
+
+When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interaction with Gender where significant. The pseudo R^2 for this model is `r round(PsR2.small,4)` , i.e. this smaller model explains basically the same variance of the data than the former one. Non of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. 
+
+```{r}
+# Obtain all the effects        
+  eff.fit <- allEffects(log.ext.Model)
+  
+# Obtain Gender effect as a separate data frame 
+  eff<-Effect("Gender",log.ext.Model)
+  eff<-eff$fit
+  prob<- round((exp(eff)/(1+exp(eff))),3)
+```
+
+As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, our analysis suggest that this difference is not significant.
+```{r fig.align="center", fig.height=3}
+ plot(Effect("Gender",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+```
+
+In order to understand wich of the variables in this model are the more influencial, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 100 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
+```{r Logistic-external-relative-importance, out.width='50%',fig.align="center"}
+# Relative variable importance 
+
+# Reference Score
+calc_pseudo_r <- function(Model,n) {
+  (1-exp((Model$dev-Model$null)/n))/(1-exp(-Model$null/n))
+}
+
+# Set Predictors and output variables
+  outcomeName <- 'IsApproved'
+  predictorNames <- c('ApplicantTrack','ScientificRelevance', 'Suitability',
+                              'PercentFemale','Age','Gender','Division','InstType',
+                              'IsContinuation', 'Semester')
+
+# To see variable importance based on pseudo r^2
+  refR2<-calc_pseudo_r(log.ext.Model,nrow(data))
+  PseudoRShuffle <- NULL
+  shuffletimes <- 100  #number of interactions
+  
+  featuresMeanR2 <- c()
+  for (feature in predictorNames) {
+    featureR2 <- c()
+    shuffledData <- data
+    for (iter in 1:shuffletimes) {
+      shuffledData[,feature] <- sample(shuffledData[,feature],
+                                       length(shuffledData[,feature]))
+      Model.tmp <- update(log.ext.Model,.~.,data=shuffledData)
+      featureR2 <- c(featureR2,calc_pseudo_r(Model.tmp,nrow(shuffledData)))
+    }
+    featuresMeanR2 <- c(featuresMeanR2,round(mean(featureR2-refR2),4))
+  }  
+  
+  PseudoRShuffle <- data.frame('Feature'=predictorNames, 'Importance'=featuresMeanR2)
+  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$Importance, decreasing=TRUE),]
+  kable(PseudoRShuffle,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+  
+  PseudoRShuffle$Importance<-abs(PseudoRShuffle$Importance)
+  mycol=colorRampPalette(c("blue","red"))(length(predictorNames))
+  
+  par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
+  barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
+          horiz = TRUE,col = mycol,cex.names = 0.7,
+          main="Variable Importance for Approval",
+          xlab = "Percent of variation on the Pseudo R",
+          cex.axis = 0.6,
+          cex.main=0.8)
+```
+
+
+
 
 ## Results
 
@@ -450,4 +581,42 @@ p9 <- plot_mirror_barplot(dataset=ex.m,
 p8
 p9
 ```
+
+## External Logistic Regression
+
+* Summary of the final model
+```{r}
+summary(log.ext.Model)
+```
+```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
+
+plot(Effect("ApplicantTrack",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("ScientificRelevance",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("Suitability",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("PercentFemale",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("Age",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("Division",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("IsContinuation",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+plot(Effect("Semester",log.ext.Model),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+
+ 
+```
+
+
 
