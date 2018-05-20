@@ -385,7 +385,7 @@ As we are interested in the effect of gender in each step of the evaluation proc
        lines=list(col=1))
 ```
 
-In order to understand wich of the variables in this model are the more influencial, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
+In order to understand which of the variables in this model are the more influential, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
 ```{r Logistic-external-relative-importance, out.width='50%',fig.align="center"}
 # Relative variable importance 
 
@@ -533,47 +533,19 @@ mycol=colorRampPalette(c("red","blue"))(n)
 
 ```{r}
 
-Model.Overall<-clm(OverallGrade ~ Gender + Division + PercentFemale + IsContinuation + 
-                         InstType + logAmount + Gender:PercentFemale , data=external_regression_data)
-Over.nogender<- clm(OverallGrade ~ Division + PercentFemale + IsContinuation + 
-                         InstType + logAmount + Gender:PercentFemale , data=external_regression_data)
+Model.Overall<-clm(OverallGrade ~ ApplicantTrack + ProposalCombined + PercentFemale + 
+    Gender + IsContinuation + PercentFemale:Gender, data=external_regression_data)
+Over.nogender<- clm(OverallGrade ~ ApplicantTrack + ProposalCombined + PercentFemale + 
+    IsContinuation, data=external_regression_data)
                             
 p.value<-anova(Model.Overall,Over.nogender)[2,6]
 ```
 
-* **Overall Grade**: The final model, after variable selection has OverallGrade as a Response, and predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. We are not considering here applicant grades and project grades, as we want to see the influence of the demographic data and the project information in this grade. Later on we will study which of this grades are more important in determinaiting the Overall Grade. Comparing this model with the one without gender suggest that gender is significant to the model, p.value of `r p.value`. 
-```{r}
-kable(coeff<-round(summary(Model.Overall)$coefficients,4),"latex", booktabs = T)%>%
-    kable_styling(position = "center")
-```
-
-```{r}
-
-gender.prob.Overall<-Effect("Gender", mod=Model.Overall)
-gender.prob.Overall<-gender.prob.Overall$prob
-gender.prob.Overall<-data.frame(Male=gender.prob.Overall[1,],Female=gender.prob.Overall[2,])
-rownames(gender.prob.Overall)<-c("poor","average","good", "very good",
-                        "excellent","outstanding")
-
-gender.prob.Overall<-cbind(round(gender.prob.Overall,5),Difference=round((gender.prob.Overall[,1]-gender.prob.Overall[,2]),5))
-       
-```
-The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero,`r round(mean(abs(gender.prob.Overall[,3])),5)`,  the greater difference are in grades "Outstandig".
-```{r out.width='50%',fig.align="center"}
-kable(gender.prob.Overall,"latex", booktabs = T) %>%
-    kable_styling(position = "center")
-
-ggplot(gender.prob.Overall) +
-          geom_line(aes(1:6, Male, colour = "Male")) +
-          geom_line(aes(1:6, Female, colour = "Female"))+
-          theme(legend.title=element_blank(),legend.position = "bottom")+
-          xlab("")+ylab("Cumulative Probability")+
-          ggtitle("Cumulative Probability for the Overall Grade")
-```  
+* **Overall Grade**: To see which variable is the most important in determining the OverallGrade, we fitted a model, after variable selection, with OverallGrade as a Response, and predictors: ApplicantTrack, ProposalCombined, PercentFemale, Gender, IsContinuation and interaction between Gender and PercentFemale. Comparing this model with the one without gender suggest that gender is not significant to the model, p.value of `r p.value`. 
 ```{r}
 load("External_Overall_variable_importance.Rda")
 ```
-Once more, though gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[6,3],2)`%.
+Again, we estimate the relative importance of the variables base on the percentage change of the AIC when permuting the variable. We did this permutation 1000 times for each variable. Gender is the second least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[4,3],2)`%. 
     
 ```{r out.width='50%', fig.align="center"}
 kable(Ov.Shuffle.Result,"latex", booktabs = T) %>%
@@ -586,12 +558,12 @@ mycol=colorRampPalette(c("red","blue"))(n)
                horiz = TRUE,col = mycol,cex.names = 0.7,
                main="Variable Importance of Applicant Assessment",
                xlab = "Percent of variation on the AIC",
-               xlim = c(0,1), 
                cex.axis = 0.6,
                cex.main=0.8)
 ```
 
 
+<<<<<<< HEAD
 ### Internal Step
 *Logistic Regression*
 
@@ -882,6 +854,13 @@ mycol=colorRampPalette(c("red","blue"))(n)
 # Results
 
 Considering all the analysis that we have done so far, we can say that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is never an important variable in all the regressions we performed and the difference in predicted probability between male and female applicants is not relevant.
+=======
+## External Step
+
+The external step model is not a good explanation of the variation in the approval of applications. We nevertheless look into the influence of gender at this stage, but couldn't find evidence of its effect on the final decision.
+
+When looking at the different grades in this step, we found that gender has a small influence in the Application track assessment, but as this variablo is far less important than the project assessment in the determination of the Overall Grade, the influence vanishes out.
+>>>>>>> 3855e7207b071846ae7b7a9e7d6fb601b4f3f493
 
 # Relative Importance of the Different Steps
 
