@@ -563,7 +563,6 @@ mycol=colorRampPalette(c("red","blue"))(n)
 ```
 
 
-<<<<<<< HEAD
 ### Internal Step
 *Logistic Regression*
 
@@ -853,14 +852,19 @@ mycol=colorRampPalette(c("red","blue"))(n)
 
 # Results
 
-Considering all the analysis that we have done so far, we can say that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is never an important variable in all the regressions we performed and the difference in predicted probability between male and female applicants is not relevant.
-=======
 ## External Step
 
 The external step model is not a good explanation of the variation in the approval of applications. We nevertheless look into the influence of gender at this stage, but couldn't find evidence of its effect on the final decision.
 
-When looking at the different grades in this step, we found that gender has a small influence in the Application track assessment, but as this variablo is far less important than the project assessment in the determination of the Overall Grade, the influence vanishes out.
->>>>>>> 3855e7207b071846ae7b7a9e7d6fb601b4f3f493
+When looking at the different grades in this step, we found that gender has a small influence in the Application track assessment, but as this variable is far less important than the project assessment in the determination of the Overall Grade, the influence vanishes out.
+
+## Internal Step
+
+The internal model is a quite good explanation of the variation in the approval of applications (around 70% of the variability is explained). When looking at each criteria of evaluation, we found that gender seems to have a small influence in the grade given, however when we checked the variable importance it always turned out to be one of the least important variable in the model. 
+
+
+Considering all the analysis that we have done so far, we can say that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is never an important variable in all the regressions we performed and the difference in predicted probability between male and female applicants is not relevant.
+
 
 # Relative Importance of the Different Steps
 
