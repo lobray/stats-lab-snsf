@@ -32,6 +32,8 @@ library(ggmosaic)
 library(effects)
 library(xtable)
 library(kableExtra)
+library(ordinal)
+library(MASS)
 
 ```
 
@@ -339,7 +341,7 @@ external_regression_data<-prepare_data_external_log_regression(final.apps,final.
 
 # combine grades 1,2,3 and log AmountRequested
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
-data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested, ProposalCombined))
+data<- subset(external_regression_data,select = -c(ProjectID, OverallGrade, AmountRequested,ProposalCombined))
 data$ApplicantTrack<-ifelse(data$ApplicantTrack<=3,3,data$ApplicantTrack)
 data$ApplicantTrack<-factor(data$ApplicantTrack, ordered=TRUE)
 data$ScientificRelevance<-ifelse(data$ScientificRelevance<=3,3,data$ScientificRelevance)
@@ -383,46 +385,17 @@ As we are interested in the effect of gender in each step of the evaluation proc
        lines=list(col=1))
 ```
 
-In order to understand wich of the variables in this model are the more influencial, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 100 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
+In order to understand wich of the variables in this model are the more influencial, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
 ```{r Logistic-external-relative-importance, out.width='50%',fig.align="center"}
 # Relative variable importance 
 
-# Reference Score
-calc_pseudo_r <- function(Model,n) {
-  (1-exp((Model$dev-Model$null)/n))/(1-exp(-Model$null/n))
-}
-
-# Set Predictors and output variables
-  outcomeName <- 'IsApproved'
-  predictorNames <- c('ApplicantTrack','ScientificRelevance', 'Suitability',
-                              'PercentFemale','Age','Gender','Division','InstType',
-                              'IsContinuation', 'Semester')
-
-# To see variable importance based on pseudo r^2
-  refR2<-calc_pseudo_r(log.ext.Model,nrow(data))
-  PseudoRShuffle <- NULL
-  shuffletimes <- 100  #number of interactions
-  
-  featuresMeanR2 <- c()
-  for (feature in predictorNames) {
-    featureR2 <- c()
-    shuffledData <- data
-    for (iter in 1:shuffletimes) {
-      shuffledData[,feature] <- sample(shuffledData[,feature],
-                                       length(shuffledData[,feature]))
-      Model.tmp <- update(log.ext.Model,.~.,data=shuffledData)
-      featureR2 <- c(featureR2,calc_pseudo_r(Model.tmp,nrow(shuffledData)))
-    }
-    featuresMeanR2 <- c(featuresMeanR2,round(mean(featureR2-refR2),4))
-  }  
-  
-  PseudoRShuffle <- data.frame('Feature'=predictorNames, 'Importance'=featuresMeanR2)
-  PseudoRShuffle <- PseudoRShuffle[order(PseudoRShuffle$Importance, decreasing=TRUE),]
+  load("Ext.logistic_variable_importance.Rda")
   kable(PseudoRShuffle,"latex", booktabs = T) %>%
     kable_styling(position = "center")
   
+  n<-dim(PseudoRShuffle)[1]
   PseudoRShuffle$Importance<-abs(PseudoRShuffle$Importance)
-  mycol=colorRampPalette(c("blue","red"))(length(predictorNames))
+  mycol=colorRampPalette(c("blue","red"))(n)
   
   par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
   barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
@@ -432,9 +405,191 @@ calc_pseudo_r <- function(Model,n) {
           cex.axis = 0.6,
           cex.main=0.8)
 ```
+\pagebreak
+
+*Ordinal Regression*
+
+To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R. We did this for both, the applicant grade (ApplicantTrack), and the average of the grades given to the project (ProposalCombined). Also, we want to investigate which grades are more influential in the Overall Grade, which is the summary grade given by the external reviewers. In the next few paragraphs we will look into the analysis of this two regressions.
+
+```{r}
+
+Model.Prop<- clm(ProposalCombined ~ Gender + Division + PercentFemale + IsContinuation + 
+                    InstType + logAmount ,data=external_regression_data)
+
+Prop.nogender<- clm(ProposalCombined ~  Division + PercentFemale + IsContinuation + InstType + logAmount ,data=external_regression_data)
+                            
+p.value<-anova(Model.Prop,Prop.nogender)[2,6]
+```
+
+* **Project Assessment**: After fitting a full model with ProposalCombined as a response variable and different interactions, and then selecting from this model the significant variables with the AIC criteria and the help of the drop1() function in R, we end up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). If we fit the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the project, gender is not important. This is to be expected, as the project is being evaluated and not the applicant.
+
+```{r}
+
+gender.prob<-Effect("Gender", mod=Model.Prop)
+gender.prob<-gender.prob$prob
+gender.prob<-data.frame(Male=gender.prob[1,],Female=gender.prob[2,])
+rownames(gender.prob)<-c("poor","average","good", "very good",
+                        "excellent","outstanding")
+
+gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender.prob[,2]),3))
+       
+```
+
+    Nevertheless we kept gender as a predictor to be able to show the effect it has in the grades. For this purpose we estimated the cumulative probability of falling in the different grades for each gende. The result is presented in the next table. Overall the average difference is `r round(mean(abs(gender.prob[,3])),5)`. We see here as well, that there is no evidence of gender influencing the probability of achiving a certain grade.
+```{r out.width='50%',fig.align="center"}
+kable(gender.prob,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+ggplot(gender.prob) +
+          geom_line(aes(1:6, Male, colour = "Male")) +
+          geom_line(aes(1:6, Female, colour = "Female"))+
+          theme(legend.title=element_blank(),legend.position = "bottom")+
+          xlab("")+ylab("Cumulative Probability")+
+          ggtitle("Cumulative Probability for ProposalCombined")
+```
+```{r}
+load("External_Project_variable_Importance.Rda")
+```
+    We did also here our permutation test where we permuted each variable 1000 times, and used the percentage of variation of the AIC as a measure of good fit. Gender is the least important variable, in average it increments the AIC `r round(Shuffle.Result.Prop[6,3],2)`%.
+    
+```{r out.width='50%', fig.align="center"}
+kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.Prop)[1] 
+mycol=colorRampPalette(c("red","green"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Combined Project Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim=c(0,0.7),
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
+
+```{r}
+  Model.App<- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation + 
+                              InstType + logAmount +Gender:PercentFemale,
+                             data=external_regression_data)
+  App.nogender<- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation +
+                               InstType + logAmount +Gender:PercentFemale,
+                             data=external_regression_data)
+                            
+  p.value<-anova(Model.App,App.nogender)[2,6]
+             
+```
+
+* **Applicant Track assessment**: The final model we used has ApplicantTrack as a response variable, and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
+```{r}
+kable(coeff<-round(summary(Model.App)$coefficients,4),"latex", booktabs = T)%>%
+    kable_styling(position = "center")
+```
+
+```{r}
+
+gender.prob.App<-Effect("Gender", mod=Model.App)
+gender.prob.App<-gender.prob.App$prob
+gender.prob.App<-data.frame(Male=gender.prob.App[1,],Female=gender.prob.App[2,])
+rownames(gender.prob.App)<-c("poor","average","good", "very good",
+                        "excellent","outstanding")
+
+gender.prob.App<-cbind(round(gender.prob.App,3),Difference=round((gender.prob.App[,1]-gender.prob.App[,2]),3))
+       
+```
+The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero,`r round(mean(abs(gender.prob.App[,3])),5)`,  but the greater difference are in grades "outstanding", which are the ones that are more likely to be approved. 
+```{r out.width='50%',fig.align="center"}
+kable(gender.prob.App,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+ggplot(gender.prob.App) +
+          geom_line(aes(1:6, Male, colour = "Male")) +
+          geom_line(aes(1:6, Female, colour = "Female"))+
+          theme(legend.title=element_blank(),legend.position = "bottom")+
+          xlab("")+ylab("Cumulative Probability")+
+          ggtitle("Cumulative Probability for Applicant Track")
+```
+```{r}
+load("External_Applicant_variable_importance.Rda")
+```
+Though, gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.App[6,3],2)`%.
+    
+```{r out.width='50%', fig.align="center"}
+kable(Shuffle.Result.App,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.App)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.App[,3], names.arg = Shuffle.Result.App[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Applicant Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,1.2), 
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
 
 
+```{r}
 
+Model.Overall<-clm(OverallGrade ~ Gender + Division + PercentFemale + IsContinuation + 
+                         InstType + logAmount + Gender:PercentFemale , data=external_regression_data)
+Over.nogender<- clm(OverallGrade ~ Division + PercentFemale + IsContinuation + 
+                         InstType + logAmount + Gender:PercentFemale , data=external_regression_data)
+                            
+p.value<-anova(Model.Overall,Over.nogender)[2,6]
+```
+
+* **Overall Grade**: The final model, after variable selection has OverallGrade as a Response, and predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. We are not considering here applicant grades and project grades, as we want to see the influence of the demographic data and the project information in this grade. Later on we will study which of this grades are more important in determinaiting the Overall Grade. Comparing this model with the one without gender suggest that gender is significant to the model, p.value of `r p.value`. 
+```{r}
+kable(coeff<-round(summary(Model.Overall)$coefficients,4),"latex", booktabs = T)%>%
+    kable_styling(position = "center")
+```
+
+```{r}
+
+gender.prob.Overall<-Effect("Gender", mod=Model.Overall)
+gender.prob.Overall<-gender.prob.Overall$prob
+gender.prob.Overall<-data.frame(Male=gender.prob.Overall[1,],Female=gender.prob.Overall[2,])
+rownames(gender.prob.Overall)<-c("poor","average","good", "very good",
+                        "excellent","outstanding")
+
+gender.prob.Overall<-cbind(round(gender.prob.Overall,5),Difference=round((gender.prob.Overall[,1]-gender.prob.Overall[,2]),5))
+       
+```
+The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero,`r round(mean(abs(gender.prob.Overall[,3])),5)`,  the greater difference are in grades "Outstandig".
+```{r out.width='50%',fig.align="center"}
+kable(gender.prob.Overall,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+ggplot(gender.prob.Overall) +
+          geom_line(aes(1:6, Male, colour = "Male")) +
+          geom_line(aes(1:6, Female, colour = "Female"))+
+          theme(legend.title=element_blank(),legend.position = "bottom")+
+          xlab("")+ylab("Cumulative Probability")+
+          ggtitle("Cumulative Probability for the Overall Grade")
+```  
+```{r}
+load("External_Overall_variable_importance.Rda")
+```
+Once more, though gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[6,3],2)`%.
+    
+```{r out.width='50%', fig.align="center"}
+kable(Ov.Shuffle.Result,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Ov.Shuffle.Result)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Ov.Shuffle.Result[,3], names.arg = Ov.Shuffle.Result[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Applicant Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,1), 
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
 
 ## Results
 
@@ -581,6 +736,7 @@ p9 <- plot_mirror_barplot(dataset=ex.m,
 p8
 p9
 ```
+\newpage
 
 ## External Logistic Regression
 
@@ -614,9 +770,48 @@ plot(Effect("IsContinuation",log.ext.Model),
 plot(Effect("Semester",log.ext.Model),
        confint=list(style="band",alpha=0.3,col="grey"),
        lines=list(col=1))
+```
 
- 
+## Ordinal external Regression
+
+### Project grades (ProposalCombined)
+
+Summary of the final model:
+    ```{r}
+summary(Model.Prop)
+```
+
+Odd Ratios and Confidence intervals:
+
+```{r}
+kable(round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2),"latex", booktabs = T) %>%
+  kable_styling(position = "center")
+```
+\pagebreak
+
+### Applicant Track
+Summary of the final model:
+```{r}
+summary(Model.App)
+```
+
+Odd Ratios and Confidence intervals:
+
+```{r}
+kable(round(exp(cbind(OR=Model.App$beta,confint(Model.App))), 2),"latex", booktabs = T) %>%
+  kable_styling(position = "center")
 ```
 
 
+### Overall Grade
+Summary of the final model:
+```{r}
+summary(Model.Overall)
+```
 
+Odd Ratios and Confidence intervals:
+
+```{r}
+kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex", booktabs = T) %>%
+  kable_styling(position = "center")
+```
