@@ -918,6 +918,42 @@ The second aspect of this question was to identify what was the most important c
 
 In each of these two regressions, we again computed the variable importance by permuting the values of the predictors one at a time. Since it is an Ordinal Regression, and there is no R^2 equivalent to measure the goodness of fit, we assessed goodness of fit based on the percent of variation in the AIC, another measure of goodness of fit. For both the external and the internal step, we found permuting the grade given to the Scientific Proposal by far had the biggest impact on the quality of the regression. This led us to conclude that the grade given to the Scientific Proposal far outweighs the grade given to the Applicant Track Record, or any of the demographic predictors, in explaining the overall grade given to an application.
 
+### Internal step
+
+In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the "Ranking" grade as multinomial response and the Applicant Track grade, the Project Assessment grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
+
+```{r}
+  internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+  internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
+  data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
+
+  Model.Ranking<-clm(Ranking ~ Gender + Division + PercentFemale + ProjectAssessment + 
+                     ApplicantTrack + IsContinuation + PreviousRequest + Semester, data=data)
+```
+
+To assess the importance of each variable we performed a permutation test, shuffling the value of one variable at a time and computing the average variation in AIC. As you can see from the plot below, the Project Asessment is by far the most important variable to determine the internal Ranking.
+
+```{r, include=F, message=F, warning=F}
+  load("Internal_criteria_importance.Rda")
+```
+
+```{r out.width='50%', fig.align="center"}
+kable(Shuffle.Result,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result[,3], names.arg = Shuffle.Result[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance to establish Ranking",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,115), 
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
+
+When we permute the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
 
 ## Results
 
