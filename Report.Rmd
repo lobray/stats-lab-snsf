@@ -953,7 +953,7 @@ mycol=colorRampPalette(c("red","blue"))(n)
                cex.main=0.8)
 ```
 
-When we permute the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
+When we permute the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result[7,3],2)`%.
 
 ## Results
 
