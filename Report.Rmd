@@ -648,7 +648,7 @@ To see which variables influence the different grades in the second step of the 
 
 ```{r clm after variable selection}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 
 # Fit the full model
@@ -1039,11 +1039,13 @@ In order to check which variable has the biggest influence on the final grade gi
 
 ```{r}
   internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+ # internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
   internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
   data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
 
-  Model.int.step<-clm(Ranking ~ Gender + Division + PercentFemale + ProjectAssessment + 
-                     ApplicantTrack + IsContinuation + PreviousRequest + Semester, data=data)
+  Model.int.step<-clm(Ranking ~ Gender + Division + PercentFemale +
+                        ProjectAssessment + ApplicantTrack + IsContinuation +
+                        PreviousRequest + Semester, data=data)
 ```
 
 To assess the importance of each variable we performed a permutation test, shuffling the value of one variable at a time and computing the average variation in AIC. As you can see from the plot below, the Project Asessment is by far the most important variable to determine the internal Ranking.
@@ -1068,7 +1070,139 @@ mycol=colorRampPalette(c("red","blue"))(n)
                cex.main=0.8)
 ```
 
-When we permute the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
+When we permutRanking Probability vs Track Recorde the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
+We also computed the predicted probabilities for each of the Ranking grade, varying the Applicant Track grade (plot on the left) and the Project Assessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final ranking, compared to the track record.
+
+```{r effect plot for track}
+X <- Model.int.step$model[,-1]
+
+#Predicted probabilities for track=1
+newdata<-data.frame(Gender="m", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="1",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at1.prob<-fitted$fit
+
+#Predicted probabilities for track=2
+newdata<-data.frame(Gender="m", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="2",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at2.prob<-fitted$fit
+
+#Predicted probabilities for track=3
+newdata<-data.frame(Gender="f", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="3",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at3.prob<-fitted$fit
+
+#Predicted probabilities for track=4
+newdata<-data.frame(Gender="m", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="4",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at4.prob<-fitted$fit
+
+#Predicted probabilities for track=5
+newdata<-data.frame(Gender="m", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="5",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at5.prob<-fitted$fit
+
+#Predicted probabilities for track=6
+newdata<-data.frame(Gender="m", Division="Div 1",  PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0",ProjectAssessment="4",
+          ApplicantTrack="6",Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+at6.prob<-fitted$fit
+
+gender.prob.track<-rbind(at1.prob,at2.prob,at3.prob,at4.prob,at5.prob,at6.prob)
+rownames(gender.prob.track)<-c("Track1","Track2",'Track3','Track4',
+                               'Track5','Track6')
+colnames(gender.prob.track)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+gender.prob.track<-as.data.frame(t(gender.prob.track))
+
+p1<- ggplot(gender.prob.track) +
+  geom_line(aes(1:6, Track1, colour = "Track1")) +
+  geom_line(aes(1:6, Track2, colour = "Track2"))+
+  geom_line(aes(1:6, Track3, colour = "Track3"))+
+  geom_line(aes(1:6, Track4, colour = "Track4"))+
+  geom_line(aes(1:6, Track5, colour = "Track5"))+
+  geom_line(aes(1:6, Track6, colour = "Track6"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Predicted Probability")+
+  ggtitle("Ranking Probability vs Track Record")
+```
+
+
+```{r effect plots for project}
+#Predicted probabilities for Project=1
+newdata<-data.frame(Gender="m", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="1",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p1.prob<-fitted$fit
+
+#Predicted probabilities for Project=2
+newdata<-data.frame(Gender="m", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="2",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p2.prob<-fitted$fit
+
+#Predicted probabilities for Project=3
+newdata<-data.frame(Gender="m", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="3",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p3.prob<-fitted$fit
+
+#Predicted probabilities for Project=4
+newdata<-data.frame(Gender="m", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="4",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p4.prob<-fitted$fit
+
+#Predicted probabilities for Project=5
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="5",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p5.prob<-fitted$fit
+
+#Predicted probabilities for Project=6
+newdata<-data.frame(Gender="m", Division="Div 1", PercentFemale=0,
+          PreviousRequest="1", IsContinuation="0", ProjectAssessment="6",
+          ApplicantTrack="4", Semester="Apr")
+fitted <- predict(Model.int.step,newdata=newdata)
+p6.prob<-fitted$fit
+
+gender.prob.track<-rbind(p1.prob,p2.prob,p3.prob,p4.prob,p5.prob,p6.prob)
+rownames(gender.prob.track)<-c("Project1","Project2",'Project3','Project4',
+                               'Project5','Project6')
+colnames(gender.prob.track)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+gender.prob.track<-t(gender.prob.track)
+gender.prob.track<-as.data.frame(gender.prob.track)
+
+p2 <- ggplot(gender.prob.track) +
+  geom_line(aes(1:6, Project1, colour = "Project1")) +
+  geom_line(aes(1:6, Project2, colour = "Project2"))+
+  geom_line(aes(1:6, Project3, colour = "Project3"))+
+  geom_line(aes(1:6, Project4, colour = "Project4"))+
+  geom_line(aes(1:6, Project5, colour = "Project5"))+
+  geom_line(aes(1:6, Project6, colour = "Project6"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Predicted Probability")+
+  ggtitle("Ranking Probability vs Project grade")
+
+grid.arrange(p1,p2,ncol=2)
+```
+
 
 ## Results
 
@@ -1167,7 +1301,7 @@ p9
 ```{r}
 summary(log.ext.Model)
 ```
-```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression", eval=F}
+```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
 
 plot(Effect("ApplicantTrack",log.ext.Model),
        confint=list(style="band",alpha=0.3,col="grey"),
