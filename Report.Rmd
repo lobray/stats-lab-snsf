@@ -648,7 +648,7 @@ To see which variables influence the different grades in the second step of the 
 
 ```{r clm after variable selection}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 
 # Fit the full model
@@ -704,7 +704,7 @@ p1 <- ggplot(gender.prob.project) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
-  xlab("")+ylab("Cumulative Probability")+
+  xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Project Assessment")+
   theme(plot.title = element_text(size=10))
 
@@ -779,14 +779,14 @@ kable(coeff<-round(summary(Model.track)$coefficients,4),"latex", booktabs = T)%>
 ```{r effects computed manually track, message=F, warning=F}
 X<-Model.track$model[,-1]
 newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
-        Semester="Oct", IsContinuation="0",logAmount=13.02518, InstType="Uni")
+        Semester="Apr", IsContinuation="0",logAmount=13.02518, InstType="Uni")
 fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
 f.cum.prob<-fitted$cprob2
 fitted <- predict(Model.track,newdata=newdata)
 f.prob<-fitted$fit
 
 newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
-        Semester="Oct",IsContinuation="0",logAmount=13.02518,InstType="Uni")
+        Semester="Apr",IsContinuation="0",logAmount=13.02518,InstType="Uni")
 fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
 m.cum.prob<-fitted$cprob2
 fitted <- predict(Model.track,newdata=newdata)
@@ -807,7 +807,7 @@ p1 <- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
-  xlab("")+ylab("Cumulative Probability")+
+  xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Applicant Track")+
   theme(plot.title = element_text(size=10))
 
@@ -910,7 +910,7 @@ p1 <- ggplot(gender.prob.Rank) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
-  xlab("")+ylab("Cumulative Probability")+
+  xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Ranking")+
   theme(plot.title = element_text(size=10))
 
@@ -1167,7 +1167,7 @@ p9
 ```{r}
 summary(log.ext.Model)
 ```
-```{r plot-effects-int, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
+```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression", eval=F}
 
 plot(Effect("ApplicantTrack",log.ext.Model),
        confint=list(style="band",alpha=0.3,col="grey"),
@@ -1249,7 +1249,7 @@ summary(Model.log.int)
 
 * Effect plots
 
-```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
+```{r plot-effects-int, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
 
 plot(Effect("ApplicantTrack",Model.log.int),
        confint=list(style="band",alpha=0.3,col="grey"),
