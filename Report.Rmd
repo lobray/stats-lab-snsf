@@ -1,6 +1,6 @@
 ---
 title: "SNSF Report"
-author: "Chiara Gilardi, Leslie O'Bray, Carla Sch√§rer and Tommaso Portaluri"
+author: "Chiara Gilardi, Leslie O'Bray, Carla Sch‰rer and Tommaso Portaluri"
 date: "13 June 2018"
 graphics: yes
 output:
@@ -648,6 +648,7 @@ To see which variables influence the different grades in the second step of the 
 
 ```{r clm after variable selection}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 
 # Fit the full model
@@ -666,32 +667,69 @@ pvalue <- anova(Model2.project, Model.project)[2,6]*3
 ```
 
 * **Project Assessment**: we fitted the full model with ProjectAssessment as response variable and then selected from the significant variables with the AIC criteria and the help of the drop1() function in R. We end up with a model with the following predictors: Gender, Division, PercentFemale, Age, IsContinuation, InstType and log(AmountRequested). If we fit the same model without Gender and compare it to the one with gender with the anova() function, we get a p.value of `r pvalue`, meaning that Gender doesn't seem to be a significant predictor for the grades given to the project by the internal referees.
+We kept gender as a predictor in our model to be able to show the effect it has on the grades. For this purpose, we estimated the probability of falling in the different grades for each gender and the difference between men and women. The result is presented in the following table. 
 
-```{r, message=F, warning=F}
+```{r effects prob project, message=F, warning=F}
+X<-Model.project$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        Age=48, IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.project,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.project,newdata=newdata)
+f.prob<-fitted$fit
 
-gender.prob<-Effect("Gender", mod=Model.project)
-gender.prob<-gender.prob$prob
-gender.prob<-data.frame(Male=gender.prob[1,],Female=gender.prob[2,])
-rownames(gender.prob)<-c("poor","average","good", "very good",
-                        "excellent","outstanding")
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        Age=48,IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.project,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.project,newdata=newdata)
+m.prob<-fitted$fit
 
-gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender.prob[,2]),3))
-       
+gender.prob.project<-rbind(m.prob, f.prob)
+rownames(gender.prob.project)<-c("Male","Female")
+colnames(gender.prob.project)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.project<-t(gender.prob.project)
+gender.prob.project<-cbind(round(gender.prob.project,3),
+Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
+gender.prob.project<-as.data.frame(gender.prob.project)
+gender.prob.project
 ```
 
-We kept gender as a predictor in our model to be able to show the effect it has on the grades. For this purpose, we estimated the cumulative probability of falling in the different grades for each gender. The result is presented in the next table. Overall the average difference is really small: `r round(mean(abs(gender.prob[,3])),5)`. We see here as well, that there is no evidence of gender influencing the probability of achiving a certain grade. From the plot below we can see the cumulative probability curves for male and female: they follow the same trend and the difference between the two is very small, even if it seems to increase with grades.
-    
-```{r out.width='50%',fig.align="center"}
-kable(gender.prob,"latex", booktabs = T) %>%
-    kable_styling(position = "center")
+Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achiving a certain grade. We also represented in the plots below the probabilty and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
 
-ggplot(gender.prob) +
-          geom_line(aes(1:6, Male, colour = "Male")) +
-          geom_line(aes(1:6, Female, colour = "Female"))+
-          theme(legend.title=element_blank(),legend.position = "bottom")+
-          xlab("")+ylab("Cumulative Probability")+
-          ggtitle("Cumulative Probability for ProjectAssessment")
+```{r effects plot project, message=F, warning=F}
+p1 <- ggplot(gender.prob.project) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Predicted Probability for Project Assessment")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.project<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.project)<-c("Male","Female")
+colnames(gender.cum.prob.project)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.project<-t(gender.cum.prob.project)
+gender.cum.prob.project<-cbind(round(gender.cum.prob.project,3),
+ Difference=round((gender.cum.prob.project[,1]-gender.cum.prob.project[,2]),3))
+gender.cum.prob.project<-as.data.frame(gender.cum.prob.project)
+
+p2 <- ggplot(gender.cum.prob.project) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Project Assessment")+
+  theme(plot.title = element_text(size=10))
+
+grid.arrange(p1, p2, ncol=2)
 ```
+
 
 ```{r, include=F}
 load("Internal_Project_variable_Importance.Rda")
@@ -736,31 +774,70 @@ kable(coeff<-round(summary(Model.track)$coefficients,4),"latex", booktabs = T)%>
     kable_styling(position = "center")
 ```
 
-    We computed the difference in probability of getting a specific grade for both male and female. 
+    We computed the difference in probability of getting a specific grade for both male and female.
 
-```{r, echo=F, message=F, warning=F}
-gender.prob.track<-Effect("Gender", mod=Model.track)
-gender.prob.track<-gender.prob.track$prob
-gender.prob.track<-data.frame(Male=gender.prob.track[1,],Female=gender.prob.track[2,])
-rownames(gender.prob.track)<-c("poor","average","good", "very good",
-                        "excellent","outstanding")
+```{r effects computed manually track, message=F, warning=F}
+X<-Model.track$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        Semester="Oct", IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.track,newdata=newdata)
+f.prob<-fitted$fit
 
-gender.prob.track<-cbind(round(gender.prob.track,3),Difference=round((gender.prob.track[,1]-gender.prob.track[,2]),3))
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        Semester="Oct",IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.track,newdata=newdata)
+m.prob<-fitted$fit
+
+gender.prob.track<-rbind(m.prob, f.prob)
+rownames(gender.prob.track)<-c("Male","Female")
+colnames(gender.prob.track)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.track<-t(gender.prob.track)
+gender.prob.track<-cbind(round(gender.prob.track,3),
+Difference=round((gender.prob.track[,1]-gender.prob.track[,2]),3))
+gender.prob.track<-as.data.frame(gender.prob.track)
+gender.prob.track
+
+p1 <- ggplot(gender.prob.track) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Predicted Probability for Applicant Track")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.track<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.track)<-c("Male","Female")
+colnames(gender.cum.prob.track)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.track<-t(gender.cum.prob.track)
+gender.cum.prob.track<-cbind(round(gender.cum.prob.track,3),
+ Difference=round((gender.cum.prob.track[,1]-gender.cum.prob.track[,2]),3))
+gender.cum.prob.track<-as.data.frame(gender.cum.prob.track)
+
+p2 <- ggplot(gender.cum.prob.track) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Applicant Track")+
+  theme(plot.title = element_text(size=10))
 ```
 
-    The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.App[,3])),5)`, very close to zero. From the plot below it is not possible to see a difference between male and female, the lines overlap perfectly. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish whether there is gender bias.
+In the table above, we see the probabilty of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.track[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish whether there is gender bias.
 
-```{r out.width='50%',fig.align="center"}
-kable(gender.prob.track,"latex", booktabs = T) %>%
-    kable_styling(position = "center")
-
-ggplot(gender.prob.track) +
-          geom_line(aes(1:6, Male, colour = "Male")) +
-          geom_line(aes(1:6, Female, colour = "Female"))+
-          theme(legend.title=element_blank(),legend.position = "bottom")+
-          xlab("")+ylab("Cumulative Probability")+
-          ggtitle("Cumulative Probability for Applicant Track")
+```{r}
+grid.arrange(p1,p2,ncol=2)
 ```
+
+
 ```{r, include=F}
 load("Internal_Track_variable_importance.Rda")
 ```
@@ -802,31 +879,68 @@ kable(coeff<-round(summary(Model.Rank)$coefficients,4),"latex", booktabs = T)%>%
     kable_styling(position = "center")
 ```
 
-```{r, include=F, message=F, warning=F}
+```{r effects computed manually ranking, message=F, warning=F}
+X<-Model.Rank$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        PreviousRequest="1", IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.Rank,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.Rank,newdata=newdata)
+f.prob<-fitted$fit
 
-gender.prob.Rank<-Effect("Gender", mod=Model.Rank)
-gender.prob.Rank<-gender.prob.Rank$prob
-gender.prob.Rank<-data.frame(Male=gender.prob.Rank[1,],Female=gender.prob.Rank[2,])
-rownames(gender.prob.Rank)<-c("poor","average","good", "very good",
-                        "excellent","outstanding")
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        PreviousRequest="1",IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.Rank,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.Rank,newdata=newdata)
+m.prob<-fitted$fit
 
-gender.prob.Rank<-cbind(round(gender.prob.Rank,5),Difference=round((gender.prob.Rank[,1]-gender.prob.Rank[,2]),5))
-       
+gender.prob.Rank<-rbind(m.prob, f.prob)
+rownames(gender.prob.Rank)<-c("Male","Female")
+colnames(gender.prob.Rank)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.Rank<-t(gender.prob.Rank)
+gender.prob.Rank<-cbind(round(gender.prob.Rank,3),
+Difference=round((gender.prob.Rank[,1]-gender.prob.Rank[,2]),3))
+gender.prob.Rank<-as.data.frame(gender.prob.Rank)
+gender.prob.Rank
+
+p1 <- ggplot(gender.prob.Rank) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Predicted Probability for Ranking")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.Rank<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.Rank)<-c("Male","Female")
+colnames(gender.cum.prob.Rank)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.Rank<-t(gender.cum.prob.Rank)
+gender.cum.prob.Rank<-cbind(round(gender.cum.prob.Rank,3),
+ Difference=round((gender.cum.prob.Rank[,1]-gender.cum.prob.Rank[,2]),3))
+gender.cum.prob.Rank<-as.data.frame(gender.cum.prob.Rank)
+
+p2 <- ggplot(gender.cum.prob.Rank) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Ranking")+
+  theme(plot.title = element_text(size=10))
 ```
 
-    The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well very close to zero (`r round(mean(abs(gender.prob.Rank[,3])),5)`). Notice that the difference is increasing with the grades and so the greatest difference on average is for grade "Outstanding" (`r gender.prob.Rank[6,3]`). From the plot below, we see that the trend is again the same for both genders and that the difference is not relevant.
+  The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Rank[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" grade rather than a "very good", compared to male applicants. From the cumulative probability plot below, we see that the trend is the same for both genders and that the difference is not relevant.
     
-```{r out.width='50%',fig.align="center"}
-kable(gender.prob.Rank,"latex", booktabs = T) %>%
-    kable_styling(position = "center")
+```{r}
+grid.arrange(p1,p2,ncol=2)
+```
 
-ggplot(gender.prob.Rank) +
-          geom_line(aes(1:6, Male, colour = "Male")) +
-          geom_line(aes(1:6, Female, colour = "Female"))+
-          theme(legend.title=element_blank(),legend.position = "bottom")+
-          xlab("")+ylab("Cumulative Probability")+
-          ggtitle("Cumulative Probability for the Ranking")
-```  
+    
 
 ```{r, include=F}
 load("Internal_Ranking_variable_importance.Rda")
