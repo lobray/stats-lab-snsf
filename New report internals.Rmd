@@ -1,0 +1,408 @@
+---
+title: "New version"
+author: "Chiara Gilardi"
+date: "23 maggio 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load Functions and Data, message=F, warning=F, echo=F }
+setwd("~/StatLab")
+load("snsf_data.RData") # Chiara's directory, comment out
+#load("SNFS Data/snsf_data.RData") # carla's directory, comment out
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out
+source("Cleaning Functions.R")
+source("Data for Regression.R")
+
+# install.packages("biostatUZH", repos="http://R-Forge.R-project.org")
+
+library(biostatUZH)
+library(psy)
+library(psych)
+library(ggplot2)
+library(gridExtra)
+library(coin)
+library(ggmosaic)
+library(effects)
+library(xtable)
+library(kableExtra)
+library(ordinal)
+library(MASS)
+
+```
+
+### Internal step
+
+## Logistic Regression for approval
+
+```{r get data for logistic internal}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack, ordered = F)
+internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment, ordered = F)
+internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
+data<- subset(internal_regression_data,select = -c(ProjectID, Ranking, AmountRequested,
+                                                   NumberExternalReviewers, NumberInternalReviewers))
+
+## COMBINE GRADES otherwise it doesn't work
+data$ApplicantTrack <- ifelse(as.numeric(data$ApplicantTrack) < 4,3,data$ApplicantTrack)
+data$ApplicantTrack <- factor(data$ApplicantTrack)
+data$ProjectAssessment <- ifelse(as.numeric(data$ProjectAssessment) <4,3,data$ProjectAssessment)
+data$ProjectAssessment <- factor(data$ProjectAssessment)
+```
+
+```{r logistic internal regression}
+Model.log.int <- glm(IsApproved ~. +Gender:Division+ Gender:PercentFemale+ Gender:ApplicantTrack+ 
+                         InstType:Division, data=data, family="binomial")
+summary(Model.log.int)
+coef.log <- Model.log.int$coefficients
+CI <- confint(Model.log.int)
+
+PsR2.small<-(1-exp((Model.log.int$dev-Model.log.int$null)/1623))/(1-exp(-Model.log.int$null/1623)) #0.69135
+```
+
+```{r confidence intervals logistic internal}
+plot(0,xlim=c(-6,9), yaxt="n", pch="", ylim=c(0,32), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:31, rownames(CI), las = 1, cex.axis=0.5)
+for (i in 1:length(coef.log)) {
+  interval <- c(CI[i,1], CI[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+The confidence intervals which includes zero are those for the variables: IsContinuation, ApplicantTrack (all levels from 4 to 6) and ProjectAssessment (all levels from 4 to 6). 
+
+```{r coefficients logistic internal}
+sign.coef <- coef.log[which(CI[,1]>0 & CI[,2]>0)]
+sign.OR <- exp(sign.coef)
+sign.OR
+```
+
+The interpretation of the coefficients is the following:
+* If the project is a continuation, it is 1.91 times more likely to be approved than if it's not
+* If the Applicant Track grade is 4, the proposal is 2.6 times more likely to be approved than a 3 or lower
+* If the Applicant Track grade is 5, the proposal is 3.5 times more likely to be approved than a 3 or lower
+* If the Applicant Track grade is 6, the proposal is 3.5 times more likely to be approved than a 3 or lower
+* If the Project Assessment grade is 4, the proposal is 27.9 times more likely to be approved than a 3 or lower
+* If the Project Assessment grade is 5, the proposal is 276 times more likely to be approved than a 3 or lower
+* If the Project Assessment grade is 6, the proposal is 323 times more likely to be approved than a 3 or lower
+
+```{r gender CI logistic internal, echo=F, eval=F}
+CI[which(rownames(CI)=="Genderf"),]
+exp(coef.log[2])
+```
+
+Notice that the coefficient for gender is not significant, since its confidence interval (-0.8597,1.6701) contains zero. The point estimate for gender is `r coef.log[2]` and this means that a woman is `r exp(coef.log[2])` times more likely to be approved than a man.
+
+```{r effect plots logistic internal, fig.align="center", fig.height=3}
+# Obtain all the effects        
+  eff.fit <- allEffects(Model.log.int)
+  
+# Obtain Gender effect as a separate data frame 
+  eff<-Effect("Gender", Model.log.int)
+  eff<-eff$fit
+  prob<- round((exp(eff)/(1+exp(eff))),3)
+  
+  plot(Effect("Gender",Model.log.int),
+       confint=list(style="band",alpha=0.3,col="grey"),
+       lines=list(col=1))
+```
+
+
+## Ordinal regression for Project Assessment
+
+```{r clm project assessment}
+internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
+
+# Final Model after variable selection
+Model.project <- clm(ProjectAssessment ~ Gender + Division + PercentFemale + Age + 
+               IsContinuation + InstType + logAmount, data=internal_regression_data)
+
+Model2.project <- clm(ProjectAssessment ~ Division + PercentFemale + Age + 
+                IsContinuation + InstType + logAmount, data=internal_regression_data)
+
+# Compare the models using Bonferroni correction
+pvalue <- anova(Model2.project, Model.project)[2,6]
+```
+
+* **Project Assessment**: we fitted the full model with ProjectAssessment as response variable and then selected from the significant variables with the AIC criteria and the help of the drop1() function in R. We end up with a model with the following predictors: Gender, Division, PercentFemale, Age, IsContinuation, InstType and log(AmountRequested). If we fit the same model without Gender and compare it to the one with gender with the anova() function, we get a p.value of `r pvalue`, meaning that Gender doesn't seem to be a significant predictor for the grades given to the project by the internal referees.
+We kept gender as a predictor in our model to be able to show the effect it has on the grades. For this purpose, we estimated the probability of falling in the different grades for each gender and the difference between men and women. The result is presented in the following table. 
+
+```{r effects prob project, message=F, warning=F}
+X<-Model.project$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        Age=48, IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.project,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.project,newdata=newdata)
+f.prob<-fitted$fit
+
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        Age=48,IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.project,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.project,newdata=newdata)
+m.prob<-fitted$fit
+
+gender.prob.project<-rbind(m.prob, f.prob)
+rownames(gender.prob.project)<-c("Male","Female")
+colnames(gender.prob.project)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.project<-t(gender.prob.project)
+gender.prob.project<-cbind(round(gender.prob.project,3),
+Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
+gender.prob.project<-as.data.frame(gender.prob.project)
+gender.prob.project
+```
+
+Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achiving a certain grade. We also represented in the plots below the probabilty and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
+
+```{r effects plot project, message=F, warning=F}
+p1 <- ggplot(gender.prob.project) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Predicted Probability")+
+  ggtitle("Predicted Probability for Project Assessment")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.project<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.project)<-c("Male","Female")
+colnames(gender.cum.prob.project)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.project<-t(gender.cum.prob.project)
+gender.cum.prob.project<-cbind(round(gender.cum.prob.project,3),
+ Difference=round((gender.cum.prob.project[,1]-gender.cum.prob.project[,2]),3))
+gender.cum.prob.project<-as.data.frame(gender.cum.prob.project)
+
+p2 <- ggplot(gender.cum.prob.project) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Project Assessment")+
+  theme(plot.title = element_text(size=10))
+
+grid.arrange(p1, p2, ncol=2)
+```
+
+```{r CI clm project}
+CI.project <- confint(Model.project)
+plot(0,0,xlim=c(-1.5,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.project)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.project), rownames(CI.project), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.project)) {
+  interval <- c(CI.project[i,1], CI.project[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+From the plot above we can see that gender seems to be significant, even if the confidence interval upper bound is really close zero. The other significant predictors are Division, the percentage of female reviewers, if the project is a continuation, the Institution type and the log(AmountRequested).
+
+## Ordinal regression for Applicant Track
+
+```{r clm applicant track}
+Model.track <- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation + 
+               InstType + Semester + logAmount + Gender:Division + Division:PercentFemale, 
+             data=internal_regression_data)
+
+Model2.track <- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation + 
+               InstType + Semester + logAmount + Division:PercentFemale, data=internal_regression_data)
+
+pvalue <- anova(Model2.track, Model.track)[2,6]
+pvalue <- round(pvalue,4)
+             
+```
+
+* **Applicant Track assessment**: the model we used has ApplicantTrack as a response variable and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested), Semester, the interaction between Gender and Divion and the interaction between Division and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r pvalue`, meaning that for the grades given to the main applicant track record, gender needs to be considered in the model. Before deciding whether there is enough evidence of gender bias, we did some more analysis.
+
+We computed the difference in probability of getting a specific grade for both male and female.
+
+```{r effects track, message=F, warning=F}
+X<-Model.track$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        Semester="Apr", IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.track,newdata=newdata)
+f.prob<-fitted$fit
+
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        Semester="Apr",IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.track,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.track,newdata=newdata)
+m.prob<-fitted$fit
+
+gender.prob.track<-rbind(m.prob, f.prob)
+rownames(gender.prob.track)<-c("Male","Female")
+colnames(gender.prob.track)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.track<-t(gender.prob.track)
+gender.prob.track<-cbind(round(gender.prob.track,3),
+Difference=round((gender.prob.track[,1]-gender.prob.track[,2]),3))
+gender.prob.track<-as.data.frame(gender.prob.track)
+gender.prob.track
+
+p1 <- ggplot(gender.prob.track) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Predicted Probability")+
+  ggtitle("Predicted Probability for Applicant Track")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.track<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.track)<-c("Male","Female")
+colnames(gender.cum.prob.track)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.track<-t(gender.cum.prob.track)
+gender.cum.prob.track<-cbind(round(gender.cum.prob.track,3),
+ Difference=round((gender.cum.prob.track[,1]-gender.cum.prob.track[,2]),3))
+gender.cum.prob.track<-as.data.frame(gender.cum.prob.track)
+
+p2 <- ggplot(gender.cum.prob.track) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Applicant Track")+
+  theme(plot.title = element_text(size=10))
+```
+
+In the table above, we see the probabilty of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.track[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish whether there is gender bias.
+
+```{r call effect plots track, echo=F}
+grid.arrange(p1,p2,ncol=2)
+```
+
+```{r CI clm track}
+CI.track <- confint(Model.track)
+plot(0,0,xlim=c(-2,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.track)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.track), rownames(CI.track), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.track)) {
+  interval <- c(CI.track[i,1], CI.track[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+Notice that the confidence interval referring to gender includes zero and so the corresponding coefficient is not significant. In this case the significant variables to determine the Track record score are: the division, the percentage of female referees, the Institution type, the log(AmountRequested) and the interaction between the division and the percentage of female referees.
+
+## Ordinal regression for Ranking
+
+```{r clm ranking, warning=F, message=F}
+
+Model.Rank <- clm(Ranking ~  Gender + PercentFemale + Division + IsContinuation + 
+               PreviousRequest + InstType + logAmount, data=internal_regression_data)
+
+Model2.Rank <- clm(Ranking ~  PercentFemale + Division + IsContinuation + 
+                PreviousRequest + InstType + logAmount, data=internal_regression_data)
+
+pvalue <- anova(Model2.Rank, Model.Rank)[2,6]*3
+                          
+```
+
+* **Ranking**: This last model has Ranking as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is significant to the model: p.value of `r pvalue`. 
+
+```{r effects prob ranking, message=F, warning=F}
+X<-Model.Rank$model[,-1]
+newdata<-data.frame(Gender="f", Division="Div 1", PercentFemale=0,
+        PreviousRequest="1", IsContinuation="0",logAmount=13.02518, InstType="Uni")
+fitted <- predict(Model.Rank,newdata=newdata, type = "cum.prob")
+f.cum.prob<-fitted$cprob2
+fitted <- predict(Model.Rank,newdata=newdata)
+f.prob<-fitted$fit
+
+newdata<-data.frame(Gender="m",Division="Div 1", PercentFemale=0, 
+        PreviousRequest="1",IsContinuation="0",logAmount=13.02518,InstType="Uni")
+fitted <- predict(Model.Rank,newdata=newdata, type = "cum.prob")
+m.cum.prob<-fitted$cprob2
+fitted <- predict(Model.Rank,newdata=newdata)
+m.prob<-fitted$fit
+
+gender.prob.Rank<-rbind(m.prob, f.prob)
+rownames(gender.prob.Rank)<-c("Male","Female")
+colnames(gender.prob.Rank)<-c("poor","average","good", "very good",
+                               "excellent","outstanding")
+
+gender.prob.Rank<-t(gender.prob.Rank)
+gender.prob.Rank<-cbind(round(gender.prob.Rank,3),
+Difference=round((gender.prob.Rank[,1]-gender.prob.Rank[,2]),3))
+gender.prob.Rank<-as.data.frame(gender.prob.Rank)
+gender.prob.Rank
+
+p1 <- ggplot(gender.prob.Rank) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Predicted Probability")+
+  ggtitle("Predicted Probability for Ranking")+
+  theme(plot.title = element_text(size=10))
+
+# Cumulative probability
+gender.cum.prob.Rank<-rbind(m.cum.prob, f.cum.prob)
+rownames(gender.cum.prob.Rank)<-c("Male","Female")
+colnames(gender.cum.prob.Rank)<-c("poor","average","good", "very good",
+                                   "excellent","outstanding")
+
+gender.cum.prob.Rank<-t(gender.cum.prob.Rank)
+gender.cum.prob.Rank<-cbind(round(gender.cum.prob.Rank,3),
+ Difference=round((gender.cum.prob.Rank[,1]-gender.cum.prob.Rank[,2]),3))
+gender.cum.prob.Rank<-as.data.frame(gender.cum.prob.Rank)
+
+p2 <- ggplot(gender.cum.prob.Rank) +
+  geom_line(aes(1:6, Male, colour = "Male")) +
+  geom_line(aes(1:6, Female, colour = "Female"))+
+  theme(legend.title=element_blank(),legend.position = "bottom")+
+  xlab("")+ylab("Cumulative Probability")+
+  ggtitle("Cumulative Probability for Ranking")+
+  theme(plot.title = element_text(size=10))
+```
+
+The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Rank[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" grade rather than a "very good", compared to male applicants. From the cumulative probability plot below, we see that the trend is the same for both genders and that the difference is not relevant.
+    
+```{r, echo=F}
+grid.arrange(p1,p2,ncol=2)
+```
+
+```{r CI clm ranking}
+CI.Rank <- confint(Model.Rank)
+plot(0,0,xlim=c(-2,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.Rank)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.Rank), rownames(CI.Rank), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.Rank)) {
+  interval <- c(CI.Rank[i,1], CI.Rank[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+```{r gender clm rank coef, echo=F}
+# summary(Model.Rank)
+# Genderf -0.31
+# exp(-0.31) 0.7334
+```
+
+Here again gender seems to be significant, since its confidence interval doesn't include zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, IsContinuation, the institution type and the log(AmountRequested).
