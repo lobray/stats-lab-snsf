@@ -4,9 +4,9 @@ author: "Chiara Gilardi, Leslie O'Bray, Carla Sch?rer and Tommaso Portaluri"
 date: "13 June 2018"
 graphics: yes
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -648,7 +648,7 @@ To see which variables influence the different grades in the second step of the 
 
 ```{r clm after variable selection}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 
 # Fit the full model
@@ -839,7 +839,8 @@ grid.arrange(p1,p2,ncol=2)
 
 
 ```{r, include=F}
-load("Internal_Track_variable_importance.Rda")
+load("Internal_Track_variable_Importance.Rda")
+
 ```
 
   So we proceeded with our analysis estimating the relative importance of the variables included in the model. We used a permutation test, as before, and it turned out that gender is not at all an important variable in the model, in fact when we shuffle the values referring to the variable Gender the AIC doesn't increase.
@@ -943,7 +944,9 @@ grid.arrange(p1,p2,ncol=2)
     
 
 ```{r, include=F}
-load("Internal_Ranking_variable_importance.Rda")
+load("Internal_Ranking_variable_Importance.Rda")
+
+
 ```
 
 Once more, though gender is significant to the model, when estimating its relative importance in comparison with the other variables, it turns out that gender is one of the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.R[5,3],2)`%.
@@ -1023,7 +1026,7 @@ board_r_small <- calc_pseudo_r(board_log_regression_small)
 
 As our goal was to explain the most important factors, we then did backwards variable selection using the AIC. This left us with a model with only 4 predictors: Ranking, OverallGrade, Age, and IsContinuation. The pseudo R^2 measure of this model is `r round(board_r_small,4)`, which indicates that this simplified model nearly explains exactly as much variance in the data as the full model, and so we can be content to use just the small model.
 
-Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we looked looked at the confidence intervals of the coefficients to see which had the largest impact. To do this, we needed to first standardize our continuous variables (Age). When we plot the confidence intervals of our coefficients, we can see that the Ranking has by far the largest coefficinet, and thus the biggest impact on the final funding decision.   
+Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we looked looked at the confidence intervals of the coefficients to see which had the largest impact. To do this, we needed to first standardize our continuous variables (Age). When we plot the confidence intervals of our coefficients, we can see that the Ranking has by far the largest coefficinet, and thus the biggest impact on the final funding decision.     
 
 ```{r variable importance board regression}
 
@@ -1067,6 +1070,8 @@ In order to check which variable has the biggest influence on the final grade gi
 ```{r}
   internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
  # internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+  internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+
   internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
   data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
 
@@ -1326,34 +1331,34 @@ p9
 
 * Summary of the final model
 ```{r}
-summary(log.ext.Model)
-```
-```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
-
-plot(Effect("ApplicantTrack",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("ScientificRelevance",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Suitability",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("PercentFemale",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Age",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Division",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("IsContinuation",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Semester",log.ext.Model),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
+# summary(log.ext.Model)
+# ```
+# ```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
+# 
+# plot(Effect("ApplicantTrack",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# # plot(Effect("ScientificRelevance",log.ext.Model), ### COMMENTED BC ERROR
+# #        confint=list(style="band",alpha=0.3,col="grey"),
+# #        lines=list(col=1))
+# plot(Effect("Suitability",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# plot(Effect("PercentFemale",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# plot(Effect("Age",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# plot(Effect("Division",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# plot(Effect("IsContinuation",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
+# plot(Effect("Semester",log.ext.Model),
+#        confint=list(style="band",alpha=0.3,col="grey"),
+#        lines=list(col=1))
 ```
 
 ## Ordinal external Regression
