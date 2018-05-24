@@ -2,9 +2,7 @@
 title: "New version"
 author: "Chiara Gilardi"
 date: "23 maggio 2018"
-output:
-  html_document: default
-  pdf_document: default
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -120,7 +118,7 @@ Notice that the coefficient for gender is not significant, since its confidence 
 
 ```{r clm project assessment}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 
 # Final Model after variable selection

@@ -1023,9 +1023,36 @@ board_r_small <- calc_pseudo_r(board_log_regression_small)
 
 As our goal was to explain the most important factors, we then did backwards variable selection using the AIC. This left us with a model with only 4 predictors: Ranking, OverallGrade, Age, and IsContinuation. The pseudo R^2 measure of this model is `r round(board_r_small,4)`, which indicates that this simplified model nearly explains exactly as much variance in the data as the full model, and so we can be content to use just the small model.
 
-Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we performed permutation tests on the variables. For each of these 4 predictors, we randomly permuted the values of that predictor and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression.
+Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we looked looked at the confidence intervals of the coefficients to see which had the largest impact. To do this, we needed to first standardize our continuous variables (Age). When we plot the confidence intervals of our coefficients, we can see that the Ranking has by far the largest coefficinet, and thus the biggest impact on the final funding decision.   
 
-The results from this permutation test were the following: permuting Ranking decreased the pseudo R^2 on average by 0.3028. Since the pseudo R^2 metric is between 0 and 1, this is a big difference. Permuting the OverallGrade decreased the pseudo R^2 on average by 0.0078, showing that the Ranking is much more important than the OverallGrade. Permuting Age and IsContinuation had very small impact, with an average decrease of 0.0021 and 0.0012 respectively. From this regression, and the subsequent permutation test, we can conclude that the Internal Step is by far the most important step in the process.
+```{r variable importance board regression}
+
+board_data2 <- prepare_data_board_log_regression(apps=final.apps, internal = final.internal, external = final.external)
+board_data2$Age <- scale(board_data2$Age)
+board_data2$Ranking <- ifelse(board_data2$Ranking %in% c(1,2,3), 3, board_data2$Ranking)
+board_data2$Ranking <- factor(board_data2$Ranking, ordered=F)
+board_data2$OverallGrade <- ifelse(board_data2$OverallGrade %in% c(1,2,3), 3, board_data2$OverallGrade)
+board_data2$OverallGrade <- factor(board_data2$OverallGrade, ordered=F)
+
+fit7 <- glm(board_data2$IsApproved ~ Age + IsContinuation + Ranking + OverallGrade, family="binomial", data = board_data2)
+
+
+CI <- confint(fit7)
+coef.log <- fit7$coefficients
+
+
+plot(0,xlim=c(-6,9), yaxt="n", pch="", ylim=c(0,10), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:9, rownames(CI), las = 1, cex.axis=0.5)
+for (i in 1:length(coef.log)) {
+  interval <- c(CI[i,1], CI[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+
+```
+
 
 ### Most Important Criteria Within Each Step
 
