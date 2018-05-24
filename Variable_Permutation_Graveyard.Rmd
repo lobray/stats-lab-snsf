@@ -1,0 +1,69 @@
+---
+title: "Variable Permutation Graveyard"
+author: "Leslie O'Bray"
+date: "May 24, 2018"
+output: pdf_document
+---
+# Gender Bias
+
+
+Finally, we estimated the relative importance of each of the predictors in the model as a last check, in order to see the importance of gender in all the models.
+
+## External
+
+In order to understand which of the variables in this model are the more influential, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
+
+We did also here our permutation test where we permuted each variable 1000 times, and used the percentage of variation of the AIC as a measure of good fit. Gender is the least important variable, in average it increments the AIC `r round(Shuffle.Result.Prop[6,3],2)`%.
+
+Though, gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.App[6,3],2)`%.
+
+Again, we estimate the relative importance of the variables base on the percentage change of the AIC when permuting the variable. We did this permutation 1000 times for each variable. Gender is the second least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[4,3],2)`%. 
+
+
+## Internal
+
+
+We did also a further check through a permutation test, in order to better understand which of the variables are the most influencial in the model. We randomly permuted the values of all predictors (one by one) and refitted the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable reduces the pseudo R^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, gender is the least important variable in the model and when we permute its values the pseudo R^2 increases slightly, which means that the model becomes a bit better than before.
+
+
+We did again a permutation test: we shuffled each variable 1000 times and we used the percentage of variation of the AIC as a measure of goodness fit. Gender is the second least important variable in the model and permuting its values, on average, it makes the AIC increase by `r round(Shuffle.Result.Prop[6,3],2)`%.
+
+
+  So we proceeded with our analysis estimating the relative importance of the variables included in the model. We used a permutation test, as before, and it turned out that gender is not at all an important variable in the model, in fact when we shuffle the values referring to the variable Gender the AIC doesn't increase.
+  
+  
+Once more, though gender is significant to the model, when estimating its relative importance in comparison with the other variables, it turns out that gender is one of the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.R[5,3],2)`%.
+
+# Relative Importance
+
+
+In each of these two regressions, we again computed the variable importance by permuting the values of the predictors one at a time. Since it is an Ordinal Regression, and there is no R^2 equivalent to measure the goodness of fit, we assessed goodness of fit based on the percent of variation in the AIC, another measure of goodness of fit. For both the external and the internal step, we found permuting the grade given to the Scientific Proposal by far had the biggest impact on the quality of the regression. This led us to conclude that the grade given to the Scientific Proposal far outweighs the grade given to the Applicant Track Record, or any of the demographic predictors, in explaining the overall grade given to an application.
+
+## Internal
+
+
+To assess the importance of each variable we performed a permutation test, shuffling the value of one variable at a time and computing the average variation in AIC. As you can see from the plot below, the Project Asessment is by far the most important variable to determine the internal Ranking.
+
+```{r, include=F, message=F, warning=F}
+  load("Internal_criteria_importance.Rda")
+```
+
+```{r out.width='50%', fig.align="center"}
+kable(Shuffle.Result,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result[,3], names.arg = Shuffle.Result[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance to establish Ranking",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,115), 
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
+
+When we permutRanking Probability vs Track Recorde the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
+
+## External

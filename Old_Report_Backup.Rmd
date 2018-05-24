@@ -1,4 +1,10 @@
 ---
+title: "Old_Report_Backup"
+author: "Leslie O'Bray"
+date: "May 24, 2018"
+output: html_document
+---
+---
 title: "SNSF Report"
 author: "Chiara Gilardi, Leslie O'Bray, Carla Sch?rer and Tommaso Portaluri"
 date: "13 June 2018"
@@ -325,6 +331,8 @@ To see if gender has an influence in any of the steps of the evaluation process,
 
 As the final decision is determined by the different grades in the process, in order to see if gender has an influence on any of them, we fitted an Ordinal regression with the function clm of the package "ordinal" on each grade with demographic data and project information as predictors.
 
+Finally, we estimated the relative importance of each of the predictors in the model as a last check, in order to see the importance of gender in all the models.
+
 ## Analysis
 
 ### External Step
@@ -384,24 +392,25 @@ As we are interested in the effect of gender in each step of the evaluation proc
        lines=list(col=1))
 ```
 
+In order to understand which of the variables in this model are the more influential, we ran a permutation test. We randomly permuted the values of all predictors (one at the time) and refit the the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable changes the pseudo r^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, Gender is the second least important variable in this model.
 ```{r Logistic-external-relative-importance, out.width='50%',fig.align="center"}
 # Relative variable importance 
 
   load("Ext.logistic_variable_importance.Rda")
   kable(PseudoRShuffle,"latex", booktabs = T) %>%
     kable_styling(position = "center")
-
+  
   n<-dim(PseudoRShuffle)[1]
   PseudoRShuffle$Importance<-abs(PseudoRShuffle$Importance)
   mycol=colorRampPalette(c("blue","red"))(n)
-
-#   par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
-  # barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
-  #         horiz = TRUE,col = mycol,cex.names = 0.7,
-  #         main="Variable Importance for Approval",
-  #         xlab = "Percent of variation on the Pseudo R",
-  #         cex.axis = 0.6,
-  #         cex.main=0.8)
+  
+  par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
+  barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
+          horiz = TRUE,col = mycol,cex.names = 0.7,
+          main="Variable Importance for Approval",
+          xlab = "Percent of variation on the Pseudo R",
+          cex.axis = 0.6,
+          cex.main=0.8)
 ```
 \pagebreak
 
@@ -448,7 +457,7 @@ ggplot(gender.prob) +
 ```{r}
 load("External_Project_variable_Importance.Rda")
 ```
-    
+    We did also here our permutation test where we permuted each variable 1000 times, and used the percentage of variation of the AIC as a measure of good fit. Gender is the least important variable, in average it increments the AIC `r round(Shuffle.Result.Prop[6,3],2)`%.
     
 ```{r out.width='50%', fig.align="center"}
 kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
@@ -457,13 +466,13 @@ kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
 n<-dim(Shuffle.Result.Prop)[1] 
 mycol=colorRampPalette(c("red","green"))(n)
        par(las=2)
-       # barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
-       #         horiz = TRUE,col = mycol,cex.names = 0.7,
-       #         main="Variable Importance of Combined Project Assessment",
-       #         xlab = "Percent of variation on the AIC",
-       #         xlim=c(0,0.7),
-       #         cex.axis = 0.6,
-       #         cex.main=0.8)
+       barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Combined Project Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim=c(0,0.7),
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 ```{r}
@@ -510,22 +519,22 @@ ggplot(gender.prob.App) +
 ```{r}
 load("External_Applicant_variable_importance.Rda")
 ```
-
+Though, gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.App[6,3],2)`%.
     
 ```{r out.width='50%', fig.align="center"}
-# kable(Shuffle.Result.App,"latex", booktabs = T) %>%
-#     kable_styling(position = "center")
-# 
-# n<-dim(Shuffle.Result.App)[1] 
-# mycol=colorRampPalette(c("red","blue"))(n)
-#        par(las=2)
-       # barplot(Shuffle.Result.App[,3], names.arg = Shuffle.Result.App[,1],
-       #         horiz = TRUE,col = mycol,cex.names = 0.7,
-       #         main="Variable Importance of Applicant Assessment",
-       #         xlab = "Percent of variation on the AIC",
-       #         xlim = c(0,1.2), 
-       #         cex.axis = 0.6,
-       #         cex.main=0.8)
+kable(Shuffle.Result.App,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.App)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.App[,3], names.arg = Shuffle.Result.App[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Applicant Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,1.2), 
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 
@@ -543,21 +552,21 @@ p.value<-anova(Model.Overall,Over.nogender)[2,6]
 ```{r}
 load("External_Overall_variable_importance.Rda")
 ```
-
+Again, we estimate the relative importance of the variables base on the percentage change of the AIC when permuting the variable. We did this permutation 1000 times for each variable. Gender is the second least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[4,3],2)`%. 
     
 ```{r out.width='50%', fig.align="center"}
-# kable(Ov.Shuffle.Result,"latex", booktabs = T) %>%
-#     kable_styling(position = "center")
-# 
-# n<-dim(Ov.Shuffle.Result)[1] 
-# mycol=colorRampPalette(c("red","blue"))(n)
-#        par(las=2)
-       # barplot(Ov.Shuffle.Result[,3], names.arg = Ov.Shuffle.Result[,1],
-       #         horiz = TRUE,col = mycol,cex.names = 0.7,
-       #         main="Variable Importance of Applicant Assessment",
-       #         xlab = "Percent of variation on the AIC",
-       #         cex.axis = 0.6,
-       #         cex.main=0.8)
+kable(Ov.Shuffle.Result,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Ov.Shuffle.Result)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Ov.Shuffle.Result[,3], names.arg = Ov.Shuffle.Result[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Applicant Assessment",
+               xlab = "Percent of variation on the AIC",
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 
@@ -617,6 +626,7 @@ As said before, our focus is the effect of gender in each step of the evaluation
        lines=list(col=1))
 ```
 
+We did also a further check through a permutation test, in order to better understand which of the variables are the most influencial in the model. We randomly permuted the values of all predictors (one by one) and refitted the model. We did this 1000 times for each predictor, and calculated the average change in pseudo R^2 when we permuted that particular variable. If permuting a variable reduces the pseudo R^2 a lot, this means that that variable was an important predictor in our regression. As shown in the next table, gender is the least important variable in the model and when we permute its values the pseudo R^2 increases slightly, which means that the model becomes a bit better than before.
 
 ```{r Logistic-internal-relative-importance, out.width='50%',fig.align="center"}
 # Relative variable importance 
@@ -629,12 +639,12 @@ As said before, our focus is the effect of gender in each step of the evaluation
   mycol=colorRampPalette(c("blue","red"))(n)
   
   par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
-  # barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
-  #         horiz = TRUE,col = mycol,cex.names = 0.7,
-  #         main="Variable Importance for Approval",
-  #         xlab = "Percent of variation on the Pseudo R",
-  #         cex.axis = 0.6,
-  #         cex.main=0.8)
+  barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
+          horiz = TRUE,col = mycol,cex.names = 0.7,
+          main="Variable Importance for Approval",
+          xlab = "Percent of variation on the Pseudo R",
+          cex.axis = 0.6,
+          cex.main=0.8)
 ```
 \pagebreak
 
@@ -731,21 +741,22 @@ grid.arrange(p1, p2, ncol=2)
 load("Internal_Project_variable_Importance.Rda")
 ```
     
+We did again a permutation test: we shuffled each variable 1000 times and we used the percentage of variation of the AIC as a measure of goodness fit. Gender is the second least important variable in the model and permuting its values, on average, it makes the AIC increase by `r round(Shuffle.Result.Prop[6,3],2)`%.
     
 ```{r out.width='50%', fig.align="center"}
-# kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
-#     kable_styling(position = "center")
-# 
-# n<-dim(Shuffle.Result.Prop)[1] 
-# mycol=colorRampPalette(c("red","green"))(n)
-#        par(las=2)
-#        barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
-#                horiz = TRUE,col = mycol,cex.names = 0.7,
-#                main="Variable Importance on Project Assessment",
-#                xlab = "Percent of variation on the AIC",
-#                xlim=c(0,0.7),
-#                cex.axis = 0.6,
-#                cex.main=0.8)
+kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.Prop)[1] 
+mycol=colorRampPalette(c("red","green"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance on Project Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim=c(0,0.7),
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 
@@ -838,21 +849,22 @@ load("Internal_Track_variable_Importance.Rda")
 
 ```
 
+  So we proceeded with our analysis estimating the relative importance of the variables included in the model. We used a permutation test, as before, and it turned out that gender is not at all an important variable in the model, in fact when we shuffle the values referring to the variable Gender the AIC doesn't increase.
     
 ```{r out.width='50%', fig.align="center"}
-# kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
-#     kable_styling(position = "center")
-# 
-# n<-dim(Shuffle.Result.Prop)[1] 
-# mycol=colorRampPalette(c("red","blue"))(n)
-#        par(las=2)
-#        barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
-#                horiz = TRUE,col = mycol,cex.names = 0.7,
-#                main="Variable Importance of Applicant Assessment",
-#                xlab = "Percent of variation on the AIC",
-#                xlim = c(0,1.2), 
-#                cex.axis = 0.6,
-#                cex.main=0.8)
+kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.Prop)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Applicant Assessment",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,1.2), 
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 ```{r ranking, warning=F, message=F}
@@ -943,21 +955,22 @@ load("Internal_Ranking_variable_Importance.Rda")
 
 ```
 
+Once more, though gender is significant to the model, when estimating its relative importance in comparison with the other variables, it turns out that gender is one of the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.R[5,3],2)`%.
     
 ```{r out.width='50%', fig.align="center"}
-# kable(Shuffle.Result.R,"latex", booktabs = T) %>%
-#     kable_styling(position = "center")
-# 
-# n<-dim(Shuffle.Result.R)[1] 
-# mycol=colorRampPalette(c("red","blue"))(n)
-       # par(las=2)
-       # barplot(Shuffle.Result.R[,3], names.arg = Shuffle.Result.R[,1],
-       #         horiz = TRUE,col = mycol,cex.names = 0.7,
-       #         main="Variable Importance of Ranking",
-       #         xlab = "Percent of variation on the AIC",
-       #         xlim = c(0,1), 
-       #         cex.axis = 0.6,
-       #         cex.main=0.8)
+kable(Shuffle.Result.R,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result.R)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result.R[,3], names.arg = Shuffle.Result.R[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance of Ranking",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,1), 
+               cex.axis = 0.6,
+               cex.main=0.8)
 ```
 
 
@@ -1054,6 +1067,8 @@ for (i in 1:length(coef.log)) {
 
 The second aspect of this question was to identify what was the most important criteria within each step. To understand this, we again did a permutation test of the different predictors determining the summary grade given in each the external and the internal review step. We used the Ordinal Regressions from earlier: one for the external OverallGrade using the demographic data, Scientific Proposal grade, and Applicant Track grade as predictors, and a second one predicting the Ranking using the demographic data, Scientific Proposal grade, and Applicant Track grade as predictors. 
 
+In each of these two regressions, we again computed the variable importance by permuting the values of the predictors one at a time. Since it is an Ordinal Regression, and there is no R^2 equivalent to measure the goodness of fit, we assessed goodness of fit based on the percent of variation in the AIC, another measure of goodness of fit. For both the external and the internal step, we found permuting the grade given to the Scientific Proposal by far had the biggest impact on the quality of the regression. This led us to conclude that the grade given to the Scientific Proposal far outweighs the grade given to the Applicant Track Record, or any of the demographic predictors, in explaining the overall grade given to an application.
+
 ### Internal step
 
 In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the "Ranking" grade as multinomial response and the Applicant Track grade, the Project Assessment grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
@@ -1071,6 +1086,29 @@ In order to check which variable has the biggest influence on the final grade gi
                         PreviousRequest + Semester, data=data)
 ```
 
+To assess the importance of each variable we performed a permutation test, shuffling the value of one variable at a time and computing the average variation in AIC. As you can see from the plot below, the Project Asessment is by far the most important variable to determine the internal Ranking.
+
+```{r, include=F, message=F, warning=F}
+  load("Internal_criteria_importance.Rda")
+```
+
+```{r out.width='50%', fig.align="center"}
+kable(Shuffle.Result,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+n<-dim(Shuffle.Result)[1] 
+mycol=colorRampPalette(c("red","blue"))(n)
+       par(las=2)
+       barplot(Shuffle.Result[,3], names.arg = Shuffle.Result[,1],
+               horiz = TRUE,col = mycol,cex.names = 0.7,
+               main="Variable Importance to establish Ranking",
+               xlab = "Percent of variation on the AIC",
+               xlim = c(0,115), 
+               cex.axis = 0.6,
+               cex.main=0.8)
+```
+
+When we permutRanking Probability vs Track Recorde the Project Assessment grades, the AIC increases by `r round(Shuffle.Result[8,3],2)`%. The second most important variable is the Applicant Track, but shuffling its values the AIC increases by "only" `r round(Shuffle.Result.R[7,3],2)`%.
 We also computed the predicted probabilities for each of the Ranking grade, varying the Applicant Track grade (plot on the left) and the Project Assessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final ranking, compared to the track record.
 
 ```{r effect plot for track}
