@@ -4,6 +4,66 @@ author: "Leslie O'Bray"
 date: "May 24, 2018"
 output: pdf_document
 ---
+
+
+```{r confidence intervals logistic external}
+plot(0,xlim=c(-6,9), yaxt="n", pch="", ylim=c(0,32), main=paste0("Confidence Intervals Plot \n", "External Step"), ylab="",xlab="")
+abline(v=0)
+axis(2,1:dim(CI)[1], rownames(CI), las = 1, cex.axis=0.5)
+for (i in 1:length(coef.log)) {
+  interval <- c(CI[i,1], CI[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+
+
+```{r CI clm project}
+CI.project <- confint(Model.Prop)
+plot(0,0,xlim=c(-1.5,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.project)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.project), rownames(CI.project), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.project)) {
+  interval <- c(CI.project[i,1], CI.project[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+
+```{r ex CI clm track}
+CI.App <- confint(Model.App)
+plot(0,0,xlim=c(-2,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.App)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.App), rownames(CI.App), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.App)) {
+  interval <- c(CI.App[i,1], CI.App[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+```{r ex CI clm OverallGrade}
+CI.Overall <- confint(Model.Overall)
+plot(0,0,xlim=c(-2,1.5), pch="",yaxt="n", ylim=c(0,nrow(CI.Overall)), main="Confidence Intervals Plot", ylab="",xlab="")
+abline(v=0)
+axis(2,1:nrow(CI.Overall), rownames(CI.Overall), las = 1, cex.axis=0.6)
+for (i in 1:nrow(CI.Overall)) {
+  interval <- c(CI.Overall[i,1], CI.Overall[i,2])
+  col <- "black"
+  if (interval[1] > 0 & 0 < interval[2]) {col="red"}
+  if (interval[1] < 0 & 0 > interval[2]) {col="red"}
+  lines(interval, c(i,i),col=col)
+}
+```
+
+
 # Gender Bias
 
 
@@ -18,6 +78,134 @@ We did also here our permutation test where we permuted each variable 1000 times
 Though, gender is significant to the model, when estimating its relative importance in comparison with the other variables, by permuting each variable 1000 times, and using the average percent variation on the AIC as a measure of goodness of fit, turns out that gender is the least important variable in the model, in average it increments the AIC `r round(Shuffle.Result.App[6,3],2)`%.
 
 Again, we estimate the relative importance of the variables base on the percentage change of the AIC when permuting the variable. We did this permutation 1000 times for each variable. Gender is the second least important variable in the model, in average it increments the AIC `r round(Ov.Shuffle.Result[4,3],2)`%. 
+
+
+
+```{r Logistic-external-relative-importance, out.width='50%',fig.align="center"}
+# Relative variable importance 
+# 
+#   load("Ext.logistic_variable_importance.Rda")
+#   kable(PseudoRShuffle,"latex", booktabs = T) %>%
+#     kable_styling(position = "center")
+# 
+#   n<-dim(PseudoRShuffle)[1]
+#   PseudoRShuffle$Importance<-abs(PseudoRShuffle$Importance)
+#   mycol=colorRampPalette(c("blue","red"))(n)
+# 
+# #   par(las=2,mfrow=c(1,1),mai=c(1,2,1,1))
+#   # barplot(PseudoRShuffle[,2], names.arg = PseudoRShuffle[,1],
+#   #         horiz = TRUE,col = mycol,cex.names = 0.7,
+#   #         main="Variable Importance for Approval",
+#   #         xlab = "Percent of variation on the Pseudo R",
+#   #         cex.axis = 0.6,
+#   #         cex.main=0.8)
+```
+
+ Nevertheless we kept gender as a predictor to be able to show the effect it has in the grades. For this purpose we estimated the cumulative probability of falling in the different grades for each gende. The result is presented in the next table. Overall the average difference is `r round(mean(abs(gender.prob[,3])),5)`. We see here as well, that there is no evidence of gender influencing the probability of achiving a certain grade.
+```{r out.width='50%',fig.align="center"}
+# kable(gender.prob,"latex", booktabs = T) %>%
+#     kable_styling(position = "center")
+# 
+# ggplot(gender.prob) +
+#           geom_line(aes(1:6, Male, colour = "Male")) +
+#           geom_line(aes(1:6, Female, colour = "Female"))+
+#           theme(legend.title=element_blank(),legend.position = "bottom")+
+#           xlab("")+ylab("Cumulative Probability")+
+#           ggtitle("Cumulative Probability for ProposalCombined")
+# ```
+# ```{r}
+# load("External_Project_variable_Importance.Rda")
+```
+
+
+
+    
+```{r out.width='50%', fig.align="center"}
+# kable(Shuffle.Result.Prop,"latex", booktabs = T) %>%
+#     kable_styling(position = "center")
+# 
+# n<-dim(Shuffle.Result.Prop)[1] 
+# mycol=colorRampPalette(c("red","green"))(n)
+#        par(las=2)
+       # barplot(Shuffle.Result.Prop[,3], names.arg = Shuffle.Result.Prop[,1],
+       #         horiz = TRUE,col = mycol,cex.names = 0.7,
+       #         main="Variable Importance of Combined Project Assessment",
+       #         xlab = "Percent of variation on the AIC",
+       #         xlim=c(0,0.7),
+       #         cex.axis = 0.6,
+       #         cex.main=0.8)
+```
+
+
+```{r}
+kable(coeff<-round(summary(Model.App)$coefficients,4),"latex", booktabs = T)%>%
+    kable_styling(position = "center")
+```
+
+```{r}
+
+gender.prob.App<-Effect("Gender", mod=Model.App)
+gender.prob.App<-gender.prob.App$prob
+gender.prob.App<-data.frame(Male=gender.prob.App[1,],Female=gender.prob.App[2,])
+rownames(gender.prob.App)<-c("poor","average","good", "very good",
+                        "excellent","outstanding")
+
+gender.prob.App<-cbind(round(gender.prob.App,3),Difference=round((gender.prob.App[,1]-gender.prob.App[,2]),3))
+       
+```
+The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero,`r round(mean(abs(gender.prob.App[,3])),5)`,  but the greater difference are in grades "outstanding", which are the ones that are more likely to be approved. 
+```{r out.width='50%',fig.align="center"}
+kable(gender.prob.App,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
+ggplot(gender.prob.App) +
+          geom_line(aes(1:6, Male, colour = "Male")) +
+          geom_line(aes(1:6, Female, colour = "Female"))+
+          theme(legend.title=element_blank(),legend.position = "bottom")+
+          xlab("")+ylab("Cumulative Probability")+
+          ggtitle("Cumulative Probability for Applicant Track")
+```
+```{r}
+load("External_Applicant_variable_importance.Rda")
+```
+
+    
+```{r out.width='50%', fig.align="center"}
+# kable(Shuffle.Result.App,"latex", booktabs = T) %>%
+#     kable_styling(position = "center")
+# 
+# n<-dim(Shuffle.Result.App)[1] 
+# mycol=colorRampPalette(c("red","blue"))(n)
+#        par(las=2)
+       # barplot(Shuffle.Result.App[,3], names.arg = Shuffle.Result.App[,1],
+       #         horiz = TRUE,col = mycol,cex.names = 0.7,
+       #         main="Variable Importance of Applicant Assessment",
+       #         xlab = "Percent of variation on the AIC",
+       #         xlim = c(0,1.2), 
+       #         cex.axis = 0.6,
+       #         cex.main=0.8)
+```
+
+
+```{r}
+load("External_Overall_variable_importance.Rda")
+```
+
+    
+```{r out.width='50%', fig.align="center"}
+# kable(Ov.Shuffle.Result,"latex", booktabs = T) %>%
+#     kable_styling(position = "center")
+# 
+# n<-dim(Ov.Shuffle.Result)[1] 
+# mycol=colorRampPalette(c("red","blue"))(n)
+#        par(las=2)
+       # barplot(Ov.Shuffle.Result[,3], names.arg = Ov.Shuffle.Result[,1],
+       #         horiz = TRUE,col = mycol,cex.names = 0.7,
+       #         main="Variable Importance of Applicant Assessment",
+       #         xlab = "Percent of variation on the AIC",
+       #         cex.axis = 0.6,
+       #         cex.main=0.8)
+```
 
 
 ## Internal
