@@ -1,0 +1,27 @@
+---
+title: "Ordinal regression theory"
+author: "Chiara Gilardi"
+date: "04 giugno 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cumulative link models
+
+A cumulative link model is a model for an ordinal response variable $Y_i$ that can fall in $j=1,...,J$ categories. So $Y_i$ follows a multinomial distribution with parameter $\boldsymbol{\pi}$, where $\pi_{ij}$ denotes the probability that the i-th observation falls into response category j. We denote the cumulative probabilities as
+$$ \gamma_{ij} = P(Y_i \leq j) = \pi_{i1} + ... + \pi_{ij} $$.
+Then we consider the logit function as link function: the cumulative logits are defined as
+$$ logit(\gamma_{ij})=logit(P(Y_i \leq j))= log \frac{P(Y_i \leq j)}{1-P(Y_i \leq j)}$$.
+
+The \textit{cumulative logit model} is a regression model for cumulative logits and it can also be written as: $logit(\gamma_{ij})= \theta_j - {x_i}^T \beta$, where $x_i$ is a vector of explanatory variables for the i-th observation and $\beta$ is the corresponding set of regression parameters.
+
+This means that each cumulative logit for each j has its own intercept, given by the parameter $\theta_j$. The regression part ${x_i}^T$ is independent of j and so the effect $\beta$ of the explanatory variable is the same for each of the $J-1$ cumulative logits.
+
+
+The interpretation of the model is the following: the log-odds of two cumulative distributions measure how likely the response is to be in category j or below versus falling in a category higher than j.
+
+Cumulative logit models can be fitted with the function \texttt{clm} from package \texttt{ordinal}. The arguments used are the formula (\texttt{response ~ covariates}), the dataset and the link function used. By default \texttt{clm} uses the logit link.
+The \texttt{summary} of the clm object provides basic information about the fit of the model: coefficient tables for the regression variables and for the cut-points, Wald tests and corresponding p-values.
