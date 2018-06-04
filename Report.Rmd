@@ -10,6 +10,11 @@ output:
 graphics: yes
 ---
 
+<style>
+  body {
+    text-align: justify}
+</style>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE,comment = "   ")
 ```
@@ -40,6 +45,9 @@ library(MASS)
 
 ```
 
+\newpage 
+\tableofcontents
+\newpage
 
 ## Introduction
 <<<<<<< HEAD
@@ -63,7 +71,7 @@ We have three data sets: Applications, External Reviewers and Internal Referees.
 
 
 
-# Cleaning the Data
+## Cleaning the Data
 
 We decide to work with only complete applications, i.e. projects for which we have information from all the three data sets.
 
@@ -127,7 +135,7 @@ kable(Ref,"latex", booktabs = T) %>%
 * **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
 
 
-# Exploratory Analysis
+## Exploratory Analysis
 
 ```{r data to use for analysis, echo=F, message=F}
 
@@ -325,13 +333,13 @@ p11
 
 ```
 
-# Gender Bias
+## Gender Bias
 
 To see if gender has an influence in any of the steps of the evaluation process, we did several things. For the external and internal steps, we first fit a logistic regression with the function glm in R, where we used IsApproved (a binary variable) as a response and demographic information of the applicant, project information and the given grades as predictors. The aim of this regression is to see if gender has an influence on the final decision from the perspective of each step.
 
 As the final decision is determined by the different grades in the process, in order to see if gender has an influence on any of them, we fitted an Ordinal regression with the function clm of the package "ordinal" on each grade with demographic data and project information as predictors.
 
-## Analysis
+### Analysis
 
 ### External Step
 
@@ -1305,15 +1313,15 @@ grid.arrange(p1,p2,ncol=2)
 
  
 
-# Results
+### Results
 
-## External Step
+#### External Step
 
 The external step model is not a good explanation of the variation in the approval of applications (around 42%). We nevertheless look into the influence of gender at this stage, but couldn't find evidence of its effect on the final decision.
 
 When looking at the different grades in this step, we found that gender did not have an influence on Applicant Track, ProposalCombined, or OverallGrade. .
 
-## Internal Step
+#### Internal Step
 
 The internal model is a quite good explanation of the variation in the approval of applications (around 70% of the variability is explained). When looking at each criteria of evaluation, we found that gender seems to have a small influence in the grade given, however it's effect is smaller relative to the other coefficients in the model, and it's significance is less notable when we correct for multiple testing. 
 
@@ -1321,11 +1329,11 @@ The internal model is a quite good explanation of the variation in the approval 
 Considering all the analysis that we have done so far, we can say that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is never an important variable in all the regressions we performed and the difference in predicted probability between male and female applicants is not relevant.
 
 
-# Relative Importance of the Different Steps
+## Relative Importance of the Different Steps
 
 Our second research question was to assess the relative importance of each step in the process, and the relative importance of each criteria within each step.
 
-## Analysis
+### Analysis
 
 ### Most Important Step
 
@@ -1405,11 +1413,12 @@ ggplot(data=df)+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")
 ```
+
 ### Most Important Criteria Within Each Step
 
 The second aspect of this question was to identify what was the most important criteria within each step.
 
-### External step
+#### External step
 
 In order to check which variable has the biggest influence on the final grade given by the external reviewers, we fitted an ordinal regression using the "OverallGrade" grade as multinomial response and the Applicant Track grade, the ProposalCombined grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProposalCombined, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
@@ -1598,7 +1607,7 @@ grid.arrange(p1,p2,ncol=2)
 
 We also computed the predicted probabilities for each of the OverallGrade grade, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. Notably, in the right graph, the highest probability to the final grade corresponds with the grade given to the grade given to the ProposalCombined for grades 3, 4, 5 and 6. On the left, receiving a 3, 4 or 5 for the ApplicantTrack record all correspond to most likely receiving an overall grade of 4. This confirms what we found before: the quality of the project has a greater influence on the final Overall Grade, compared to the track record.
 
-### Internal step
+#### Internal step
 
 In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the "Ranking" grade as multinomial response and the Applicant Track grade, the Project Assessment grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
