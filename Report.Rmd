@@ -371,7 +371,10 @@ data$Suitability<-factor(data$Suitability)
   
   
 ```
-We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. ^[$R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
+
+We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. 
+^[$R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
+
 
 
 ```{r}
@@ -449,7 +452,7 @@ ggplot(data=df)+
 
 The confidence intervals which do not include zero are those for the variables: IsContinuation, Suitability (all levels from 4 to 6), ScientificRelevance (all levels from 4 to 6), and ApplicantTrack(for levels 5 and 6). 
 
-```{r coefficients logistic external}
+```{r coefficients logistic external, fig.cap="Exponentiated coefficients and confidence intervals"}
 
 
 id<-  which(CI[,1]>0 & CI[,2]>0)
@@ -462,17 +465,17 @@ kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", book
   kable_styling(position = "center")
 ```
 
-The interpretation of the coefficients is the following:
+The interpretation of the exponentiated coefficients is as following: the odds is the $\frac{P(Approved = 1 | Grade = x)}{P(Approved = 0 | Grade = x)}$.
 
-* If the Applicant Track grade is 5, the proposal is `r round(sign.OR[1],2)` times more likely to be approved than a 4 or lower
-* If the Applicant Track grade is 6, the proposal is `r round(sign.OR[2],2)` times more likely to be approved than a 3 or lower
-* If ScientificRelevance grade is 4, the proposal is `r round(sign.OR[3],2)` times more likely to be approved than a 3 or lower
-* If ScientificRelevance grade is 5, the proposal is `r round(sign.OR[4],2)` times more likely to be approved than a 4 or lower
-* If ScientificRelevance grade is 6, the proposal is `r round(sign.OR[5],2)` times more likely to be approved than a 5 or lower
-* If the Suitability has grade 4, the proposal is `r round(sign.OR[6],2)` times more likely to be approved than a 3 or lower
-* If the Suitability has grade 5, the proposal is `r round(sign.OR[7],2)` times more likely to be approved than a 4 or lower
-* If the Suitability has grade 6, the proposal is `r round(sign.OR[8],2)` times more likely to be approved than a 5 or lower
-* If the project is a continuation, it is `r round(sign.OR[9],2)` times more likely to be approved than if it's not
+* The odds with respect to being approved or not given an Applicant Track grade of 5 is `r round(sign.OR[1],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given an Applicant Track grade of 6 is `r round(sign.OR[2],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Scientific Relevance grade of 4  is `r round(sign.OR[3],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Scientific Relevance grade of 5 is `r round(sign.OR[4],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Scientific Relevance grade of 6 is `r round(sign.OR[5],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Suitability grade of 4 is `r round(sign.OR[6],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Suitability grade of 5 is `r round(sign.OR[7],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given a Suitability grade of 6 is `r round(sign.OR[8],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given that the project is a continuation is `r round(sign.OR[9],2)` times larger than the odds for the reference level
 
 
 
@@ -482,7 +485,7 @@ CIgender<-CI[which(rownames(CI)=="Genderf"),]
 betaGender<-exp(coef.log[which(names(coef.log)=="Genderf")])
 ```
 
-Notice that the coefficient for gender is not significant, since its confidence interval (-2.074,2.059) contains zero. The point estimate for gender is 0.094 and this means that a woman is 2.99 times more likely to be approved than a man.
+Notice that the coefficient for gender is not significant, since its confidence interval (-2.074,2.059) contains zero. The point estimate for gender is 0.094 and this means that the odds with respect to being approved or not given that the applicant is a women is 2.99 times larger than the odds for a male applicant.
 
 
 ```{r effect plots logistic external, fig.align="center", fig.height=3}
@@ -499,13 +502,21 @@ Notice that the coefficient for gender is not significant, since its confidence 
        lines=list(col=1))
 ```
 
-As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, our analysis suggest that this difference is not significant.
+As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the predicted probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, our analysis suggest that this difference is not relevant.
 
 \pagebreak
 
-#### *Ordinal Regression*
+### **Ordinal Regression**
 
-To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R. We did this for both, the applicant grade (ApplicantTrack), and the average of the grades given to the project (ProposalCombined). Also, we want to investigate which grades are more influential in the Overall Grade, which is the summary grade given by the external reviewers. In the next few paragraphs we will look into the analysis of this two regressions.
+To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R, which fits cumulative link models (CLMs), for further details of this models see Appendix pg.
+
+We did this for all grades given by the external reviewers:
+
+1. The average of the grades given to the scientific proposal (ProposalCombined)
+
+2. The applicant grade (ApplicantTrack)
+
+3. The Overall Grade. 
 
 ```{r}
 
@@ -517,7 +528,7 @@ Prop.nogender<- clm(ProposalCombined ~  Division + PercentFemale + IsContinuatio
 p.value<-anova(Model.Prop,Prop.nogender)[2,6]
 ```
 
-* **Project Assessment**: After fitting a full model with ProposalCombined as a response variable and different interactions, and then selecting from this model the significant variables with the AIC criteria and the help of the drop1() function in R, we end up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). If we fit the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the project, gender is not important. This is to be expected, as the project is being evaluated and not the applicant.
+(1) **Scientific Proposal**: After fitting a full model using the clm function with ProposalCombined as a response variable and different interactions, and then selecting from this model the significant variables with the AIC criteria and the help of the drop1() function in R. From the output of the drop1() fuction we manually looked into that variable that reduce the most the AIC if removed. We ended up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). Then we fitted the same model without Gender and compare it with the anova() function and the likelihood ratio test to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the project, gender is not important. This is to be expected, as the project is being evaluated and not the applicant.
 
 
 ```{r effects prob project3, message=F, warning=F}
@@ -555,8 +566,8 @@ gender.prob.project<-cbind(round(gender.prob.project,3),
 Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
 gender.prob.project<-as.data.frame(gender.prob.project)
 
-kable(gender.prob.project,"latex", booktabs = T) %>%
-    kable_styling(position = "center")
+kable(gender.prob.project,"latex", booktabs = T, caption="Predicted probabilities of getting different grades") %>%
+    kable_styling(position = "center" )
 ```
 
 Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achieving a certain grade. We also represented in the plots below the probability and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
@@ -645,7 +656,7 @@ gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender
              
 ```
 
-* **Applicant Track assessment**: The final model we used has ApplicantTrack as a response variable, and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
+(2) **Applicant Track assessment**: The final model we used has ApplicantTrack as a response variable, and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
 
 
 ```{r clm int applicant track}
@@ -661,7 +672,7 @@ p.value <- round(p.value,4)
              
 ```
 
-We computed the difference in probability of getting a specific grade for both male and female.
+We computed the difference in predicted probability of getting a specific grade for both male and female.
 
 ```{r ex effects track, message=F, warning=F}
 X<-Model.App$model[,-1]
@@ -698,7 +709,7 @@ gender.prob.app<-cbind(round(gender.prob.app,3),
 Difference=round((gender.prob.app[,1]-gender.prob.app[,2]),3))
 gender.prob.app<-as.data.frame(gender.prob.app)
 
-kable(gender.prob.app,"latex", booktabs = T) %>%
+kable(gender.prob.app,"latex", booktabs = T, caption="Predicted probabilities of getting different Applicant Track grades") %>%
     kable_styling(position = "center")
 
 p1 <- ggplot(gender.prob.app) +
@@ -729,7 +740,7 @@ p2 <- ggplot(gender.cum.prob.app) +
   theme(plot.title = element_text(size=10))
 ```
 
-In the table above, we see the probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish whether there is gender bias.
+In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish if gender has an influence on the applicant track assessment.
 
 ```{r ex call effect plots track, echo=F}
 grid.arrange(p1,p2,ncol=2)
@@ -774,7 +785,7 @@ p.value<-round(anova(Model.Overall,Over.nogender)[2,6],5)
                           
 ```
 
-* **Overall Grade**: This last model has OverallGrade as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is significant to the model: p.value of `r p.value`. 
+(3) **Overall Grade**: This last model has OverallGrade as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is not significant to the model: p.value of `r p.value`. 
 
 ```{r ex effects prob ranking, message=F, warning=F}
 X<-Model.Overall$model[,-1]
@@ -810,7 +821,7 @@ gender.prob.Overall<-cbind(round(gender.prob.Overall,3),
 Difference=round((gender.prob.Overall[,1]-gender.prob.Overall[,2]),3))
 gender.prob.Overall<-as.data.frame(gender.prob.Overall)
 
-kable(gender.prob.Overall,"latex", booktabs = T) %>%
+kable(gender.prob.Overall,"latex", booktabs = T, caption="Predicted probabilities of getting different Overall Grades") %>%
     kable_styling(position = "center")
 
 p1 <- ggplot(gender.prob.Overall) +
