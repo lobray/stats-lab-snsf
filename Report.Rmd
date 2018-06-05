@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-# setwd("~/StatLab")
+setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
  # load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
@@ -704,8 +704,8 @@ gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender
    
     
 ```{r}
-  Model.App<- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation + 
-                              InstType + logAmount +Gender:PercentFemale,
+  Model.App<- clm(ApplicantTrack ~ Gender + Division + PercentFemale + IsContinuation +                         InstType 
+                  + logAmount +Gender:PercentFemale,
                              data=external_regression_data)
   App.nogender<- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation +
                                InstType + logAmount +Gender:PercentFemale,
@@ -976,8 +976,8 @@ internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.
 internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack, ordered = F)
 internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment, ordered = F)
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 data<- subset(internal_regression_data,select = -c(ProjectID, Ranking, AmountRequested,
                                                    NumberExternalReviewers, NumberInternalReviewers))
 
@@ -1096,8 +1096,8 @@ We did this for all grades given by the internal reviewers:
 
 ```{r clm project assessment}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 internal_regression_data$PercentFemale <- factor(internal_regression_data$PercentFemale)
 
@@ -1555,7 +1555,8 @@ In order to check which variable has the biggest influence on the final grade gi
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 # get grades as factors
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
-external_regression_data$Semester <- revalue(external_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+#external_regression_data$Semester <- revalue(external_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+external_regression_data$Semester <- revalue(external_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 data <- subset(external_regression_data,select = -c(ProjectID, AmountRequested))
 
 data$ApplicantTrack<-factor(data$ApplicantTrack, ordered=F)
@@ -1752,8 +1753,8 @@ In order to check which variable has the biggest influence on the final grade gi
 
 ```{r data for importance internal step}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
 
@@ -1941,9 +1942,11 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
 
 # Conclusion
 
+\newpage
+
 # Appendix
 
-## Detailed Data Description
+## A.1 Detailed Data Description
 
 ### Applications
   * **AmountRequested**: Rounded to the next 10k CHF
@@ -1984,13 +1987,13 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
   * **Country**: where the reviewer is located. Not always known
   * **EmailEnding**: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
   * **IDs**: Anonymized identifiers of the application, the reviewer and the review
-   
-## Exploratory Analysis
+
+## A.2 Exploratory Analysis
 
 ### OverallGrade vs. IsApproved, by Division
 
 
-```{r}
+```{r, out.width="50%"}
 p5 <- plot_mirror_barplot(dataset=ex.div1, 
                           variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Division 1")
 p6 <- plot_mirror_barplot(dataset=ex.div2, 
@@ -1998,18 +2001,16 @@ p6 <- plot_mirror_barplot(dataset=ex.div2,
 p7 <- plot_mirror_barplot(dataset=ex.div3, 
                           variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Division 3")
 
-
 p5
 p6
 p7
-
 
 ```
 
 ### OverallGrade vs. IsApproved, by Gender
 
 
-```{r}
+```{r, out.width="50%"}
 
 p8 <- plot_mirror_barplot(dataset=ex.f, 
                           variable1 = "OverallGrade", plot_title = "OverallGrade vs. Approved; Female Applicants")
@@ -2021,14 +2022,34 @@ p9
 ``` 
 \newpage
 
-## External Logistic Regression
+## A.3 **Introduction to Cumulative Link Models (CLM)**
 
-* Summary of the final model
+A cumulative link model is a model for an ordinal response variable $Y_i$ that can fall in $j=1,...,J$ categories. So $Y_i$ follows a multinomial distribution with parameter $\boldsymbol{\pi}$, where $\pi_{ij}$ denotes the probability that the i-th observation falls into response category j. We denote the cumulative probabilities as
+$$ \gamma_{ij} = P(Y_i \leq j) = \pi_{i1} + ... + \pi_{ij} $$.
+Then we consider the logit function as link function: the cumulative logits are defined as
+$$ logit(\gamma_{ij})=logit(P(Y_i \leq j))= log \frac{P(Y_i \leq j)}{1-P(Y_i \leq j)}$$.
+
+The \textit{cumulative logit model} is a regression model for cumulative logits and it can also be written as: $logit(\gamma_{ij})= \theta_j - {x_i}^T \beta$, where $x_i$ is a vector of explanatory variables for the i-th observation and $\beta$ is the corresponding set of regression parameters.
+
+This means that each cumulative logit for each j has its own intercept, given by the parameter $\theta_j$. The regression part ${x_i}^T$ is independent of j and so the effect $\beta$ of the explanatory variable is the same for each of the $J-1$ cumulative logits.
+
+
+The interpretation of the model is the following: the log-odds of two cumulative distributions measure how likely the response is to be in category j or below versus falling in a category higher than j.
+
+Cumulative logit models can be fitted with the function \texttt{clm} from package \texttt{ordinal}. The arguments used are the formula (\texttt{response ~ covariates}), the dataset and the link function used. By default \texttt{clm} uses the logit link.
+The \texttt{summary} of the clm object provides basic information about the fit of the model: coefficient tables for the regression variables and for the cut-points, Wald tests and corresponding p-values.
+
+\newpage
+
+## A.4 External Step Analysis
+
+### **Logistic Regression** final model
+
 ```{r}
 summary(Model.log.ext)
 ```
-```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression", eval=FALSE}
 
+```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, eval=F}
 plot(Effect("ApplicantTrack",Model.log.ext),
        confint=list(style="band",alpha=0.3,col="grey"),
        lines=list(col=1))
@@ -2055,136 +2076,165 @@ plot(Effect("Semester",Model.log.ext),
        lines=list(col=1))
 ```
 
-### Ordinal external Regression
+\newpage
 
-#### Project grades (ProposalCombined)
+
+### **Ordinal Regression for the Scientific Proposal**
 
 Summary of the final model:
     ```{r}
 summary(Model.Prop)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
 \pagebreak
 
-#### Applicant Track
+### **Ordinal Regression for the Applicant Track**
+
 Summary of the final model:
 ```{r}
+options(width = 50)
 summary(Model.App)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.App$beta,confint(Model.App))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.App$beta,confint(Model.App))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
 
+\newpage
 
-#### Overall Grade
+### **Ordinal Regression for the Overall Grade**
+
 Summary of the final model:
 ```{r}
 summary(Model.Overall)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex", booktabs = T, caption="OR and corresponding COnfidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
 
-## Internal Logistic Regression
+\newpage
 
-* Summary of the final model
+## A.4 Internal Step Analysis
+
+### **Logistic Regression**
+
+Summary of the final model
 ```{r}
 summary(Model.log.int)
 ```
 
-* Effect plots
 
-```{r plot-effects-int, out.width='50%',fig.show="hold",fig.ncol=2, fig.cap="Effects of the external logistic regression"}
-# LESLIE FIXXXX!!!!!
-# plot(Effect("ApplicantTrack",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
-# plot(Effect("ProjectAssessment",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
-# plot(Effect("PercentFemale",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
-# plot(Effect("Age",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
-# plot(Effect("IsContinuation",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
-# plot(Effect("Semester",Model.log.int),
-#        confint=list(style="band",alpha=0.3,col="grey"),
-#        lines=list(col=1))
+```{r plot-effects-int, out.width='50%',fig.show="hold",fig.ncol=2, eval=F}
+plot(Effect("ApplicantTrack",Model.log.int),
+       confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
+plot(Effect("ProjectAssessment",Model.log.int),
+        confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
+plot(Effect("PercentFemale",Model.log.int),
+        confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
+plot(Effect("Age",Model.log.int),
+        confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
+plot(Effect("IsContinuation",Model.log.int),
+        confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
+plot(Effect("Semester",Model.log.int),
+        confint=list(style="band",alpha=0.3,col="grey"),
+        lines=list(col=1))
 ```
 
-### Ordinal internal Regressions
+\newpage
 
-#### Project Assessment
+### **Ordinal Regression for the Scientific Proposal**
 
 Summary of the final model:
     ```{r}
 summary(Model.project)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.project$beta,confint(Model.project))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.project$beta,confint(Model.project))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
-\pagebreak
 
-#### Applicant Track
+\newpage
+
+### **Ordinal Regression for the Applicant Track**
 Summary of the final model:
 ```{r}
 summary(Model.track)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.track$beta,confint(Model.track))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.track$beta,confint(Model.track))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
 
+\newpage
 
-#### Ranking
+### **Ordinal Regression for Ranking**
+
 Summary of the final model:
 ```{r}
 summary(Model.Rank)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.Rank$beta,confint(Model.Rank))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.Rank$beta,confint(Model.Rank))), 2),"latex", booktabs = T, caption="OR and Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
 
-\pagebreak
+\newpage
 
-## Relative importance within Internal step
+## A.5 Relative importance of each criteria 
+
+### **Relative importance within the External step**
+
+Summary of the final model:
+```{r}
+summary(Model.ex.step)
+```
+
+Odds Ratios and Confidence intervals:
+
+```{r}
+kable(round(exp(cbind(OR=Model.ex.step$beta,confint(Model.ex.step))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+\newpage
+
+##  **Relative importance of criteria within the Internal step**
+
 Summary of the final model:
 ```{r}
 summary(Model.int.step)
 ```
 
-Odd Ratios and Confidence intervals:
+Odds Ratios and Confidence intervals:
 
 ```{r}
-kable(round(exp(cbind(OR=Model.int.step$beta,confint(Model.int.step))), 2),"latex", booktabs = T) %>%
-  kable_styling(position = "center")
+kable(round(exp(cbind(OR=Model.int.step$beta,confint(Model.int.step))), 2),"latex", booktabs = T, caption="OR and corresponding Confidence Intervals") %>%
+  kable_styling(position = "center", latex_options = "hold_position")
 ```
