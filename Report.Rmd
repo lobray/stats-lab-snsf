@@ -22,9 +22,9 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```{r Load Functions and Data }
 # setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
-load("snsf_data.RData") # Chiara's directory, comment out
+# load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
-#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -371,7 +371,7 @@ data$Suitability<-factor(data$Suitability)
   
   
 ```
-We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. ^[$R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}{1-exp{(-D_{null}/n)}}$]
+We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. ^[$R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
 
 
 ```{r}
@@ -883,9 +883,11 @@ Here gender seems to be not significant, since its confidence interval include z
 
 Here again gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, PreviousRequest, and the institution type.
 
-### Internal Step
+## Internal Step
 
-#### *Logistic Regression for approval*
+### *Logistic Regression*
+
+We now repeat the logistic regression for the internal step, to understand if gender has an influence on the final funding decision, based on the information provided in the internal step. 
 
 Regression data:  as explained before, in order to perform the analysis, we combined in a single data frame all the information about applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and about grades given by the internal referees (ApplicantTrack, ProjectAssessment, Ranking, PercentFemale). 
     
@@ -1348,11 +1350,13 @@ Considering all the analysis that we have done so far, we can say that there is 
 
 # Relative Importance of the Different Steps
 
-Our second research question was to assess the relative importance of each step in the process, and the relative importance of each criteria within each step.
+Our second research question was to assess the relative importance of each step in the process, and the relative importance of each criteria within each step. To answer this question, we took the following approach: 
 
-## Analysis
+(@) **Most Important Step: Logistic Regression:** We first fit a logistic regression with IsApproved as our binary response variable using the glm function, with the demographic data and the summary grades from the external and internal step to assess which step of the process was most important to determining the final funding decision. 
 
-### Most Important Step
+(@) **Most Important Criteria within Each Step:** We then assessed which criteria was most important within each step to predict the overall grade given to an application (OverallGrade in the External step, Ranking in the Internal step). We did this by fitting an Ordinal Regression (with the OverallGrade (for external) and Ranking (for internal) as the response) with standardized coefficients, and then comparing the magnitude of each predictor. We use this approach for first the external and then the internal step. 
+
+## Most Important Step: Logistic Regression
 
 ```{r board regression}
 
@@ -1431,11 +1435,11 @@ ggplot(data=df)+
   geom_point(aes(y=as.factor(rownames(df)),x=coef.log, colour=col))
 ```
 
-### Most Important Criteria Within Each Step
+## Most Important Criteria Within Each Step
 
 The second aspect of this question was to identify what was the most important criteria within each step.
 
-#### External step
+### External step
 
 In order to check which variable has the biggest influence on the final grade given by the external reviewers, we fitted an ordinal regression using the "OverallGrade" grade as multinomial response and the Applicant Track grade, the ProposalCombined grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProposalCombined, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
@@ -1626,7 +1630,7 @@ grid.arrange(p1,p2,ncol=2)
 
 We also computed the predicted probabilities for each of the OverallGrade grade, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. Notably, in the right graph, the highest probability to the final grade corresponds with the grade given to the grade given to the ProposalCombined for grades 3, 4, 5 and 6. On the left, receiving a 3, 4 or 5 for the ApplicantTrack record all correspond to most likely receiving an overall grade of 4. This confirms what we found before: the quality of the project has a greater influence on the final Overall Grade, compared to the track record.
 
-#### Internal step
+### Internal step
 
 In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the "Ranking" grade as multinomial response and the Applicant Track grade, the Project Assessment grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
