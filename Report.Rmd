@@ -1,11 +1,11 @@
 ---
-title: "SNSF Report"
-author: "Chiara Gilardi, Leslie O'Bray, Carla Sch?rer and Tommaso Portaluri"
+title: "Copy Report to knit"
+author: "Chiara Gilardi, Leslie O'Bray, Carla Schaerer and Tommaso Portaluri"
 date: "13 June 2018"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
   word_document: default
 graphics: yes
 ---
@@ -50,11 +50,10 @@ library(MASS)
 \newpage
 
 ## Introduction
-<<<<<<< HEAD
+
 The Swiss National Science Foundation (SNF) is a research funding agency which disseminates yearly, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three data sets provided by SNF, containing information on the applications for funding received in 2016, the corresponding grades and the scores given by both internal and external evaluators.  
-=======
+
 The Swiss National Science Foundation (SNSF) is a research funding agency which disseminates yearly, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three data sets provided by SNSF, containing information on the applications for funding received in 2016, the corresponding and the scores given by both internal and external evaluators.  
->>>>>>> 00e5a8b7200b0801803b46ecee171163c3147384
 
 The analysis performed for SNF had a three-fold aim, corresponding to the following three research questions:
 1) Is gender bias occurring at any stage of the SNSF evaluation process? Is the gender of the main applicant influencing the rating of the application?
@@ -68,7 +67,6 @@ Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown
 ## Data Description
 
 We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available). For a full description of the data & variables, please see the Appendix. 
-
 
 
 ## Cleaning the Data
@@ -133,7 +131,6 @@ kable(Ref,"latex", booktabs = T) %>%
 
 ```
 * **PercentFemale**: As previously mentioned, we introduced a new variable calculating the percent of reviewers of each application that is female. 
-
 
 ## Exploratory Analysis
 
@@ -241,7 +238,6 @@ kappa.pro <- cohen.kappa(kappa.applicant, w=custom.weights)
 kappa.pro
 
 ```
-
 
 
 ### Impact of Internal Reviewers on Funding
@@ -374,8 +370,7 @@ data$Suitability<-factor(data$Suitability)
 We first fitted a full model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2 value of  `r round(PsR2,4)`, indicating that percent of the variation in the approval of the applications can be explained by the model. 
 
 ```{r}
-<<<<<<< HEAD
-=======
+
 log.ext.Model <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
               PercentFemale + Age + Gender + Division + IsContinuation + InstType + 
               Semester + Division:InstType, data=data, family="binomial")
@@ -409,7 +404,6 @@ data$Suitability<-factor(data$Suitability)
   Model.log.ext <- glm(IsApproved ~ .+Gender:Division+
                 Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data, 
                 family="binomial")
->>>>>>> 00e5a8b7200b0801803b46ecee171163c3147384
 
   summary(Model.log.ext)
   coef.log <- Model.log.ext$coefficients
@@ -444,7 +438,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)), x=coef.log, colour=col))
 ```
 
 The confidence intervals which do not include zero are those for the variables: IsContinuation, Suitability (all levels from 4 to 6), ScientificRelevance (all levels from 4 to 6), and ApplicantTrack(for levels 5 and 6) 
@@ -493,7 +488,6 @@ Notice that the coefficient for gender is not significant, since its confidence 
 ```
 
 As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, our analysis suggest that this difference is not significant.
-
 
 \pagebreak
 
@@ -589,6 +583,7 @@ grid.arrange(p1, p2, ncol=2)
 
 ```{r new CI plot project external}
 CI.project <- confint(Model.Prop)
+cof<-Model.Prop$coefficients[6:14]
 colors <- rep('not significant', nrow(CI.project))
 for (i in 1:nrow(CI.project)){
   if (CI.project[i,1] > 0 & 0 < CI.project[i,2]) {colors[i]='significant'}
@@ -605,7 +600,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
 
 From the plot above we can see that gender is not significant, since its confidence interval includes zero. The other significant predictors are Division, the percentage of female reviewers, if the project is a continuation, the Institution type and the log(AmountRequested).
@@ -730,6 +726,7 @@ grid.arrange(p1,p2,ncol=2)
 
 ```{r new CI plot track external}
 CI.track <- confint(Model.App)
+cof<-Model.App$coefficients[6:15]
 colors <- rep('not significant', nrow(CI.track))
 for (i in 1:nrow(CI.track)){
   if (CI.track[i,1] > 0 & 0 < CI.track[i,2]) {colors[i]='significant'}
@@ -746,7 +743,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
 
 Notice that the confidence interval referring to gender  do not include zero and so the corresponding coefficient is significant. The only variables that appear to be not significant in the determination of the Applicant Track grade, are the institution type and the Division. In this model, Division one is used as a base line, and from the results above, we can see that the only impact in grades, from the division point of view, is if the applicant come from Division two. Likewise, from the institution type point of view, there are different chances of reaching higher grades for applicants in institutions other than ETH and Uni.
@@ -799,7 +797,9 @@ gender.prob.Overall<-t(gender.prob.Overall)
 gender.prob.Overall<-cbind(round(gender.prob.Overall,3),
 Difference=round((gender.prob.Overall[,1]-gender.prob.Overall[,2]),3))
 gender.prob.Overall<-as.data.frame(gender.prob.Overall)
-gender.prob.Overall
+
+kable(gender.prob.Overall,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
 
 p1 <- ggplot(gender.prob.Overall) +
   geom_line(aes(1:6, Male, colour = "Male")) +
@@ -839,6 +839,7 @@ grid.arrange(p1,p2,ncol=2)
 
 ```{r new CI plot ranking external}
 CI.Rank <- confint(Model.Overall)
+cof<-Model.Overall$coefficients[6:15]
 colors <- rep('not significant', nrow(CI.Rank))
 for (i in 1:nrow(CI.Rank)){
   if (CI.Rank[i,1] > 0 & 0 < CI.Rank[i,2]) {colors[i]='significant'}
@@ -855,9 +856,9 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)), x=cof, colour=col))
 ```
-
 
 ```{r gender ex clm Overall coef, echo=F}
 # summary(Model.Overall)
@@ -865,13 +866,10 @@ ggplot(data=df)+
 # exp(-0.31) 0.7334
 ```
 
-<<<<<<< HEAD
+
 Here gender seems to be not significant, since its confidence interval include zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, log(AmountRequested), Is Continuation, the institution type and Division.
-=======
+
 Here again gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, PreviousRequest, and the institution type.
->>>>>>> 00e5a8b7200b0801803b46ecee171163c3147384
-
-
 
 ### Internal Step
 
@@ -1070,7 +1068,10 @@ gender.prob.project<-t(gender.prob.project)
 gender.prob.project<-cbind(round(gender.prob.project,3),
 Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
 gender.prob.project<-as.data.frame(gender.prob.project)
-gender.prob.project
+
+kable(gender.prob.project,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
 ```
 
 Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achieving a certain grade. We also represented in the plots below the probability and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
@@ -1106,7 +1107,6 @@ p2 <- ggplot(gender.cum.prob.project) +
 grid.arrange(p1, p2, ncol=2)
 ```
 
-
 #### *Ordinal regression for Applicant Track*
 
 ```{r clm applicant track}
@@ -1120,7 +1120,8 @@ Model2.track <- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation +
 pvalue <- round(anova(Model2.track, Model.track)[2,6],5)
 ```
 
-* **Applicant Track assessment**: the model we used has ApplicantTrack as a response variable and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested), Semester, the interaction between Gender and Division and the interaction between Division and PercentFemale. Again we fitted the same model without Gender and compare it to the one with gender using the likelihood ratio test included in the anova() function. We got a p.value of `r pvalue`, meaning that for the grades given to the main applicant track record, gender should be included in the model. Howver, we can see from the plot below that the confidence interval of gender includes 0 and so the coefficient seems to be not relevant to the model. Notice that the significant variables seem to be: Division, Institution type, IsContinuation and the percentage of female reviewers. Finally, the interaction between Division and the percentage of female seems to have some importance too.
+* **Applicant Track assessment**: The model we used has ApplicantTrack as a response variable and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested), Semester, the interaction between Gender and Division and the interaction between Division and PercentFemale. Again we fitted the same model without Gender and compare it to the one with gender using the likelihood ratio test included in the anova() function. We got a p.value of 0.00027, meaning that for the grades given to the main applicant track record, gender should be included in the model. Howver, we can see from the plot below that the confidence interval of gender includes 0 and so the coefficient seems to be not relevant to the model. Notice that the significant variables seem to be: Division, Institution type, IsContinuation and the percentage of female reviewers. Finally, the interaction between Division and the percentage of female seems to have some importance too.
+
 
 ```{r new CI plot track internal}
 coef.track <- coef(Model.track)[6:22]
@@ -1171,7 +1172,9 @@ gender.prob.track<-t(gender.prob.track)
 gender.prob.track<-cbind(round(gender.prob.track,3),
 Difference=round((gender.prob.track[,1]-gender.prob.track[,2]),3))
 gender.prob.track<-as.data.frame(gender.prob.track)
-gender.prob.track
+
+kable(gender.prob.track,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
 
 p1 <- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Male, colour = "Male")) +
@@ -1275,7 +1278,10 @@ gender.prob.Rank<-t(gender.prob.Rank)
 gender.prob.Rank<-cbind(round(gender.prob.Rank,3),
 Difference=round((gender.prob.Rank[,1]-gender.prob.Rank[,2]),3))
 gender.prob.Rank<-as.data.frame(gender.prob.Rank)
-gender.prob.Rank
+
+kable(gender.prob.Rank,"latex", booktabs = T) %>%
+    kable_styling(position = "center")
+
 
 p1 <- ggplot(gender.prob.Rank) +
   geom_line(aes(1:6, Male, colour = "Male")) +
@@ -1310,7 +1316,6 @@ The predicted probabilities of achieving certain grade for male and female is sh
 ```{r, echo=F}
 grid.arrange(p1,p2,ncol=2)
 ```
-
  
 
 ### Results
@@ -1359,7 +1364,6 @@ calc_pseudo_r <- function(log_regression_object) {
 full.board.psuedo.r <- calc_pseudo_r(board_log_regression)
 
 ```
-
 
 To approach the question of which step in the process is most important, we first fit a logistic regression with IsApproved as our binary response variable using the glm function in R. We fit a full model with all potential demographic predictors and interactions across the different steps of the process, and the summary grade given to an application in the external (OverallGrade) and internal (Ranking) step. To address the first part of the question (relative importance of each step in the process), we used only the summary grade in each step due to the correlation between the individual grades given within each step and the summary grade given. With the full model (predictors: Gender, Division, Age, IsContinuation, InstType, log(AmountRequested), PercentFemale, Ranking, OverallGrade, Gender:Division, PercentFemale:Gender), we achieved a pseudo-R^2 value of  `r round(full.board.psuedo.r,4)`, indicating that percent of the variation in Y can be explained by the model. 
 
@@ -1411,7 +1415,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)),x=coef.log, colour=col))
 ```
 
 ### Most Important Criteria Within Each Step
@@ -1454,6 +1459,7 @@ summary(Model.ex.step)
 
 ```{r new CI plot importance external}
 CI.ex.step <- confint(Model.ex.step)
+cof<-Model.ex.step$coefficients[6:22]
 colors <- rep('not significant', nrow(CI.ex.step))
 for (i in 1:nrow(CI.ex.step)){
   if (CI.ex.step[i,1] > 0 & 0 < CI.ex.step[i,2]) {colors[i]='significant'}
@@ -1470,7 +1476,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
-  geom_vline(xintercept = 0, linetype="dotted")
+  geom_vline(xintercept = 0, linetype="dotted")+
+  geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
 
 From the plot above we can see that the variable whose coefficients are at the biggest distance from 0 is the ProposalCombined, when the grade is 5 or 6. The grades given to the track record of the applicant are significant too, since the confidence intervals don't include 0 but we can see that the effect is smaller.
@@ -1844,7 +1851,7 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
   * **Country**: where the reviewer is located. Not always known
   * **EmailEnding**: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
   * **IDs**: Anonymized identifiers of the application, the reviewer and the review
-  
+   
 ## Exploratory Analysis
 
 ## OverallGrade vs. IsApproved, by Division
@@ -1878,7 +1885,7 @@ p9 <- plot_mirror_barplot(dataset=ex.m,
 
 p8
 p9
-```
+``` 
 \newpage
 
 ## External Logistic Regression
@@ -1958,7 +1965,6 @@ Odd Ratios and Confidence intervals:
 kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex", booktabs = T) %>%
   kable_styling(position = "center")
 ```
-
 
 ## Internal Logistic Regression
 
