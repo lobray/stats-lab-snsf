@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-setwd("~/StatLab")
+# setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
  # load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
@@ -53,13 +53,13 @@ library(MASS)
 
 The Swiss National Science Foundation (SNSF) is a research funding agency which disseminates yearly, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three data sets provided by SNSF, containing information on the applications for funding received in 2016, the corresponding grades given by both internal and external evaluators, and whether the application was funded or not.
 
+The SNSF evaluation procedure is a multi-step process (involving external reviewers, internal referees, and an internal board) which takes into consideration both the track record of the applicant and the quality of the project (see Appendix for a more detailed description of the evaluation procedure).
+
 The analysis performed for SNSF had a two-fold aim, corresponding to the following two research questions:
 
 (1) Is gender bias occurring at any stage of the SNSF evaluation process? Is the gender of the main applicant influencing the rating of the application?
 
 (2) To what extent the different steps of the evaluation and the different criteria within each step determine the final funding decision?
-
-The SNSF evaluation procedure is a multi-step process (involving external reviewers, internal referees, and an internal board) which takes into consideration both the track record of the applicant and the quality of the project (see Appendix for a more detailed description of the evaluation procedure).
 
 Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown that female applicants' projects get higher score when the application is blinded. Moreover, female applicants receive usually higher grades for projects and lower grades for track record. Hence, after investigating the gender dimension to identify possible biases in the evaluation procedure, the focus of the analysis will be the relative importance of of the criteria for funding (applicant's track record vs. quality of the proposal) and, also, of each step of the evaluation procedure (which opinion is more likely to determine the final decision - the external reviewer or the internal reviewer?). Possible interactions between the gender dimension and the second research question will also be investigated (for instance, by taking into account also the gender of evaluator or the percentage of female referees).
 
@@ -243,7 +243,7 @@ kappa.app
 
 ```
 
-We observe the same moderate agreement when we look at the comparison of grades given to the scientific propsoal (ProposalCombined and ProjectAssessment):
+We observe the same moderate agreement when we look at the comparison of grades given to the scientific proposal (ProposalCombined and ProjectAssessment):
 
 ```{r}
 
@@ -255,7 +255,7 @@ kappa.pro
 
 ### Impact of External & Internal Grade on Funding
 
-Having observed a discrepancy is how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications wtihin that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that recieve an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
+Having observed a discrepancy is how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications within that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that receive an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
 
 Our conclusion for this is that the internal step is very consequential, and the difference in the rating they give translates into differences in whether an application gets funded or not. 
 
@@ -381,23 +381,41 @@ p11
 
 # Gender Bias
 
-To see if gender has an influence in any of the steps of the evaluation process, we did several things. For the external and internal steps, we took took the following two approaches:
+To see if gender has an influence in any of the steps of the evaluation process, we did several things. We wanted to check at an overall level, is there evidence of a gender bias in the funding process? And then within each the external and internal steps, does gender influence the grade applicants receive? For the former we conducted a $\chi^2$ test of the independence. For the latter question, we took took the following two approaches:
 
 (@) **Logistic Regression:** We first fit a logistic regression with the function glm in R, where we used IsApproved (a binary variable) as a response and demographic information of the applicant, project information and the given grades as predictors. The aim of this regression is to see if gender has an influence on the final decision from the perspective of each step.
 
 (@) **Ordinal Regression:** Next, as the final decision is determined by the different grades in the process, in order to see if gender has an influence on any of them, we fitted an Ordinal regression with the function clm of the package "ordinal" on each grade with demographic data and project information as predictors.
 
-In the following sections we will review both analyses for the external, and then internal, steps of the process. 
+In the following sections we will review the analysis of gender bias at an overall level, as well as the analyses for the external, and then internal, steps of the process. 
 
-## External Step
+## Gender Bias in the Funding Decision
+
+To assess if there is a gender bias in the overall funding decision, we did a $\chi^2$ test of independence between Gender and IsApproved, to see if there is a significant relationship these two categorical variables. A $\chi^2$ test of independence at an organizational level would conclude these two variables are not independent (which itself only suggests an association, and not a causal relationship, between Gender and IsApproved), however, we decided the more appropriate test is to check for a relationship between Gender and IsApproved within each Division, since the funding decision is made within each Division, not at the organizational level. 
+
+From this analysis, we see that while all three Divisions have a lower acceptance rate for women than men, this difference is not significant at a 5% significance level. We therefore fail to find evidence of a gender bias in the overall funding decision. 
+
+
+```{r mosaic, fig.ncol=3, out.width="33%"}
+
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 1",], shade=T)
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 2",], shade=T)
+cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 3",], shade=T)
+
+```
+
+
+## External Review Step
+
+We now proceed to investigate if there is a gender bias within the External Review Step.
 
 ### **Logistic Regression**
 
 The goal of this analysis is to see if gender has an influence on the final funding decision, based on the information provided in the external step. 
 
-Regression data:  To perform the analysis, we combined in one data frame information about the applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and about the grades given by the external reviewers (ApplicantTrack, ScientificRelevance, Suitability, OverallGrade, ProposalCombined, PercentFemale). We only had two continuous variables, and at this stage did not standardize them.
+To perform the analysis, we combined in one data frame information about the applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and about the grades given by the external reviewers (ApplicantTrack, ScientificRelevance, Suitability, OverallGrade, ProposalCombined, PercentFemale). We only had two continuous variables, and at this stage did not standardize them.
     
-As there are almost no application approved that have grades smaller than "good", we decide to aggregate grades "poor", "average" and "good" to avoid perfect separation problems. All grades are considered as factors.
+As almost no application with grade below "good" was approved, we decided to aggregate grades "poor", "average" and "good" to avoid perfect separation problems. All grades are considered as factors.
                          
 ```{r}
 # Obtain Regression Data
@@ -422,8 +440,8 @@ data$Suitability<-factor(data$Suitability)
   
 ```
 
-We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*. Also we considered the interaction between InstType and Division. we didn't considered OverallGrade as it is highly correlated with the grades of the applicant and the project. we achieved a pseudo-R^2  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. 
-^[$R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
+We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*.  We also considered the interaction between InstType and Division. We didn't considered OverallGrade as it is highly correlated with the grades of the Applicant Track and the scientific proposal.  This model had a pseudo-$R^2$  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. 
+^[We used the following computation of pseudo-$R^2$: $R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
 
 
 
@@ -437,7 +455,6 @@ PsR2.small<-(1-exp((log.ext.Model$dev-log.ext.Model$null)/1623))/(1-exp(-log.ext
 ```
 
 
-When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interaction with Gender where significant. The pseudo R^2 for this model is `r round(PsR2.small,4)` , i.e. this smaller model explains basically the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. for the summary result of this regression.]
 
 
 ```{r get data for logistic external}
@@ -474,10 +491,9 @@ Model.log.ext <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitabi
 PsR2.small<-(1-exp((Model.log.ext$dev-Model.log.ext$null)/1623))/(1-exp(-Model.log.ext$null/1623))
 ```
 
+When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. for the summary result of this regression.]
 
-When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interaction with Gender where significant. The pseudo R^2 for this model is `r round(PsR2.small,4)` , i.e. this smaller model explains basically the same variance of the data than the former one. Non of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. 
-
-In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% level.
+In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% significance level.
 
 ```{r new CI plot logistic external}
 colors <- rep('not significant', nrow(CI))
@@ -555,7 +571,7 @@ Notice that the coefficient for gender is not significant, since its confidence 
        lines=list(col=1))
 ```
 
-As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the predicted probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, our analysis suggest that this difference is not relevant.
+As we are interested in the effect of gender in each step of the evaluation process, we looked at the difference of the predicted probability of being accepted between male and female given the final model. Female have a probability `r prob[2,1]`, while male have `r prob[1,1]`. Although there is a small difference, the confidence intervals overlap and thus the difference is not significant.
 
 \pagebreak
 
@@ -581,7 +597,7 @@ Prop.nogender<- clm(ProposalCombined ~  Division + PercentFemale + IsContinuatio
 p.value<-anova(Model.Prop,Prop.nogender)[2,6]
 ```
 
-(1) **Scientific Proposal**: After fitting a full model using the clm function with ProposalCombined as a response variable and different interactions, and then selecting from this model the significant variables with the AIC criteria and the help of the drop1() function in R. From the output of the drop1() fuction we manually looked into that variable that reduce the most the AIC if removed. We ended up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). Then we fitted the same model without Gender and compare it with the anova() function and the likelihood ratio test to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the project, gender is not important. This is to be expected, as the project is being evaluated and not the applicant.
+(1) **Scientific Proposal (ProposalCombined)**: We fit a full model using the clm function with ProposalCombined as a response variable. We used all the predictors from the application and external reviewers datasets, along with varioius interactions, and then selected variables with the AIC criteria with the help of the drop1() function in R. From the output of the drop1() function, we manually excluded the variable whose omission would reduce the AIC the most, one by one.  We ended up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). We fitted this same model without Gender and compared it using the likelihood ratio test from the anova() function to the same model with gender. We had a p.value of `r p.value`, meaning that for the grades given to the project, the model with gender is not significantly better than the model without gender. We thus conclude that we don't have evidence of gender having a substantial impact on the grade given to ProposalCombined.  
 
 
 ```{r effects prob project3, message=F, warning=F}
@@ -623,7 +639,7 @@ kable(gender.prob.project,"latex", booktabs = T, caption="Predicted probabilitie
     kable_styling(position = "center", latex_options="hold_position" )
 ```
 
-Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achieving a certain grade. We also represented in the plots below the probability and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
+Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achieving a certain grade. We also represented in the plots below the probability and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent" or "outstanding."
 
 ```{r effects plot project2, message=F, warning=F, out.width="50%", fig.ncol=2}
 p1 <- ggplot(gender.prob.project) +
@@ -715,7 +731,7 @@ gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender
              
 ```
 
-(2) **Applicant Track assessment**: The final model we used has ApplicantTrack as a response variable, and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
+(2) **Applicant Track assessment**: Next, we fit another Ordinal regression with ApplicantTrack as a response variable. We used the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
 
 
 ```{r clm int applicant track}
@@ -803,7 +819,7 @@ p2 <- ggplot(gender.cum.prob.app) +
   theme(plot.title = element_text(size=10))
 ```
 
-In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish if gender has an influence on the applicant track assessment.
+In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. Although the difference between male and female is significant, it is a very large difference between male and female.
 
 ```{r ex call effect plots track, out.width="50%", fig.ncol=2}
 p1; p2
@@ -835,7 +851,7 @@ ggplot(data=df)+
   geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
 
-Notice that the confidence interval referring to gender  do not include zero and so the corresponding coefficient is significant. The only variables that appear to be not significant in the determination of the Applicant Track grade, are the institution type and the Division. In this model, Division one is used as a base line, and from the results above, we can see that the only impact in grades, from the division point of view, is if the applicant come from Division two. Likewise, from the institution type point of view, there are different chances of reaching higher grades for applicants in institutions other than ETH and Uni.
+Notice that the confidence interval referring to gender does not include zero and so the corresponding coefficient is significant. The only variables that appear to be not significant in the determination of the Applicant Track grade, are the institution type and the Division. In this model, Division 1 is used as a base line, and from the results above, we can see that the only impact in grades, from the division point of view, is if the applicant comes from Division 2. Likewise, from the institution type point of view, there are different chances of reaching higher grades for applicants in institutions other than ETH and Uni.
 
 
 ```{r ex clm ranking, warning=F, message=F}
@@ -850,7 +866,7 @@ p.value<-round(anova(Model.Overall,Over.nogender)[2,6],5)
                           
 ```
 
-(3) **Overall Grade**: This last model has OverallGrade as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is not significant to the model: p.value of `r p.value`. 
+(3) **Overall Grade**: This last model has OverallGrade as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and log(AmountRequested) as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model to the same one without gender suggests that gender is not significant: it's p.value is `r p.value`. 
 
 ```{r ex effects prob ranking, message=F, warning=F}
 X<-Model.Overall$model[,-1]
@@ -921,7 +937,7 @@ p2 <- ggplot(gender.cum.prob.Overall) +
   theme(plot.title = element_text(size=10))
 ```
 
-The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Overall[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" grade rather than a "very good", compared to male applicants. From the cumulative probability plot below, we see that the trend is the same for both genders and that the difference is not relevant.
+The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Overall[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" or "very good" grade rather than a "excellent" or "outstanding", relative to male applicants. 
     
 ```{r, out.width="50%", fig.ncol=2}
 p1; p2
@@ -955,17 +971,17 @@ ggplot(data=df)+
 ```
 
 
-Here gender seems to be not significant, since its confidence interval include zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, log(AmountRequested), Is Continuation, the institution type and Division.
+Here gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are PercentFemale, log(AmountRequested), IsContinuation, the InstType and Division.
 
 Here again gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, PreviousRequest, and the institution type.
 
-## Internal Step
+## Internal Review Step
 
 ### **Logistic Regression**
 
 We now repeat the logistic regression for the internal step, to understand if gender has an influence on the final funding decision, based on the information provided in the internal step. 
 
-Regression data:  as explained before, in order to perform the analysis, we combined in a single data frame all the information about applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and about grades given by the internal referees (ApplicantTrack, ProjectAssessment, Ranking, PercentFemale). 
+As explained before, in order to perform the analysis, we combined in a single data frame all the information about applications (IsApproved, Age, Gender, Division, IsContinuation, PreviousRequest, InstType, log(AmountRequested), Semester) and grades given by the internal referees (ApplicantTrack, ProjectAssessment, Ranking, PercentFemale). 
     
 We had again a perfect separation problem, due to the fact that there are very few approved applications with grades worse than "good". We aggregated the grades which were in category "poor", "average" and "good" in a unique category for both the applicant track record and the project assessment. All grades are considered as factors. Since the proportion of female referees who evaluate the application takes only values 0, 0.5 and 1, we consider it as a factor with 3 levels.
 
@@ -976,8 +992,8 @@ internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.
 internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack, ordered = F)
 internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment, ordered = F)
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 data<- subset(internal_regression_data,select = -c(ProjectID, Ranking, AmountRequested,
                                                    NumberExternalReviewers, NumberInternalReviewers))
 
@@ -995,9 +1011,9 @@ data$ProjectAssessment <- factor(data$ProjectAssessment)
   PsR2<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
 ```
 
-We first used the 'glm' function in R to fit a full model with all the available variables and the interactions between Gender and Division, Gender and PercentFemale, Gender and ApplicantTrack. Moreover, we considered the interaction between InstType and Division. We didn't include the Ranking grades into the model, since they are highly correlated with the single grades for the applicant and the project. We achieved a pseudo-R^2 value of  `r round(PsR2,4)`, meaning that the variation in the binary variable Y (approved or not) can be explained for more than half by this model including only the internal step information.
+We first used the glm function in R to fit a full model with all the available variables and the interactions between Gender and Division, Gender and PercentFemale, and Gender and ApplicantTrack. We also considered the interaction between InstType and Division. We didn't include the Ranking grades into the model, since they are highly correlated with the single grades for the applicant and the project. We achieved a pseudo-$R^2$ value of  `r round(PsR2,4)`, meaning that the variation in the binary variable Y (approved or not) can be explained for more than half by this model including only the internal step information.
 
-Then, we did variable selection using the AIC criteria again with the drop1() function, in order to obtain a small and effective model as we did for the external step. The remaining predictors are Gender, Age, Semester, IsContinuation, PercentFemale, ApplicantTrack, ProjectAssessment and log(AmountRequested). Interactions were removed from the model because not significant.
+Then, we did variable selection using the AIC criteria again with the drop1() function, in order to obtain a small and effective model as we did for the external step. The remaining predictors are Gender, Age, Semester, IsContinuation, PercentFemale, ApplicantTrack, ProjectAssessment and log(AmountRequested). Interactions were removed from the model because they were not significant.
 
 ```{r logistic internal regression}
 Model.log.int <- glm(IsApproved ~ Gender + Age + Semester + IsContinuation + PercentFemale + 
@@ -1010,9 +1026,9 @@ CI <- confint(Model.log.int)
 PsR2.small<-(1-exp((Model.log.int$dev-Model.log.int$null)/1623))/(1-exp(-Model.log.int$null/1623)) #0.69135
 ```
 
-The pseudo R^2 for this model is `r round(PsR2.small,4)` , i.e. this reduced model explains basically the same proportion of variance of the data as the previous model. Even if we removed some variables, the model still explains almost 70% of the variation of the variable IsApproved. It therefore seems that the internal grades are significant predictors for the final funding decision. 
+The pseudo-$R^2$ for this model is `r round(PsR2.small,4)` , i.e. this reduced model explains basically the same proportion of variance of the data as the previous model. Even if we removed some variables, the model still explains almost 70% of the variation of the variable IsApproved. It therefore seems that the internal grades are significant predictors for the final funding decision. 
 
-In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% level.
+In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% significance level.
 
 ```{r new CI plot logistic internal}
 
@@ -1038,7 +1054,7 @@ ggplot(data=df)+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.log, colour=col))
 ```
 
-The confidence intervals which don't include zero are those for the variables: IsContinuation, ApplicantTrack (all levels from 4 to 6) and ProjectAssessment (all levels from 4 to 6). Notice that the coefficient for gender is not significant, since its confidence interval (`r round(df[which(rownames(df)=="Genderf"),1],4)`,`r round(df[which(rownames(df)=="Genderf"),1],4)`) contains zero. The point estimate for gender is `r coef.log[2]` and this means that the odds with respect to being approved or not given that the applicant is a woman is `r exp(coef.log[2])` times larger than the odds for a man (which is the reference level).
+The confidence intervals which don't include zero are those for the variables: IsContinuation, ApplicantTrack (all levels from 4 to 6) and ProjectAssessment (all levels from 4 to 6). Notice that the coefficient for gender is not significant, since its confidence interval (`r round(df[which(rownames(df)=="Genderf"),1],4)`, `r round(df[which(rownames(df)=="Genderf"),2],4)`) contains zero. The point estimate for gender is `r round(coef.log[2],4)` and this means that the odds with respect to being approved or not given that the applicant is a woman is `r round(exp(coef.log[2]),4)` times larger than the odds for a man (which is the reference level).
 
 In order to interpret the coefficient estimates, we exponentiated them and we obtained the following values:
 
@@ -1083,7 +1099,7 @@ As said before, our focus is the effect of gender in each step of the evaluation
 
 ### **Ordinal Regression**
 
-To see which variables influence the different grades in the second step of the evaluation process and check if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function 'clm' of the package 'ordinal' in R. 
+To see which variables influence the different grades in the second step of the evaluation process and check if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package *ordinal* in R. 
 
 We did this for all grades given by the internal reviewers:
 
@@ -1096,8 +1112,8 @@ We did this for all grades given by the internal reviewers:
 
 ```{r clm project assessment}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 internal_regression_data$PercentFemale <- factor(internal_regression_data$PercentFemale)
 
@@ -1112,9 +1128,9 @@ Model2.project <- clm(ProjectAssessment ~ Division + PercentFemale + Age +
 pvalue <- anova(Model2.project, Model.project)[2,6]
 ```
 
-(1) **Scientific Proposal**: we fitted the full model with ProjectAssessment as response variable, using the clm function. Then we selected the significant variables with the AIC criteria and the help of the drop1() function in R. We performed a stepwise procedure by hand, removing each time the variable that was minimizing the most the AIC. We ended up with a model with the following predictors: Gender, Division, PercentFemale, Age, IsContinuation, InstType and log(AmountRequested). We also fitted the same model without Gender (using the clm function again) and compared it to the previous one using the likelihood ratio test implemented in the anova function: we got a p.value of `r pvalue`, meaning that Gender seem to be a significant predictor for the grades given to the project by the internal referees. 
+(1) **Scientific Proposal (ProjectAssessment)**: We fitted the full model with ProjectAssessment as response variable, using the clm function. Then we selected the significant variables with the AIC criteria with the help of the drop1() function in R. We performed a stepwise procedure by hand, removing each time the variable that minimized the AIC most. We ended up with a model with the following predictors: Gender, Division, PercentFemale, Age, IsContinuation, InstType and log(AmountRequested). We also fitted the same model without Gender (using the clm function again) and compared it to the previous one using the likelihood ratio test implemented in the anova function: we got a p-value of `r pvalue`, meaning that Gender seems to be a significant predictor for the grades given to the project by the internal referees. 
 
-Below you see the predicted confidence interval for all the coefficients in our model: all the variables are significant (except for one level of Division and one for PercentFemale). Notice that the upper bound of the gender confidence interval is really close to zero. From this results, we cannot say that there is clear evidence of gender bias.
+Below are the predicted confidence intervals for all the coefficients in our model: all the variables are significant (except for one level of Division and one for PercentFemale). Notice that the upper bound of the gender confidence interval is really close to zero. From this results, we cannot say that there is clear evidence of gender bias.
 
 ```{r new CI plot project internal}
 CI.project <- confint(Model.project)
@@ -1175,7 +1191,7 @@ kable(gender.prob.project,"latex", booktabs = T, caption="Predicted probabilitie
 
 ```
 
-Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. Even though gender is a signifiant predictor, we can see from the predicted probabilities that gender does not have a meaningful impact on the probability of achieving a certain grade. 
+Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. Even though gender is a significant predictor, we can see from the predicted probabilities that gender does not have a meaningful impact on the probability of achieving a certain grade. 
 
 ```{r effects plot project, message=F, warning=F}
 p1 <- ggplot(gender.prob.project) +
@@ -1215,7 +1231,7 @@ p2 <- ggplot(gender.cum.prob.project) +
 p1; p2
 ```
 
-This conclusion is reinforced when we look at the plots above, which show the probability and cumulative probability curves of getting each grade for male and female.  They follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent". We therefore conclude that gender is a significant, but not practically relevant, predictor of the different grades.
+This conclusion is reinforced when we look at the plots above, which show the probability and cumulative probability curves of getting each grade for male and female applicants.  They follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent". We therefore conclude that gender is a significant, but a not necessarily practically relevant, predictor of the different grades.
 
 
 ```{r clm applicant track}
@@ -1229,7 +1245,7 @@ Model2.track <- clm(ApplicantTrack ~ Division + PercentFemale + IsContinuation +
 pvalue <- round(anova(Model.track,Model2.track)[2,6],5)
 ```
 
-(2) **Applicant Track assessment**: The model we used has ApplicantTrack as a response variable and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested), Semester, the interaction between Gender and Division and the interaction between Division and PercentFemale. Again we fitted the same model without Gender and compare it to the one with gender using the likelihood ratio test included in the anova() function. We got a p.value of $`r pvalue`$, meaning that for the grades given to the main applicant track record, gender should be included in the model. We see from the Confidence Interval plot that the interaction Gender:Division is significant. The other significant variables seem to be: Division, Institution type, IsContinuation and the percentage of female reviewers. Finally, the interaction between Division and the percentage of female seems to have some importance too. However, once again, gender is signficant but not practically relevant, as evidenced by the negligible differences between genders in the table below.
+(2) **Applicant Track assessment**: The next model we used has ApplicantTrack as a response variable and the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested), Semester, the interaction between Gender and Division and the interaction between Division and PercentFemale. Again we fitted the same model without Gender and compared it to the one with gender using the likelihood ratio test included in the anova() function. We got a p-value of $`r pvalue`$, meaning that for the grades given to the main applicant track record, gender should be included in the model. We see from the confidence interval plot that the interaction Gender:Division is significant. The other significant variables seem to be: Division, Institution type, IsContinuation and the percentage of female reviewers. Finally, the interaction between Division and the percentage of female seems to have some importance too. However, once again, gender is significant but not practically relevant, as evidenced by the negligible differences between genders in the table below.
 
 
 ```{r new CI plot track internal}
@@ -1339,9 +1355,9 @@ pvalue <- anova(Model2.Rank, Model.Rank)[2,6]
                           
 ```
 
-(3) **Ranking**: This last model has Ranking as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is significant to the model: p.value of `r pvalue`.
+(3) **Ranking**: This last model has Ranking as a response and Gender, Division, PercentFemale, IsContinuation, InstType, PreviousRequest and logAmount as predictors. We are not considering here the grades given to the applicant track record and to the project, as we just want to see the influence of the demographic data and the project information in each grade. A comparison of this model with the same one without gender may suggest that gender is significant to the model: p-value of `r round(pvalue, 4)`.
 
-We can also see from the plot below that the upper bound of the confidence interval of gender is not so far from 0. This also suggests that the previous p-value is not completely trustable.
+We can also see from the plot below that the upper bound of the confidence interval of gender is not so far from 0. This also suggests that the effect may not be so large.
 
 ```{r new CI plot ranking internal}
 coef.rank <- coef(Model.Rank)[6:16]
@@ -1431,7 +1447,7 @@ p2 <- ggplot(gender.cum.prob.Rank) +
   theme(plot.title = element_text(size=10))
 ```
 
-Once again the differences between male and female predicted probabilities are not too large, so we do not find gender to be a meaningful predictor of the grade. However, we do notice that between male and female for the top three grades (A, AB, B), there is a cumulative difference of 7.7pp.
+Once again the differences between male and female predicted probabilities are not too large, so we do not find gender to be a meaningful predictor of the grade. However, we do notice that the cumulative difference between male and female for the top three grades (A, AB, B) is 7.7pp. While this is still a small difference, it is worth continuing to pay attention to since the aggregate effect is more noticeable than the individual differences.
     
 ```{r, out.width="50%", fig.ncol=2}
 p1; p2
@@ -1440,17 +1456,23 @@ p1; p2
 
 ## Results
 
-### External Step
+### Gender Bias in the Funding Decision
 
-The external step model is not a good explanation of the variation in the approval of applications (around 42%). We nevertheless look into the influence of gender at this stage, but couldn't find evidence of its effect on the final decision.
+When assessing the assocation between Gender and IsApproved in each of the three Divisions at the SNSF, we failed to reject the null hypothesis that the two variables are independent at a 5% significance level. Thus we failed to find evidence at an overarching level of gender bias in the funding decision.
 
-When looking at the different grades in this step, we found that gender did not have a significant influence on Applicant Track, ProposalCombined, or OverallGrade. 
+### External Review Step
 
-### Internal Step
+Within the external review step, we discovered that a logistic regression using data from the external step is not a good explanation of the variation in the approval of applications (around 42%). We nevertheless look into the influence of gender at this stage, but couldn't find evidence of its effect on the final decision.
 
-The internal model is a quite good explanation of the variation in the approval of applications (around 70% of the variability is explained). When looking at each criteria of evaluation, we found that gender seems to have a small influence in the grade given, however this effect is not practically relevant.
+When looking at the different grades in this step, we found that gender did not have a significant influence on ProposalCombined or OverallGrade. We did find that gender was a significant predictor for the grade of Applicant Track, but the impact in terms of the difference in predictive probabilities was rather low. 
 
-Considering all the analysis that we have done so far, we can say that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is generally not an important variable in the regressions we performed and the difference in the predicted probability between male and female applicants is not practically relevant.
+### Internal Review Step
+
+The logistic regression using the data from the internal review step is a much better explanation of the variation in the approval of applications (around 70% of the variability is explained). Gender was not a significant predictor in this regression.
+
+When looking the predictors of the different grades, we found that gender was a significant predictor for the ProjectAsssessment and Ranking grades, but not for the ApplicantTrack. The individual effects were small (in terms of the difference in predicted probabilities), so it's effect was significant but not practically relevant. The combined difference in predictive probabilities of top grades given to male vs. female applicants was more notable than the individual grades, albiet the overall impact was still reletively small.   
+
+Considering all the analysis that we have done so far, we conclude that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is generally not an important variable in the regressions we performed, and where it was a significant predictor, the difference in the predicted probability between male and female applicants is not practically relevant. 
 
 
 # Relative Importance of the Different Steps
@@ -1459,7 +1481,7 @@ Our second research question was to assess the relative importance of each step 
 
 (@) **Most Important Step: Logistic Regression:** We first fit a logistic regression with IsApproved as our binary response variable using the glm function, with the demographic data and the summary grades from the external and internal step to assess which step of the process was most important to determining the final funding decision. 
 
-(@) **Most Important Criteria within Each Step:** We then assessed which criteria was most important within each step to predict the overall grade given to an application (OverallGrade in the External step, Ranking in the Internal step). We did this by fitting an Ordinal Regression (with the OverallGrade (for external) and Ranking (for internal) as the response) with standardized coefficients, and then comparing the magnitude of each predictor. We use this approach for first the external and then the internal step. 
+(@) **Most Important Criteria within Each Step:** We then assessed which criteria was most important within each step to predict the overall grade given to an application (OverallGrade in the External step, Ranking in the Internal step). We did this by fitting an Ordinal Regression (with the OverallGrade for external and Ranking for internal as the response) with standardized coefficients, and then comparing the magnitude of each predictor. We use this approach for first the external and then the internal step. 
 
 ## Most Important Step: Logistic Regression
 
@@ -1486,7 +1508,7 @@ full.board.psuedo.r <- calc_pseudo_r(board_log_regression)
 
 ```
 
-To approach the question of which step in the process is most important, we first fit a logistic regression with IsApproved as our binary response variable using the glm function in R. We fit a full model with all potential demographic predictors and interactions across the different steps of the process, and the summary grade given to an application in the external (OverallGrade) and internal (Ranking) step. To address the first part of the question (relative importance of each step in the process), we used only the summary grade in each step due to the correlation between the individual grades given within each step and the summary grade given. With the full model (predictors: Gender, Division, Age, IsContinuation, InstType, log(AmountRequested), PercentFemale, Ranking, OverallGrade, Gender:Division, PercentFemale:Gender), we achieved a pseudo-R^2 value of  `r round(full.board.psuedo.r,4)`, indicating that percent of the variation in Y can be explained by the model. 
+To approach the question of which step in the process is most important, we first fit a logistic regression with IsApproved as our binary response variable using the glm function in R. We fit a full model with all potential demographic predictors and interactions across the different steps of the process, and the summary grade given to an application in the external (OverallGrade) and internal (Ranking) step. To address the first part of the question (relative importance of each step in the process), we used only the summary grade in each step due to the correlation between the individual grades given within each step and the summary grade given. With the full model (predictors: Gender, Division, Age, IsContinuation, InstType, log(AmountRequested), PercentFemale, Ranking, OverallGrade, Gender:Division, PercentFemale:Gender), we achieved a pseudo-$R^2$ value of  `r round(full.board.psuedo.r,4)`, indicating that percent of the variation in IsApproved can be explained by the model. 
 
 ```{r}
 board_log_regression_small <- glm(board_data1$IsApproved ~ Age + IsContinuation + Ranking + OverallGrade, family="binomial", data = board_data1)
@@ -1494,9 +1516,9 @@ board_log_regression_small <- glm(board_data1$IsApproved ~ Age + IsContinuation 
 board_r_small <- calc_pseudo_r(board_log_regression_small)
 ```
 
-As our goal was to explain the most important factors, we then did backwards variable selection using the AIC. This left us with a model with only 4 predictors: Ranking, OverallGrade, Age, and IsContinuation. The pseudo R^2 measure of this model is `r round(board_r_small,4)`, which indicates that this simplified model nearly explains exactly as much variance in the data as the full model, and so we can be content to use just the small model.
+As our goal was to explain the most important factors, we then did backwards variable selection using the AIC. This left us with a model with only 4 predictors: Ranking, OverallGrade, Age, and IsContinuation. The pseudo-$R^2$ measure of this model is `r round(board_r_small,4)`, which indicates that this simplified model nearly explains exactly as much variance in the data as the full model, and so we can be content to use just the small model.
 
-Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we looked at the confidence intervals of the coefficients to see which had the largest impact. To do this, we needed to first standardize our continuous variables (Age). When we plot the confidence intervals of our coefficients, we can see that the internal Ranking has by far the largest coefficient, and thus the biggest impact on the final funding decision.     
+Now that we've reduced our model to 4 predictors, we wanted to understand exactly how important each of those predictors are to the final funding decision. To do this, we looked at the confidence intervals of the coefficients to see which had the largest impact. To do this, we needed to first standardize our continuous variables (Age). When we plotted the confidence intervals of our coefficients, we can see that the internal Ranking has by far the largest coefficient, and thus the biggest impact on the final funding decision.     
 
 ```{r variable importance board regression}
 
@@ -1545,9 +1567,9 @@ ggplot(data=df)+
 
 The second aspect of this question was to identify what was the most important criteria within each step.
 
-### External step
+### External Review Step
 
-In order to check which variable has the biggest influence on the final grade given by the external reviewers, we fitted an ordinal regression using the "OverallGrade" grade as multinomial response and the Applicant Track grade, the ProposalCombined grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProposalCombined, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
+In order to check which variable has the biggest influence on the final grade given by the external reviewers, we fitted an ordinal regression using the "OverallGrade" grade as the multinomial response and ApplicantTrack,  ProposalCombined grade and demographic data as predictors. We started as always fitting the full model and then did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProposalCombined, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
 ```{r data for importance external step}
 
@@ -1555,8 +1577,8 @@ In order to check which variable has the biggest influence on the final grade gi
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 # get grades as factors
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
-#external_regression_data$Semester <- revalue(external_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
-external_regression_data$Semester <- revalue(external_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+external_regression_data$Semester <- revalue(external_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+# external_regression_data$Semester <- revalue(external_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 data <- subset(external_regression_data,select = -c(ProjectID, AmountRequested))
 
 data$ApplicantTrack<-factor(data$ApplicantTrack, ordered=F)
@@ -1571,7 +1593,7 @@ ex_data <- data
 
 ```
 
-We also computed the predicted probabilities for each of the Overall grade, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final ranking, compared to the track record.
+We computed the predicted probabilities for each of the Overall grade, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. The quality of the project has a greater influence on the OverallGrade, compared to the track record.
 
 ```{r relative importance external}
 Model.ex.step<-clm(OverallGrade ~ Gender + Division + PercentFemale +
@@ -1747,14 +1769,14 @@ p1; p2
 
 We also computed the predicted probabilities for each of the OverallGrade grades, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. Notably, in the right graph, the highest probability to the final grade corresponds with the grade given to the ProposalCombined for grades 3, 4, 5 and 6. On the left, receiving a 3, 4 or 5 for the ApplicantTrack record all correspond to most likely receiving an overall grade of 4. This confirms what we found before: the quality of the project has a greater influence on the final Overall Grade, compared to the track record.
 
-### Internal step
+### Internal Review Step
 
-In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the "Ranking" grade as multinomial response and the Applicant Track grade, the Project Assessment grade and some demographic data as predictors. We started as always fitting the full model and we did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
+In order to check which variable has the biggest influence on the final grade given by the internal referees, we fitted an ordinal regression using the Ranking grade as a multinomial response and ApplicantTrack, ProjectAssessment and demographic data as predictors. We started as always fitting the full model and did variable selection using the AIC. The explanatory variables included in the final model are: ApplicantTrack, ProjectAssessment, Gender, Division, PercentFemale, IsContinuation, PreviousRequest and Semester.
 
 ```{r data for importance internal step}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
-#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
+# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
 
@@ -1764,7 +1786,7 @@ data$ProjectAssessment <- factor(data$ProjectAssessment, ordered = F)
 data$PercentFemale <- factor(data$PercentFemale)
 ```
 
-We also computed the predicted probabilities for each of the Ranking grade, varying the Applicant Track grade (plot on the left) and the Project Assessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final ranking, compared to the track record.
+We also computed the predicted probabilities for each of the Ranking grades, varying the ApplicantTrack grade (plot on the left) and the ProjecAssessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final Ranking, compared to the track record.
 
 ```{r relative importance internal}
 Model.int.step<-clm(Ranking ~ Gender + Division + PercentFemale +
@@ -1942,6 +1964,14 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
 
 # Conclusion
 
+## Gender Bias
+
+## Relative Importance
+Gender bias not at an overall level. Within the external step, some small differences in the grades given to women, in particular, fewer high grades given to women. The difference is small, and so overall still not much evidence of a gender bias.
+
+## Recommendations for Futher Analysis 
+
+
 \newpage
 
 # Appendix
@@ -1988,6 +2018,8 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
   * **EmailEnding**: ending of the reviewer's email address. Might be used as an approximation of the country where the reviewer is located in cases where this data is missing
   * **IDs**: Anonymized identifiers of the application, the reviewer and the review
 
+\newpage
+
 ## A.2 Exploratory Analysis
 
 ### OverallGrade vs. IsApproved, by Division
@@ -2020,6 +2052,551 @@ p9 <- plot_mirror_barplot(dataset=ex.m,
 p8
 p9
 ``` 
+
+\newpage
+
+
+### Distribution of Grades by Reviewer Gender & Division (All Applicants)
+
+```{r data to use for analysis appendix, echo=F, message=F}
+
+
+#### External datasets to use
+external_regression_data <- prepare_data_external_log_regression(apps=final.apps, external=final.external)
+ex.f <- external_regression_data[external_regression_data$Gender=="f",]
+ex.m <- external_regression_data[external_regression_data$Gender=="m",]
+ex.div1 <- external_regression_data[external_regression_data$Division=="Div 1",] # particularly bad for Div 1
+ex.div2 <- external_regression_data[external_regression_data$Division=="Div 2",]
+ex.div3 <- external_regression_data[external_regression_data$Division=="Div 3",]
+
+
+#### internal datasets to use 
+internal_regression_data<-prepare_data_internal_log_regression(apps=final.apps, internal=final.internal)
+in.f <- internal_regression_data[internal_regression_data$Gender=="f",]
+in.m <- internal_regression_data[internal_regression_data$Gender=="m",]
+in.div1 <- internal_regression_data[internal_regression_data$Division=="Div 1",] # particularly bad for Div 1
+in.div2 <- internal_regression_data[internal_regression_data$Division=="Div 2",]
+in.div3 <- internal_regression_data[internal_regression_data$Division=="Div 3",]
+
+
+
+```
+
+
+
+#### Division 1
+
+```{r div 1 all, out.width="50%", fig.ncol=2}
+
+### ALL CANDIDATES, DIVISION 1
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 1",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 1: External Distribution of OverallGrade, All Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.40))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 1",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 1: Internal Distribution of OverallGrade, All Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.4))
+
+
+p10
+p11
+```
+
+
+#### Division 2
+
+```{r div 2 all, out.width="50%", fig.ncol=2}
+
+### ALL CANDIDATES, DIVISION 2
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 2",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 2: External Distribution of OverallGrade, All Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 2",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 2: Internal Distribution of OverallGrade, All Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5))
+
+
+p10
+p11
+```
+
+
+#### Division 3
+
+```{r div 3 all, out.width="50%", fig.ncol=2}
+
+### ALL CANDIDATES, DIVISION 3
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 3",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 3: External Distribution of OverallGrade, All Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 3",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 3: Internal Distribution of OverallGrade, All Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5))
+
+
+p10
+p11
+```
+
+
+
+### Distribution of Grades by Reviewer Gender & Division (Female Applicants)
+
+
+
+#### Division 1
+
+```{r div 1 female, out.width="50%", fig.ncol=2}
+
+### FEMALE CANDIDATES, DIVISION 1
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 1",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "f",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 1: External Distribution of OverallGrade, Female Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 1",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "f",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 1: Internal Distribution of OverallGrade, Female Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+
+p10
+p11
+```
+
+
+#### Division 2
+
+```{r div 2 female, out.width="50%", fig.ncol=2}
+
+### FEMALE CANDIDATES, DIVISION 2
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 2",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "f",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 2: External Distribution of OverallGrade, Female Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 2",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "f",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 2: Internal Distribution of OverallGrade, Female Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+
+p10
+p11
+```
+
+
+#### Division 3
+
+```{r div 3 female, out.width="50%", fig.ncol=2}
+
+### FEMALE CANDIDATES, DIVISION 3
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 3",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "f",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 3: External Distribution of OverallGrade, Female Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 3",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "f",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 3: Internal Distribution of OverallGrade, Female Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5)) +
+  theme(panel.background = element_rect(fill = "lavender"))
+
+
+p10
+p11
+```
+
+
+### Distribution of Grades by Reviewer Gender & Division (Male Applicants)
+
+
+
+#### Division 1
+
+```{r div 1 male, out.width="50%", fig.ncol=2}
+
+### MALE CANDIDATES, DIVISION 1
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 1",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "m",]
+
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 1: External Distribution of OverallGrade, Male Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.40)) + 
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 1",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "m",]
+
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 1: Internal Distribution of OverallGrade, Male Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.4)) + 
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+
+p10
+p11
+```
+
+
+#### Division 2
+
+```{r div 2 male, out.width="50%", fig.ncol=2}
+
+### MALE CANDIDATES, DIVISION 2
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 2",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "m",]
+
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 2: External Distribution of OverallGrade, Male Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50)) +
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 2",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 2: Internal Distribution of OverallGrade, Male Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5)) +
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+
+p10
+p11
+```
+
+
+#### Division 3
+
+```{r div 3 male, out.width="50%", fig.ncol=2}
+
+### MALE CANDIDATES, DIVISION 3
+
+########### EXTERNAL
+
+tmp.external.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], external_reviews, by="ProjectID")
+tmp.external.data <- tmp.external.data[tmp.external.data$Division == "Div 3",]
+tmp.external.data <- tmp.external.data[tmp.external.data$Gender == "m",]
+
+r.tab.2<-prop.table(table(tmp.external.data$OverallGrade, tmp.external.data$ReviewerGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("OverallGrade", "ReviewerGender", "Freq")
+
+# How men and women allocate overallgrades
+
+p10 <- ggplot(r.tab.dataframe.2,aes(x=OverallGrade,y=Freq,fill=factor(ReviewerGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("OverallGrade")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                margin = margin(t = 10, b = 20, unit = "pt"))) +
+  ggtitle("Division 3: External Distribution of OverallGrade, Male Applicants") +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.50)) + 
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+####################### INTERNAL
+
+tmp.internal.data <- merge(final.apps[,c("Gender", "Division", "ProjectID")], final.internal, by="ProjectID")
+tmp.internal.data <- tmp.internal.data[tmp.internal.data$Division=="Div 3",]
+tmp.internal.data <-tmp.internal.data[tmp.internal.data$Gender.x == "m",]
+
+r.tab.2<-prop.table(table(tmp.internal.data$Ranking, tmp.internal.data$RefereeGender),2)
+r.tab.dataframe.2 <- as.data.frame(r.tab.2)    
+colnames(r.tab.dataframe.2) <- c("Ranking", "RefereeGender", "Freq")
+
+
+p11 <- ggplot(r.tab.dataframe.2,aes(x=Ranking,y=Freq,fill=factor(RefereeGender)))+
+  geom_bar(stat="identity",position="dodge")+
+  xlab("Ranking")+ylab("Proportion of grades, by Reviewer Gender") +
+  theme(plot.title = element_text(size = rel(1), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
+  guides(fill=guide_legend(title="Reviewer Gender")) +
+  ggtitle("Division 3: Internal Distribution of OverallGrade, Male Applicants") +
+  scale_fill_manual(values=c("orchid4", "darkorange1")) + 
+  scale_y_continuous(limits = c(0, 0.5)) + 
+  theme(panel.background = element_rect(fill = "peachpuff"))
+
+
+p10
+p11
+```
+
+
 \newpage
 
 ## A.3 **Introduction to Cumulative Link Models (CLM)**
@@ -2208,6 +2785,16 @@ kable(round(exp(cbind(OR=Model.Rank$beta,confint(Model.Rank))), 2),"latex", book
 \newpage
 
 ## A.5 Relative importance of each criteria 
+
+### **Relative Importance of the Different Steps**
+
+```{r}
+summary(board_log_regression_small)
+```
+
+
+\newpage
+
 
 ### **Relative importance within the External step**
 
