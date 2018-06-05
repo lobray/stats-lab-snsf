@@ -20,11 +20,11 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-# setwd("~/StatLab")
+setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
- # load("snsf_data.RData") # Chiara's directory, comment out
+load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -65,7 +65,7 @@ Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown
 
 # Data Description
 
-We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available). For a full description of the data & variables, please see the Appendix. 
+We have three data sets: Applications, External Reviewers and Internal Referees. They contain respectively information about the SNSF project funding applications, the evaluation of the applications by external peer reviewers and the evaluation of the proposals by external the internal referee and co-referee (when available). For a full description of the data & variables, please see the Appendix section A.1. 
 
 
 # Cleaning the Data
@@ -255,7 +255,7 @@ kappa.pro
 
 ### Impact of External & Internal Grade on Funding
 
-Having observed a discrepancy is how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications within that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that receive an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
+Having observed a discrepancy is how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications within that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that receive an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix section A.2 to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
 
 Our conclusion for this is that the internal step is very consequential, and the difference in the rating they give translates into differences in whether an application gets funded or not. 
 
@@ -430,10 +430,11 @@ data$ScientificRelevance<-ifelse(data$ScientificRelevance<=3,3,data$ScientificRe
 data$ScientificRelevance<-factor(data$ScientificRelevance)
 data$Suitability<-ifelse(data$Suitability<=3,3,data$Suitability)
 data$Suitability<-factor(data$Suitability)
+data.log.ext <- data
 
 # Fit first model with all variables and interactions
   Model.log.ext <- glm(IsApproved ~ .+Gender:Division+
-               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data, 
+               Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data.log.ext, 
              family="binomial")
   PsR2<-(1-exp((Model.log.ext$dev-Model.log.ext$null)/1623))/(1-exp(-Model.log.ext$null/1623))
   
@@ -449,7 +450,7 @@ We first fitted a logistic regression model with all the variables and the inter
 
 log.ext.Model <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
               PercentFemale + Age + Gender + Division + IsContinuation + InstType + 
-              Semester + Division:InstType, data=data, family="binomial")
+              Semester + Division:InstType, data=data.log.ext, family="binomial")
 
 PsR2.small<-(1-exp((log.ext.Model$dev-log.ext.Model$null)/1623))/(1-exp(-log.ext.Model$null/1623))
 ```
@@ -477,7 +478,7 @@ data$Suitability<-factor(data$Suitability)
 
 # Fit first model with all variables and interactions
   Model.log.ext <- glm(IsApproved ~ .+Gender:Division+
-                Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data, 
+                Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data.log.ext, 
                 family="binomial")
 
   #summary(Model.log.ext)
@@ -486,12 +487,12 @@ data$Suitability<-factor(data$Suitability)
 
 Model.log.ext <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
                                   PercentFemale + Age + Gender + Division + IsContinuation + InstType +
-                                  Semester + Division:InstType, data=data, family="binomial")
+                                  Semester + Division:InstType, data=data.log.ext, family="binomial")
 
 PsR2.small<-(1-exp((Model.log.ext$dev-Model.log.ext$null)/1623))/(1-exp(-Model.log.ext$null/1623))
 ```
 
-When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. for the summary result of this regression.]
+When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. section A.2 for the summary result of this regression.]
 
 In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% significance level.
 
@@ -577,7 +578,7 @@ As we are interested in the effect of gender in each step of the evaluation proc
 
 ### **Ordinal Regression**
 
-To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R, which fits cumulative link models (CLMs), for further details of this models see Appendix pg.
+To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R, which fits cumulative link models (CLMs), for further details of this models see Appendix section A.3.
 
 We did this for all grades given by the external reviewers:
 
@@ -731,7 +732,7 @@ gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender
              
 ```
 
-(2) **Applicant Track assessment**: Next, we fit another Ordinal regression with ApplicantTrack as a response variable. We used the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix.
+(2) **Applicant Track assessment**: Next, we fit another Ordinal regression with ApplicantTrack as a response variable. We used the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix section A.4.
 
 
 ```{r clm int applicant track}
@@ -992,7 +993,7 @@ internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.
 internal_regression_data$ApplicantTrack <- factor(internal_regression_data$ApplicantTrack, ordered = F)
 internal_regression_data$ProjectAssessment <- factor(internal_regression_data$ProjectAssessment, ordered = F)
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
-# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 data<- subset(internal_regression_data,select = -c(ProjectID, Ranking, AmountRequested,
                                                    NumberExternalReviewers, NumberInternalReviewers))
@@ -1002,12 +1003,13 @@ data$ApplicantTrack <- ifelse(as.numeric(data$ApplicantTrack) < 4,3,data$Applica
 data$ApplicantTrack <- factor(data$ApplicantTrack)
 data$ProjectAssessment <- ifelse(as.numeric(data$ProjectAssessment) <4,3,data$ProjectAssessment)
 data$ProjectAssessment <- factor(data$ProjectAssessment)
+data.log.int <- data
 ```
 
 ```{r full logistic regression, echo=F}
 # Fit the full model with all variables and interactions
   Model <- glm(IsApproved ~. +Gender:Division+ Gender:PercentFemale+ Gender:ApplicantTrack+ 
-                         InstType:Division, data=data, family="binomial")
+                         InstType:Division, data=data.log.int, family="binomial")
   PsR2<-(1-exp((Model$dev-Model$null)/1623))/(1-exp(-Model$null/1623))
 ```
 
@@ -1017,7 +1019,7 @@ Then, we did variable selection using the AIC criteria again with the drop1() fu
 
 ```{r logistic internal regression}
 Model.log.int <- glm(IsApproved ~ Gender + Age + Semester + IsContinuation + PercentFemale + 
-    ApplicantTrack + ProjectAssessment + logAmount, data=data, family="binomial")
+    ApplicantTrack + ProjectAssessment + logAmount, data=data.log.int, family="binomial")
 
 # summary(Model.log.int)
 coef.log <- Model.log.int$coefficients
@@ -1112,7 +1114,7 @@ We did this for all grades given by the internal reviewers:
 
 ```{r clm project assessment}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 internal_regression_data$PercentFemale <- factor(internal_regression_data$PercentFemale)
@@ -1578,7 +1580,7 @@ external_regression_data<-prepare_data_external_log_regression(final.apps,final.
 # get grades as factors
 external_regression_data$logAmount<-log(external_regression_data$AmountRequested)
 external_regression_data$Semester <- revalue(external_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
-# external_regression_data$Semester <- revalue(external_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#external_regression_data$Semester <- revalue(external_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 data <- subset(external_regression_data,select = -c(ProjectID, AmountRequested))
 
 data$ApplicantTrack<-factor(data$ApplicantTrack, ordered=F)
@@ -1775,7 +1777,7 @@ In order to check which variable has the biggest influence on the final grade gi
 
 ```{r data for importance internal step}
 internal_regression_data<-prepare_data_internal_log_regression(final.apps,final.internal)
-# internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
+#internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("ottobre"="Oct", "aprile"="Apr"))
 internal_regression_data$Semester <- revalue(internal_regression_data$Semester, c("Oktober"="Oct", "April"="Apr"))
 internal_regression_data$logAmount <- log(internal_regression_data$AmountRequested)
 data<- subset(internal_regression_data,select = -c(ProjectID, AmountRequested))
@@ -2626,32 +2628,25 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 summary(Model.log.ext)
 ```
 
-```{r plot-effects, out.width='50%',fig.show="hold",fig.ncol=2, eval=F}
-plot(Effect("ApplicantTrack",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("ScientificRelevance",Model.log.ext), ### COMMENTED BC ERROR
-        confint=list(style="band",alpha=0.3,col="grey"),
-        lines=list(col=1))
-plot(Effect("Suitability",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("PercentFemale",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Age",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Division",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("IsContinuation",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
-plot(Effect("Semester",Model.log.ext),
-       confint=list(style="band",alpha=0.3,col="grey"),
-       lines=list(col=1))
+```{r, out.width="50%", out.height="70%"}
+plot(Effect("ApplicantTrack",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("ScientificRelevance",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("Suitability",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("IsContinuation",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("Age",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("Division",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("PercentFemale",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
+plot(Effect("Semester",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
+     lines=list(col=1))
 ```
+
 
 \newpage
 
@@ -2675,7 +2670,6 @@ kable(round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2),"latex", book
 
 Summary of the final model:
 ```{r}
-options(width = 50)
 summary(Model.App)
 ```
 
@@ -2714,7 +2708,7 @@ summary(Model.log.int)
 ```
 
 
-```{r plot-effects-int, out.width='50%',fig.show="hold",fig.ncol=2, eval=F}
+```{r plot-effects-int, out.width='50%'}
 plot(Effect("ApplicantTrack",Model.log.int),
        confint=list(style="band",alpha=0.3,col="grey"),
         lines=list(col=1))
