@@ -20,11 +20,11 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-setwd("~/StatLab")
+# setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
-load("snsf_data.RData") # Chiara's directory, comment out
+# load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
-#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -598,7 +598,7 @@ Prop.nogender<- clm(ProposalCombined ~  Division + PercentFemale + IsContinuatio
 p.value<-anova(Model.Prop,Prop.nogender)[2,6]
 ```
 
-(1) **Scientific Proposal (ProposalCombined)**: We fit a full model using the clm function with ProposalCombined as a response variable. We used all the predictors from the application and external reviewers datasets, along with varioius interactions, and then selected variables with the AIC criteria with the help of the drop1() function in R. From the output of the drop1() function, we manually excluded the variable whose omission would reduce the AIC the most, one by one.  We ended up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). We fitted this same model without Gender and compared it using the likelihood ratio test from the anova() function to the same model with gender. We had a p.value of `r p.value`, meaning that for the grades given to the project, the model with gender is not significantly better than the model without gender. We thus conclude that we don't have evidence of gender having a substantial impact on the grade given to ProposalCombined.  
+(1) **Scientific Proposal (ProposalCombined)**: We fit a full model using the clm function with ProposalCombined as a response variable. We used all the predictors from the application and external reviewers datasets, along with various interactions, and then selected variables with the AIC criteria with the help of the drop1() function in R. From the output of the drop1() function, we manually excluded the variable whose omission would reduce the AIC the most, one by one.  We ended up with a model with the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType and log(AmountRequested). We fitted this same model without Gender and compared it using the likelihood ratio test from the anova() function to the same model with gender. We had a p.value of `r p.value`, meaning that for the grades given to the project, the model with gender is not significantly better than the model without gender. We thus conclude that we don't have evidence of gender having a substantial impact on the grade given to ProposalCombined.  
 
 
 ```{r effects prob project3, message=F, warning=F}
@@ -1460,7 +1460,7 @@ p1; p2
 
 ### Gender Bias in the Funding Decision
 
-When assessing the assocation between Gender and IsApproved in each of the three Divisions at the SNSF, we failed to reject the null hypothesis that the two variables are independent at a 5% significance level. Thus we failed to find evidence at an overarching level of gender bias in the funding decision.
+When assessing the association between Gender and IsApproved in each of the three Divisions at the SNSF, we failed to reject the null hypothesis that the two variables are independent at a 5% significance level. Thus we failed to find evidence at an overarching level of gender bias in the funding decision.
 
 ### External Review Step
 
@@ -1472,7 +1472,7 @@ When looking at the different grades in this step, we found that gender did not 
 
 The logistic regression using the data from the internal review step is a much better explanation of the variation in the approval of applications (around 70% of the variability is explained). Gender was not a significant predictor in this regression.
 
-When looking the predictors of the different grades, we found that gender was a significant predictor for the ProjectAsssessment and Ranking grades, but not for the ApplicantTrack. The individual effects were small (in terms of the difference in predicted probabilities), so it's effect was significant but not practically relevant. The combined difference in predictive probabilities of top grades given to male vs. female applicants was more notable than the individual grades, albiet the overall impact was still reletively small.   
+When looking the predictors of the different grades, we found that gender was a significant predictor for the ProjectAssessment and Ranking grades, but not for the ApplicantTrack. The individual effects were small (in terms of the difference in predicted probabilities), so it's effect was significant but not practically relevant. The combined difference in predictive probabilities of top grades given to male vs. female applicants was more notable than the individual grades, albeit the overall impact was still relatively small.   
 
 Considering all the analysis that we have done so far, we conclude that there is no evidence of gender bias in the funding decision at the Swiss National Science Foundation. Gender is generally not an important variable in the regressions we performed, and where it was a significant predictor, the difference in the predicted probability between male and female applicants is not practically relevant. 
 
@@ -1968,11 +1968,15 @@ We also computed the predicted probabilities for each of the Ranking grade, vary
 
 ## Gender Bias
 
+We assessed gender bias at both an overall level, that is, whether there is a gender bias affecting who receives funding, as well as any bias within the individual review steps. We failed to find evidence of a gender bias in who receives funding, and generally found little evidence of a gender bias within the external and internal step. While some specific grades had a significant difference between male and female applications, the impact was small and thus not very practically relevant. 
+
 ## Relative Importance
-Gender bias not at an overall level. Within the external step, some small differences in the grades given to women, in particular, fewer high grades given to women. The difference is small, and so overall still not much evidence of a gender bias.
+
+We also assessed the relative importance of the different steps of the process, as well as the different criteria within each step. We found that the internal step is much more important than the external step (and these two steps often give different assessments of applications). Within both the external and internal review step, the grade given to assess the strength of the scientific proposal was a much stronger predictor over the overall summary grade given to an application, compared to the grade given to the applicant track record, or any of the demographic data. 
 
 ## Recommendations for Futher Analysis 
 
+While there is currently not much evidence of a gender bias in the research funding process, there are areas of discrepancy between the genders, and it would be worthwhile to continue to investigate this over time. 
 
 \newpage
 
