@@ -22,9 +22,9 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```{r Load Functions and Data }
 # setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
-# load("snsf_data.RData") # Chiara's directory, comment out
+ load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -496,6 +496,8 @@ ggplot(data=df)+
   xlim(-5,8)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.log, colour=col))
@@ -503,7 +505,7 @@ ggplot(data=df)+
 
 The confidence intervals which do not include zero are those for the variables: IsContinuation, Suitability (all levels from 4 to 6), ScientificRelevance (all levels from 4 to 6), and ApplicantTrack(for levels 5 and 6). 
 
-```{r coefficients logistic external, fig.cap="Exponentiated coefficients and confidence intervals"}
+```{r coefficients logistic external}
 
 
 id<-  which(CI[,1]>0 & CI[,2]>0)
@@ -513,7 +515,7 @@ sign.OR <- exp(sign.coef)
 #sign.OR
 
 kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", booktabs = T)%>%
-  kable_styling(position = "center")
+  kable_styling(position = "center", latex_options="hold_position")
 ```
 
 The interpretation of the exponentiated coefficients is as following: the odds is the $\frac{P(Approved = 1 | Grade = x)}{P(Approved = 0 | Grade = x)}$.
@@ -618,18 +620,20 @@ Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
 gender.prob.project<-as.data.frame(gender.prob.project)
 
 kable(gender.prob.project,"latex", booktabs = T, caption="Predicted probabilities of getting different grades") %>%
-    kable_styling(position = "center" )
+    kable_styling(position = "center", latex_options="hold_position" )
 ```
 
 Overall the average difference is really small: `r round(mean(abs(gender.prob.project[,3])),5)`. This seems to suggest that there is no evidence of gender influencing the probability of achieving a certain grade. We also represented in the plots below the probability and cumulative probability curves of getting each grade for male and female: they follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent".
 
-```{r effects plot project2, message=F, warning=F}
+```{r effects plot project2, message=F, warning=F, out.width="50%", fig.ncol=2}
 p1 <- ggplot(gender.prob.project) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Project Assessment")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(plot.title = element_text(size=10))
 
 # Cumulative probability
@@ -649,9 +653,11 @@ p2 <- ggplot(gender.cum.prob.project) +
   theme(legend.title=element_blank(),legend.position = "bottom")+
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Project Assessment")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(plot.title = element_text(size=10))
 
-grid.arrange(p1, p2, ncol=2)
+p1; p2
 ```
 
 
@@ -674,6 +680,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
@@ -761,7 +769,7 @@ Difference=round((gender.prob.app[,1]-gender.prob.app[,2]),3))
 gender.prob.app<-as.data.frame(gender.prob.app)
 
 kable(gender.prob.app,"latex", booktabs = T, caption="Predicted probabilities of getting different Applicant Track grades") %>%
-    kable_styling(position = "center")
+    kable_styling(position = "center", latex_options="hold_position")
 
 p1 <- ggplot(gender.prob.app) +
   geom_line(aes(1:6, Male, colour = "Male")) +
@@ -769,6 +777,8 @@ p1 <- ggplot(gender.prob.app) +
   theme(legend.title=element_blank(),legend.position = "bottom")+
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Applicant Track")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(plot.title = element_text(size=10))
 
 # Cumulative probability
@@ -786,6 +796,8 @@ p2 <- ggplot(gender.cum.prob.app) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Applicant Track")+
   theme(plot.title = element_text(size=10))
@@ -793,8 +805,8 @@ p2 <- ggplot(gender.cum.prob.app) +
 
 In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. This seems to suggest that the small p-value from the likelihood ratio test is not really reliable to establish if gender has an influence on the applicant track assessment.
 
-```{r ex call effect plots track, echo=F}
-grid.arrange(p1,p2,ncol=2)
+```{r ex call effect plots track, out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 
@@ -817,6 +829,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
 ```
@@ -873,12 +887,14 @@ Difference=round((gender.prob.Overall[,1]-gender.prob.Overall[,2]),3))
 gender.prob.Overall<-as.data.frame(gender.prob.Overall)
 
 kable(gender.prob.Overall,"latex", booktabs = T, caption="Predicted probabilities of getting different Overall Grades") %>%
-    kable_styling(position = "center")
+    kable_styling(position = "center", latex_options="hold_position")
 
 p1 <- ggplot(gender.prob.Overall) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Ranking")+
   theme(plot.title = element_text(size=10))
@@ -898,6 +914,8 @@ p2 <- ggplot(gender.cum.prob.Overall) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Ranking")+
   theme(plot.title = element_text(size=10))
@@ -905,8 +923,8 @@ p2 <- ggplot(gender.cum.prob.Overall) +
 
 The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Overall[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" grade rather than a "very good", compared to male applicants. From the cumulative probability plot below, we see that the trend is the same for both genders and that the difference is not relevant.
     
-```{r, echo=F}
-grid.arrange(p1,p2,ncol=2)
+```{r, out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 
@@ -930,14 +948,10 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=cof, colour=col))
-```
-
-```{r gender ex clm Overall coef, echo=F}
-# summary(Model.Overall)
-# Genderf -0.31
-# exp(-0.31) 0.7334
 ```
 
 
@@ -983,12 +997,6 @@ data$ProjectAssessment <- factor(data$ProjectAssessment)
 
 We first used the 'glm' function in R to fit a full model with all the available variables and the interactions between Gender and Division, Gender and PercentFemale, Gender and ApplicantTrack. Moreover, we considered the interaction between InstType and Division. We didn't include the Ranking grades into the model, since they are highly correlated with the single grades for the applicant and the project. We achieved a pseudo-R^2 value of  `r round(PsR2,4)`, meaning that the variation in the binary variable Y (approved or not) can be explained for more than half by this model including only the internal step information.
 
-<!-- ```{r anova logistic internal} -->
-<!-- anova(Model, test="Chisq") -->
-<!-- ``` -->
-
-<!-- From the output of the anova function, we see that many of the variables in the full model are not relevant, since their p-values are clearly bigger than 0.05. Notice that at this ateg of the analysis the variable gender seems to have an impact on the probability of being approved. -->
-
 Then, we did variable selection using the AIC criteria again with the drop1() function, in order to obtain a small and effective model as we did for the external step. The remaining predictors are Gender, Age, Semester, IsContinuation, PercentFemale, ApplicantTrack, ProjectAssessment and log(AmountRequested). Interactions were removed from the model because not significant.
 
 ```{r logistic internal regression}
@@ -1024,6 +1032,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.log, colour=col))
 ```
@@ -1041,7 +1051,7 @@ sign.OR <- exp(sign.coef)
 #sign.OR
 
 kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", booktabs = T, caption="Odd Ratio and corresponding confidence intervals, Internal Logistic Regression")%>%
-  kable_styling(position = "center")
+  kable_styling(position = "center", latex_options="hold_position")
 
 ```
 
@@ -1053,7 +1063,7 @@ kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", book
 * The odds with respect to being approved or not given that the Project Assessment grade is 5 is `r round(sign.OR[6],2)` larger than the odds for the reference level (Project Assessment grade from 1 to 3), keeping all other variables constant;
 * The odds with respect to being approved or not given that the Project Assessment grade is 6 is `r round(sign.OR[7],2)` larger than the odds for the reference level (Project Assessment grade from 1 to 3), keeping all other variables constant.
 
-```{r effect plots logistic internal, fig.align="center", fig.height=3}
+```{r effect plots logistic internal}
 # Obtain all the effects        
   eff.fit <- allEffects(Model.log.int)
   
@@ -1065,7 +1075,7 @@ kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", book
 
 As said before, our focus is the effect of gender in each step of the evaluation process. We checked the difference in the predicted probability of being accepted between male and female: women have probability `r prob[2,1]` of the project being approved, while men have `r prob[1,1]`. Surprisingly, the predicted probability of being funded seems to be higher for female applicants, even if the difference is too small to be relevant. We can clearly see that from the Gender effect plot, where the confidence intervals are overlapping and the line is almost horizontal. From this initial analysis we can say that it doesn't seem that referees are biased against women.
 
-```{r effect gender logistic}
+```{r effect gender logistic, fig.align="center", fig.height=3}
   plot(Effect("Gender",Model.log.int),
        confint=list(style="band",alpha=0.3,col="grey"),
        lines=list(col=1))
@@ -1125,6 +1135,8 @@ ggplot(data=df)+
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
   theme(axis.text.y = element_text(angle=0, hjust=0))+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.project, colour=col))
 ```
@@ -1159,7 +1171,7 @@ Difference=round((gender.prob.project[,1]-gender.prob.project[,2]),3))
 gender.prob.project<-as.data.frame(gender.prob.project)
 
 kable(gender.prob.project,"latex", booktabs = T, caption="Predicted probabilities of getting different Scientific Proposal Grades") %>%
-    kable_styling(position = "center")
+    kable_styling(position = "center",latex_options="hold_position")
 
 ```
 
@@ -1170,6 +1182,8 @@ p1 <- ggplot(gender.prob.project) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Project Assessment")+
   theme(plot.title = element_text(size=10))
@@ -1189,11 +1203,16 @@ p2 <- ggplot(gender.cum.prob.project) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Project Assessment")+
   theme(plot.title = element_text(size=10))
 
-grid.arrange(p1, p2, ncol=2)
+```
+
+```{r  out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 This conclusion is reinforced when we look at the plots above, which show the probability and cumulative probability curves of getting each grade for male and female.  They follow more or less the same trend and the only difference, as we've seen from the table above, is that women are slightly more likely to get a "very good" rather than an "excellent". We therefore conclude that gender is a significant, but not practically relevant, predictor of the different grades.
@@ -1232,6 +1251,8 @@ ggplot(data=df)+
   xlim(-2.5,2)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.track, colour=col))
@@ -1265,12 +1286,14 @@ Difference=round((gender.prob.track[,1]-gender.prob.track[,2]),3))
 gender.prob.track<-as.data.frame(gender.prob.track)
 
 kable(gender.prob.track,"latex", booktabs = T, caption="Predicted probabilities of getting different Applicant Track grades") %>%
-    kable_styling(position = "center")
+    kable_styling(position = "center", latex_options="hold_position")
 
 p1 <- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Applicant Track")+
   theme(plot.title = element_text(size=10))
@@ -1290,6 +1313,8 @@ p2 <- ggplot(gender.cum.prob.track) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Applicant Track")+
   theme(plot.title = element_text(size=10))
@@ -1297,8 +1322,8 @@ p2 <- ggplot(gender.cum.prob.track) +
 
 We computed the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.track[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. 
 
-```{r call effect plots track, echo=F}
-grid.arrange(p1,p2,ncol=2)
+```{r call effect plots track, out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 
@@ -1336,6 +1361,8 @@ ggplot(data=df)+
   xlim(-2,1.5)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.rank, colour=col))
@@ -1369,13 +1396,15 @@ Difference=round((gender.prob.Rank[,1]-gender.prob.Rank[,2]),3))
 gender.prob.Rank<-as.data.frame(gender.prob.Rank)
 
 kable(gender.prob.Rank,"latex", booktabs = T, caption="Predicted probabilities of getting different Ranking grades") %>%
-    kable_styling(position = "center")
+    kable_styling(position = "center", latex_options="hold_position")
 
 
 p1 <- ggplot(gender.prob.Rank) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Predicted Probability for Ranking")+
   theme(plot.title = element_text(size=10))
@@ -1395,6 +1424,8 @@ p2 <- ggplot(gender.cum.prob.Rank) +
   geom_line(aes(1:6, Male, colour = "Male")) +
   geom_line(aes(1:6, Female, colour = "Female"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Cumulative Probability")+
   ggtitle("Cumulative Probability for Ranking")+
   theme(plot.title = element_text(size=10))
@@ -1402,8 +1433,8 @@ p2 <- ggplot(gender.cum.prob.Rank) +
 
 Once again the differences between male and female predicted probabilities are not too large, so we do not find gender to be a meaningful predictor of the grade. However, we do notice that between male and female for the top three grades (A, AB, B), there is a cumulative difference of 7.7pp.
     
-```{r, echo=F}
-grid.arrange(p1,p2,ncol=2)
+```{r, out.width="50%", fig.ncol=2}
+p1; p2
 ```
  
 
@@ -1503,6 +1534,8 @@ ggplot(data=df)+
   xlim(-5,8)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)),x=coef.log, colour=col))
@@ -1565,6 +1598,8 @@ ggplot(data=df)+
   xlim(-7,22)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)),x=cof, colour=col))
@@ -1632,6 +1667,8 @@ p1<- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Track5, colour = "Track5"))+
   geom_line(aes(1:6, Track6, colour = "Track6"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("OverallGrade Probability vs Track Record")
 ```
@@ -1696,10 +1733,15 @@ p2 <- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Project5, colour = "Project5"))+
   geom_line(aes(1:6, Project6, colour = "Project6"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("OverallGrade Probability vs Project grade")
 
-grid.arrange(p1,p2,ncol=2)
+```
+
+```{r out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 We also computed the predicted probabilities for each of the OverallGrade grades, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. Notably, in the right graph, the highest probability to the final grade corresponds with the grade given to the ProposalCombined for grades 3, 4, 5 and 6. On the left, receiving a 3, 4 or 5 for the ApplicantTrack record all correspond to most likely receiving an overall grade of 4. This confirms what we found before: the quality of the project has a greater influence on the final Overall Grade, compared to the track record.
@@ -1748,6 +1790,8 @@ ggplot(data=df)+
   xlim(-2,22)+ 
   ylab("")+ xlab("")+ggtitle("Confidence Intervals")+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   theme(axis.text.y = element_text(angle=0, hjust=0))+
   geom_vline(xintercept = 0, linetype="dotted")+
   geom_point(aes(y=as.factor(rownames(df)), x=coef.int.step, colour=col))
@@ -1815,6 +1859,8 @@ p1<- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Track5, colour = "Track5"))+
   geom_line(aes(1:6, Track6, colour = "Track6"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Ranking Probability vs Track Record")
 ```
@@ -1879,10 +1925,15 @@ p2 <- ggplot(gender.prob.track) +
   geom_line(aes(1:6, Project5, colour = "Project5"))+
   geom_line(aes(1:6, Project6, colour = "Project6"))+
   theme(legend.title=element_blank(),legend.position = "bottom")+
+  theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
+                                  margin = margin(t = 10, b = 20, unit = "pt"))) +
   xlab("")+ylab("Predicted Probability")+
   ggtitle("Ranking Probability vs Project grade")
 
-grid.arrange(p1,p2,ncol=2)
+```
+
+```{r out.width="50%", fig.ncol=2}
+p1; p2
 ```
 
 We also computed the predicted probabilities for each of the Ranking grade, varying the Applicant Track grade (plot on the left) and the Project Assessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final ranking, compared to the track record.
