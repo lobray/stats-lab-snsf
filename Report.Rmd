@@ -20,11 +20,11 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-# setwd("~/StatLab")
+setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
-# load("snsf_data.RData") # Chiara's directory, comment out
+load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
-load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
+#load("/home/leslie/Desktop/StatsLab/snsf_data.RData") # leslie's directory, comment out when other is using
 source("Cleaning Functions.R")
 source("Data for Regression.R")
 
@@ -409,7 +409,7 @@ cotabplot(~ Gender+IsApproved, data=final.apps[final.apps[,"Division"]=="Div 3",
 
 We now proceed to investigate if there is a gender bias within the External Review Step.
 
-### **Logistic Regression**
+### Logistic Regression
 
 The goal of this analysis is to see if gender has an influence on the final funding decision, based on the information provided in the external step. 
 
@@ -576,7 +576,7 @@ As we are interested in the effect of gender in each step of the evaluation proc
 
 \pagebreak
 
-### **Ordinal Regression**
+### Ordinal Regression
 
 To look into the variables that influence the different grades in this part of the evaluation process, and see if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package ordinal in R, which fits cumulative link models (CLMs), for further details of this models see Appendix section A.3.
 
@@ -978,7 +978,7 @@ Here again gender seems to be not significant, since its confidence interval inc
 
 ## Internal Review Step
 
-### **Logistic Regression**
+### Logistic Regression
 
 We now repeat the logistic regression for the internal step, to understand if gender has an influence on the final funding decision, based on the information provided in the internal step. 
 
@@ -1099,7 +1099,7 @@ As said before, our focus is the effect of gender in each step of the evaluation
        lines=list(col=1))
 ```
 
-### **Ordinal Regression**
+### Ordinal Regression
 
 To see which variables influence the different grades in the second step of the evaluation process and check if the gender of the main applicant has an influence on it, we ran an ordinal regression with the function clm of the package *ordinal* in R. 
 
@@ -2632,7 +2632,7 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 summary(Model.log.ext)
 ```
 
-```{r, out.width="50%", out.height="70%"}
+```{r, out.width="40%"}
 plot(Effect("ApplicantTrack",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
      lines=list(col=1))
 plot(Effect("ScientificRelevance",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
@@ -2764,9 +2764,13 @@ kable(round(exp(cbind(OR=Model.track$beta,confint(Model.track))), 2),"latex", bo
   kable_styling(position = "center", latex_options = "hold_position")
 ```
 
+\pagebreak
+
+
 \newpage
 
-### **Ordinal Regression for Ranking**
+
+### Ordinal Regression for Ranking
 
 Summary of the final model:
 ```{r}
@@ -2784,7 +2788,7 @@ kable(round(exp(cbind(OR=Model.Rank$beta,confint(Model.Rank))), 2),"latex", book
 
 ## A.5 Relative importance of each criteria 
 
-### **Relative Importance of the Different Steps**
+### Relative Importance of the Different Steps
 
 ```{r}
 summary(board_log_regression_small)
@@ -2794,7 +2798,7 @@ summary(board_log_regression_small)
 \newpage
 
 
-### **Relative importance within the External step**
+### Relative importance within the External step
 
 Summary of the final model:
 ```{r}
@@ -2810,7 +2814,7 @@ kable(round(exp(cbind(OR=Model.ex.step$beta,confint(Model.ex.step))), 2),"latex"
 
 \newpage
 
-##  **Relative importance of criteria within the Internal step**
+##  Relative importance of criteria within the Internal step
 
 Summary of the final model:
 ```{r}
