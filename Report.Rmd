@@ -2605,7 +2605,7 @@ p11
 
 \newpage
 
-## A.3 **Introduction to Cumulative Link Models (CLM)**
+## A.3 Introduction to Cumulative Link Models (CLM)
 
 A cumulative link model is a model for an ordinal response variable $Y_i$ that can fall in $j=1,...,J$ categories. So $Y_i$ follows a multinomial distribution with parameter $\boldsymbol{\pi}$, where $\pi_{ij}$ denotes the probability that the i-th observation falls into response category j. We denote the cumulative probabilities as
 $$ \gamma_{ij} = P(Y_i \leq j) = \pi_{i1} + ... + \pi_{ij} $$.
