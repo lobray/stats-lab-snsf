@@ -2814,7 +2814,7 @@ kable(round(exp(cbind(OR=Model.ex.step$beta,confint(Model.ex.step))), 2),"latex"
 
 \newpage
 
-##  Relative importance of criteria within the Internal step
+###  Relative importance within the Internal step
 
 Summary of the final model:
 ```{r}
