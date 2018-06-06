@@ -2619,7 +2619,7 @@ This means that each cumulative logit for each j has its own intercept, given by
 
 The interpretation of the model is the following: the log-odds of two cumulative distributions measure how likely the response is to be in category j or below versus falling in a category higher than j.
 
-Cumulative logit models can be fitted with the function \texttt{clm} from package \texttt{ordinal}. The arguments used are the formula (\texttt{response ~ covariates}), the dataset and the link function used. By default \texttt{clm} uses the logit link.
+Cumulative logit models can be fitted with the function \texttt{clm} from package \texttt{ordinal}. The arguments used are the formula (\texttt{response $\sim$ covariates}), the dataset and the link function used. By default \texttt{clm} uses the logit link.
 The \texttt{summary} of the clm object provides basic information about the fit of the model: coefficient tables for the regression variables and for the cut-points, Wald tests and corresponding p-values.
 
 \newpage
