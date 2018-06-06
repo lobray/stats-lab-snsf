@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, prompt = FALSE
 ```
 
 ```{r Load Functions and Data }
-setwd("~/StatLab")
+#setwd("~/StatLab")
 #setwd("~/MSc Statistics/StatsLab/Analysis")
 load("snsf_data.RData") # Chiara's directory, comment out
 #load("SNFS Data/snsf_data.RData") # carla's directory, comment out
@@ -61,7 +61,7 @@ The analysis performed for SNSF had a two-fold aim, corresponding to the followi
 
 (2) To what extent the different steps of the evaluation and the different criteria within each step determine the final funding decision?
 
-Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown that female applicants' projects get higher score when the application is blinded. Moreover, female applicants receive usually higher grades for projects and lower grades for track record. Hence, after investigating the gender dimension to identify possible biases in the evaluation procedure, the focus of the analysis will be the relative importance of of the criteria for funding (applicant's track record vs. quality of the proposal) and, also, of each step of the evaluation procedure (which opinion is more likely to determine the final decision - the external reviewer or the internal reviewer?). Possible interactions between the gender dimension and the second research question will also be investigated (for instance, by taking into account also the gender of evaluator or the percentage of female referees).
+Several studies (Witteman et al., 2017; Solans-Domenech et al., 2017) have shown that female applicants' projects get higher score when the application is blinded. Moreover, female applicants receive usually higher grades for projects and lower grades for track record. Hence, after investigating the gender dimension to identify possible biases in the evaluation procedure, the focus of the analysis will be the relative importance of the criteria for funding (applicant's track record vs. quality of the proposal) and, also, of each step of the evaluation procedure (which opinion is more likely to determine the final decision - the external reviewer or the internal reviewer?). Possible interactions between the gender dimension and the second research question will also be investigated (for instance, by taking into account also the gender of evaluator or the percentage of female referees).
 
 # Data Description
 
@@ -156,7 +156,7 @@ In our exploratory analysis, we discovered a few interesting insights that relat
 
 ### Comparison of the Distribution of Grades between the External & Internal Review Step
 
-Since the external & internal step both assess candidates on the same criteria (the strength of the scientific proposal, and the strength of the applicant), on the same ordinal scale (from poor to outstanding), we were interested to see if the distribution of grades are the same. We would expect different distributions for the Overall Grade vs the Ranking, since those are measures are on different scales, but we may expect to see a similar distribution of grades for criteria that use the same measurement system. After combining the Suitability & Scientific Relevance grades given to a candidate in the external review step into a single grade, we can compare the average grade given for the Scientific Proposal in the two steps, as well as the grade given for the Applicant Track Record across the two steps. 
+Since the external & internal step both assess candidates on the same criteria (the strength of the scientific proposal, and the strength of the applicant), on the same ordinal scale (from poor to outstanding), we were interested to see if the distribution of grades are the same. We would expect different distributions for the Overall Grade vs the Ranking, since those measures are on different scales, but we may expect to see a similar distribution of grades for criteria that use the same measurement system. After combining the Suitability & Scientific Relevance grades given to a candidate in the external review step into a single grade, we can compare the average grade given for the Scientific Proposal in the two steps, as well as the grade given for the Applicant Track Record across the two steps. 
 
 We see that the External Reviewers are more generous with their grades; for the strength of the Scientific Proposal, 48% of proposals are considered "excellent" or "outstanding", versus only 28% in the internal review step. 
 
@@ -255,7 +255,7 @@ kappa.pro
 
 ### Impact of External & Internal Grade on Funding
 
-Having observed a discrepancy is how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications within that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that receive an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix section A.2 to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
+Having observed a discrepancy in how grades are allocated between the external and internal step, we wanted to understand if this difference had a meaningful impact on the overall funding decision. We visualized the summary grade given to an application in the external and then internal step, and plotted how many applications within that grade was funded (color coral) and not funded (color blue). As we can see here, there are several applications in the external step that receive an OverallGrade of "excellent" or "outstanding" that ultimately are not approved. This highlights that not only do the Internal Reviewers give tougher grades in general than the external step, but they also consider some "excellent" and "outstanding" applications by the external reviewers to be not of the quality that deserves funding. This trend is true in all divisions and both genders, please refer to the appendix section A.2 to see the specific graphic. On the other hand, applications with top grades in the Ranking almost always are approved. 
 
 Our conclusion for this is that the internal step is very consequential, and the difference in the rating they give translates into differences in whether an application gets funded or not. 
 
@@ -381,7 +381,7 @@ p11
 
 # Gender Bias
 
-To see if gender has an influence in any of the steps of the evaluation process, we did several things. We wanted to check at an overall level, is there evidence of a gender bias in the funding process? And then within each the external and internal steps, does gender influence the grade applicants receive? For the former we conducted a $\chi^2$ test of the independence. For the latter question, we took took the following two approaches:
+To see if gender has an influence in any of the steps of the evaluation process, we did several things. We wanted to check at an overall level, if there is evidence of a gender bias in the funding process? And then within the external and internal steps, does gender influence the grade applicants receive? For the former we conducted a $\chi^2$ test of the independence. For the latter question, we took took the following two approaches:
 
 (@) **Logistic Regression:** We first fit a logistic regression with the function glm in R, where we used IsApproved (a binary variable) as a response and demographic information of the applicant, project information and the given grades as predictors. The aim of this regression is to see if gender has an influence on the final decision from the perspective of each step.
 
@@ -391,7 +391,7 @@ In the following sections we will review the analysis of gender bias at an overa
 
 ## Gender Bias in the Funding Decision
 
-To assess if there is a gender bias in the overall funding decision, we did a $\chi^2$ test of independence between Gender and IsApproved, to see if there is a significant relationship these two categorical variables. A $\chi^2$ test of independence at an organizational level would conclude these two variables are not independent (which itself only suggests an association, and not a causal relationship, between Gender and IsApproved), however, we decided the more appropriate test is to check for a relationship between Gender and IsApproved within each Division, since the funding decision is made within each Division, not at the organizational level. 
+To assess if there is a gender bias in the overall funding decision, we did a $\chi^2$ test of independence between Gender and IsApproved, to see if there is a significant relationship between these two categorical variables. A $\chi^2$ test of independence at an organizational level would conclude these two variables are not independent (which itself only suggests an association, and not a causal relationship, between Gender and IsApproved), however, we decided the more appropriate test is to check for a relationship between Gender and IsApproved within each Division, since the funding decision is made within each Division, not at the organizational level. 
 
 From this analysis, we see that while all three Divisions have a lower acceptance rate for women than men, this difference is not significant at a 5% significance level. We therefore fail to find evidence of a gender bias in the overall funding decision. 
 
@@ -444,20 +444,6 @@ data.log.ext <- data
 We first fitted a logistic regression model with all the variables and the interactions between Gender and Division, PercentFemale and ApplicantTrack with the glm function in package *stats*.  We also considered the interaction between InstType and Division. We didn't considered OverallGrade as it is highly correlated with the grades of the Applicant Track and the scientific proposal.  This model had a pseudo-$R^2$  value of  `r round(PsR2,4)`, indicating that this percent of the variation in the approval of the applications can be explained by the model. 
 ^[We used the following computation of pseudo-$R^2$: $R^2=\frac{1-(exp{((D_{res}- D_{null})/n)}}{1-exp{(-D_{null}/n)}}$]
 
-
-
-```{r}
-
-log.ext.Model <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
-              PercentFemale + Age + Gender + Division + IsContinuation + InstType + 
-              Semester + Division:InstType, data=data.log.ext, family="binomial")
-
-PsR2.small<-(1-exp((log.ext.Model$dev-log.ext.Model$null)/1623))/(1-exp(-log.ext.Model$null/1623))
-```
-
-
-
-
 ```{r get data for logistic external}
 external_regression_data<-prepare_data_external_log_regression(final.apps,final.external)
 
@@ -481,18 +467,20 @@ data$Suitability<-factor(data$Suitability)
                 Gender:PercentFemale+Gender:ApplicantTrack+InstType:Division ,data=data.log.ext, 
                 family="binomial")
 
-  #summary(Model.log.ext)
-  coef.log <- Model.log.ext$coefficients
-  CI <- confint(Model.log.ext, type= "Wald")
-
+  
+# Model small
 Model.log.ext <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitability + 
                                   PercentFemale + Age + Gender + Division + IsContinuation + InstType +
                                   Semester + Division:InstType, data=data.log.ext, family="binomial")
 
+#summary(Model.log.ext)
+  coef.log <- Model.log.ext$coefficients
+  CI <- confint(Model.log.ext, type= "Wald")
+
 PsR2.small<-(1-exp((Model.log.ext$dev-Model.log.ext$null)/1623))/(1-exp(-Model.log.ext$null/1623))
 ```
 
-When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. section A.4 for the summary result of this regression.]
+When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix section A.4 for the summary result of this regression.]
 
 In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% significance level.
 
@@ -555,7 +543,7 @@ CIgender<-CI[which(rownames(CI)=="Genderf"),]
 betaGender<-exp(coef.log[which(names(coef.log)=="Genderf")])
 ```
 
-Notice that the coefficient for gender is not significant, since its confidence interval (-2.074,2.059) contains zero. The point estimate for gender is -0.1123 and this means that the odds with respect to being approved or not given that the applicant is a women is 0.8938 times the odds for a male applicant.
+Notice that the coefficient for gender is not significant, since its confidence interval (-0.407,0.182)  contains zero. The point estimate for gender is -0.1123 and this means that the odds with respect to being approved or not given that the applicant is a women is 0.8938 times the odds for a male applicant.
 
 
 ```{r effect plots logistic external, fig.align="center", fig.height=3}
@@ -820,7 +808,7 @@ p2 <- ggplot(gender.cum.prob.app) +
   theme(plot.title = element_text(size=10))
 ```
 
-In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is almost no difference between women and men probabilities. Although the difference between male and female is significant, it is a very large difference between male and female.
+In the table above, we see the predicted probability of getting each grade for both male and female and the difference between the two. The average difference of the cumulative probability is here `r round(mean(abs(gender.prob.app[,3])),5)`, very close to zero. From the plot below we see that there is a small difference between the probabilities for women and men, mainly females applicants are more likely to get "good" or "very good" grade rather than a "excellent" or "outstanding", relative to male applicants.
 
 ```{r ex call effect plots track, out.width="50%", fig.ncol=2}
 p1; p2
@@ -938,7 +926,7 @@ p2 <- ggplot(gender.cum.prob.Overall) +
   theme(plot.title = element_text(size=10))
 ```
 
-The predicted probabilities of achieving certain grade for male and female is shown in the next table. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Overall[,3])),5)`). Notice that the only difference is that female applicants are mole likely to get a "good" or "very good" grade rather than a "excellent" or "outstanding", relative to male applicants. 
+The predicted probabilities of achieving certain grade for male and female is shown in the table above. The average difference of the cumulative probability is here as well close to zero (`r round(mean(abs(gender.prob.Overall[,3])),5)`). Here again, the only difference is that female applicants are more likely to get a "good" or "very good" grade rather than a "excellent" or "outstanding", relative to male applicants. 
     
 ```{r, out.width="50%", fig.ncol=2}
 p1; p2
@@ -972,9 +960,7 @@ ggplot(data=df)+
 ```
 
 
-Here gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are PercentFemale, log(AmountRequested), IsContinuation, the InstType and Division.
-
-Here again gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, PreviousRequest, and the institution type.
+Here gender seems to be not significant, since its confidence interval includes zero. However the difference between the upper bound and zero is really small. The other significant variables in this model are the percentage of female referees, log(AmountRequested), IsContinuation, the institution type and the Division.
 
 ## Internal Review Step
 
@@ -2632,7 +2618,7 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 summary(Model.log.ext)
 ```
 
-```{r, out.width="50%", fig.ncol=2}
+```{r, out.width="50%", fig.ncol=3}
 plot(Effect("ApplicantTrack",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
      lines=list(col=1))
 plot(Effect("ScientificRelevance",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
