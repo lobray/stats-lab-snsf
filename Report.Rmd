@@ -732,7 +732,7 @@ gender.prob<-cbind(round(gender.prob,3),Difference=round((gender.prob[,1]-gender
              
 ```
 
-(2) **Applicant Track assessment**: Next, we fit another Ordinal regression with ApplicantTrack as a response variable. We used the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. In the next table we present part of the summary for this model, to see the full summary refer to the Appendix section A.4.
+(2) **Applicant Track assessment**: Next, we fit another Ordinal regression with ApplicantTrack as a response variable. We used the following predictors: Gender, Division, PercentFemale, IsContinuation, InstType, log(AmountRequested) and the interaction between Gender and PercentFemale. Again we fitted the same model without Gender and compare it with the anova() function to the one with gender, we get a p.value of `r p.value`, meaning that for the grades given to the main applicant, gender needs to be considered in the model. To see the full summary refer to the Appendix section A.4.
 
 
 ```{r clm int applicant track}
