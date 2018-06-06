@@ -555,7 +555,7 @@ CIgender<-CI[which(rownames(CI)=="Genderf"),]
 betaGender<-exp(coef.log[which(names(coef.log)=="Genderf")])
 ```
 
-Notice that the coefficient for gender is not significant, since its confidence interval (-2.074,2.059) contains zero. The point estimate for gender is 0.094 and this means that the odds with respect to being approved or not given that the applicant is a women is 2.99 times larger than the odds for a male applicant.
+Notice that the coefficient for gender is not significant, since its confidence interval (-2.074,2.059) contains zero. The point estimate for gender is -0.1123 and this means that the odds with respect to being approved or not given that the applicant is a women is 0.8938 times the odds for a male applicant.
 
 
 ```{r effect plots logistic external, fig.align="center", fig.height=3}
