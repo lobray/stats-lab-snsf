@@ -492,7 +492,7 @@ Model.log.ext <- glm(IsApproved ~ ApplicantTrack + ScientificRelevance + Suitabi
 PsR2.small<-(1-exp((Model.log.ext$dev-Model.log.ext$null)/1623))/(1-exp(-Model.log.ext$null/1623))
 ```
 
-When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. section A.2 for the summary result of this regression.]
+When selecting the variables with the AIC criteria in order to work with a small and effective model, we end up with the following predictors: ApplicantTrack, ScientificRelevance, Suitability, PercentFemale, Age, Gender, Division, IsContinuation, InstType, Semester, Division:InstType. No interactions with Gender were significant. The pseudo-$R^2$ for this model is `r round(PsR2.small,4)`, i.e. this smaller model explains roughly the same variance of the data than the former one. None of them reveal that the information from the external reviewers explain the final decision correctly. This fact will be explored in more detail later on. ^[See Appendix pg. section A.4 for the summary result of this regression.]
 
 In order to assess if gender is a relevant predictor for this regression, we computed the 95% confidence intervals for the coefficients of our model. We can see them in the following plot: those that are red include 0 and therefore they are not significant. Those in blue don't include zero and so they are significant at a 5% significance level.
 
@@ -1058,7 +1058,7 @@ ggplot(data=df)+
 
 The confidence intervals which don't include zero are those for the variables: IsContinuation, ApplicantTrack (all levels from 4 to 6) and ProjectAssessment (all levels from 4 to 6). Notice that the coefficient for gender is not significant, since its confidence interval (`r round(df[which(rownames(df)=="Genderf"),1],4)`, `r round(df[which(rownames(df)=="Genderf"),2],4)`) contains zero. The point estimate for gender is `r round(coef.log[2],4)` and this means that the odds with respect to being approved or not given that the applicant is a woman is `r round(exp(coef.log[2]),4)` times larger than the odds for a man (which is the reference level).
 
-In order to interpret the coefficient estimates, we exponentiated them and we obtained the following values:
+In order to interpret the coefficient estimates, we exponentiated them and we obtained the following values you see in the next table (for further details about the full summary refer to the Appendix section A.5).
 
 ```{r coefficients logistic internal}
 
@@ -2632,7 +2632,7 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 summary(Model.log.ext)
 ```
 
-```{r, out.width="40%"}
+```{r, out.width="40%", fig.ncol=2}
 plot(Effect("ApplicantTrack",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
      lines=list(col=1))
 plot(Effect("ScientificRelevance",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
@@ -2702,7 +2702,7 @@ kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex"
 
 \newpage
 
-## A.4 Internal Step Analysis
+## A.5 Internal Step Analysis
 
 ### Logistic Regression
 
@@ -2764,10 +2764,7 @@ kable(round(exp(cbind(OR=Model.track$beta,confint(Model.track))), 2),"latex", bo
   kable_styling(position = "center", latex_options = "hold_position")
 ```
 
-\pagebreak
-
-
-\newpage
+\clearpage
 
 
 ### Ordinal Regression for Ranking
@@ -2786,7 +2783,7 @@ kable(round(exp(cbind(OR=Model.Rank$beta,confint(Model.Rank))), 2),"latex", book
 
 \newpage
 
-## A.5 Relative importance of each criteria 
+## A.6 Relative importance of each criteria 
 
 ### Relative Importance of the Different Steps
 
