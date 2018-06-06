@@ -1,0 +1,246 @@
+---
+title: "Multinom regression and random forest • Funding decision with budget cuts"
+author: "Tommaso Portaluri"
+date: "06/06/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+<style>
+  body {
+    text-align: justify}
+</style>
+
+```{r Load Functions and Data, results="hide", warning=FALSE, cache=FALSE, message=FALSE, echo=FALSE}
+library(MASS)
+library(grid)
+library(vcd)
+library(gridExtra)
+library(corrplot)
+library(car)
+library(caTools)
+library(caret)
+library(randomForest)
+library(nnet)
+library(caret)
+library(effects)
+
+load("~/Desktop/snsf_data.RData")
+setwd("~/Downloads/stats-lab-snsf-master")
+source("Cleaning Functions_TP.R")
+source("Data for Regression_TP.R")
+
+regression_data<-prepare_data_board_log_regression(final.apps,final.internal, final.external)
+```
+
+\newpage 
+\tableofcontents
+\newpage
+
+## Introduction
+The Swiss National Science Foundation (SNF) is a research funding agency which disseminates yearly, on behalf of the Swiss Government, billions of CHF to the best researchers in Switzerland. This report contains a statistical analysis performed on three datasets provided by SNF, cointaing information on the applications for funding received in 2016, the corresponding evaluations and the scores given by both internal and external evaluators.  
+In addition to the two research questions foreseen at the beginning of the project, this report tries to answer an additional question, which looks at the cut in the budget of grant requests, even if approved. In particular, the research question is as follows:
+
+Which factors determine whether a request is approved and fully funded, approved with a cut in the budget or not approved?
+
+## Exploratory analysis
+Before looking into the model, we will have a look at some visualizations, to better design the model. 
+To start with, it is necessary to create an additional level in the variable IsApproved: not approved (0), approved with a cut (1), approved without cut (2). IsApproved was thus modified to become a three-level factor. To this end, we first checked that there are no cases in which the AmountGranted is higher than the amount requested; we will consider these cases as "fully granted" (2). We then create an additional class for applications approved with cut, to obtain a three-level IsAprroved variable.
+We also will consider the log of the AmountRequested, which is skewed to the left.
+
+```{r results="hide", echo=FALSE}
+sum(regression_data$AmountRequested < regression_data$AmountGranted)
+regression_data$AmountRequested <- ifelse(regression_data$AmountGranted > regression_data$AmountRequested, regression_data$AmountGranted, regression_data$AmountRequested)
+sum(regression_data$AmountRequested < regression_data$AmountGranted) #check if 0
+
+regression_data$IsApproved <- as.numeric(regression_data$IsApproved)
+#Create another factor in IsApproved: 0 if not; 1 if approved with cut; 2 if approved without cut
+regression_data$IsApproved <- ifelse(regression_data$AmountRequested != regression_data$AmountGranted, 1, 2)
+regression_data$IsApproved <- ifelse(regression_data$AmountGranted == 0, 0, regression_data$IsApproved)
+
+regression_data$AmountRequested <- log(regression_data$AmountRequested)
+```
+
+Now the dataset is ready for some visualizations.
+
+```{r, echo=FALSE}
+par(mfrow=c(2,2))
+barplot(table(regression_data$IsApproved),col=c("red","green", "blue"), beside=TRUE,
+        main = "Plot 1 - Overview of funded project with cuts")
+legend("topright",bty="n", legend=c("Not Approved","Approved with cut", "Fully approved"),lty=2,col=c("red","green", "blue"))
+
+barplot(table(regression_data$IsApproved, regression_data$Ranking),col=c("red","green", "blue"), beside=TRUE,
+        main = "Plot 2 - Internal Ranking vs. Funding decision")
+legend("topleft",bty="n", legend=c("Not Approved","Approved with cut", "Fully approved"),lty=2,col=c("red","green", "blue"))
+
+barplot(table(regression_data$IsApproved, regression_data$OverallGrade),col=c("red","green", "blue"), beside=TRUE,
+        main = "Plot 3 - External Overall Grade vs. Funding decision")
+legend("topleft",bty="n", legend=c("Not Approved","Approved with cut", "Fully approved"),lty=2,col=c("red","green", "blue"))
+
+barplot(table(regression_data$IsApproved, regression_data$Gender),col=c("red","green", "blue"), beside=TRUE,
+        main = "Plot 4 - Gender vs. Funding decision")
+legend("topright",bty="n", legend=c("Not Approved","Approved with cut", "Fully approved"),lty=2,col=c("red","green", "blue"))
+```
+
+As we can see in plot 1, most approved projects are approved with a cut (almost 58% of the total of approved projects). We are thus interested in analysing which demographic data of the applicant may determine the cut and at which step of the process this is more likely to happen (if with the external reviewers or with the internal referees). At a first glance, by having a look at the distribution of of cuts per both internal (plot 2) and external ranking (plot 3), both external referees and internal reviewers seem to affect the decision, with the latter displaying a stronger link (projects evaluated as "outstading" by internal revieers are very unlikely not to be funded and receive less cuts than those receiving the same grade by referees). Gender, instead, does not seem to be so meaningful (plot 4). We can invest this further with mosaic plots.
+
+```{r, echo=FALSE, out.width="50%", fig.ncol=2}
+cotabplot(~ Gender+IsApproved, data=regression_data, shade=T, main ="Plot 5 - Gender vs. Funding decision")
+```
+
+The mosaic plot (plot 5) suggests that gender may have an influence.
+
+```{r, echo=FALSE, out.width="60%", fig.ncol=1}
+id.approved <- which(regression_data$IsApproved > 0)
+boxplot(regression_data$AmountGranted[id.approved] ~ regression_data$Gender[id.approved], col=terrain.colors(4), ylim=c(0, 1200000), main = "Plot 6 - Amount granted vs. Gender")
+mylevels<-levels(regression_data$Gender)
+levelProportions<-summary(regression_data$Gender)/nrow(regression_data)
+for(i in 1:length(mylevels)){
+  thislevel<-mylevels[i]
+  thisvalues<-regression_data[regression_data$Gender==thislevel, "AmountGranted"]
+  # take the x-axis indices and add a jitter, proportional to the N in each level
+  myjitter<-jitter(rep(i, length(thisvalues)), amount=levelProportions[i]/2)
+  points(myjitter, thisvalues, pch=20, col=rgb(0,0,0,.2)) 
+}
+```
+
+In plot 6, we can see that the variation in the amount granted is larger for men, which is somehow expected considering that male applications are much more. 
+
+```{r, echo=FALSE, out.width="50%", fig.ncol=2}
+cotabplot(~ Gender + Division, data=regression_data, shade=T, main = "Plot 7 - Gender vs. Division")
+cotabplot(~ IsApproved + Division, data = regression_data, shade = TRUE, main = "Plot 8 - Funding decision vs. Division")
+```
+
+An interesting further interaction to investigate could be the intaraction between gender and division. Plot 7 indicates that the number of female applicants varies signficantly across divisions. Plot 8 shows clearly that, when looking within divisions, we find different "propension to cutting" the budget - e.g., Div2 is that with most cuts (in percentage).
+
+```{r, echo=FALSE, out.width="70%", fig.ncol=1}
+id.approved <- which(regression_data$IsApproved > 0)
+percg <- regression_data$AmountGranted[id.approved]/regression_data$AmountRequested[id.approved]*100
+boxplot(percg~regression_data$Division[id.approved], main="Plot 9 - Percentage of amount granted of the amount requested", col=terrain.colors(4))
+```
+
+Differences across divisions do not just pertain to the percentage of projects which get cut but also to the extent of the cut. We can see in plot 9 that Division2 is also the division making the most important cuts in terms of budget (up to 30%).
+
+We then look at other variables that might have an effect, such as IsContinuation and Institute Type.
+
+```{r, echo=FALSE, out.width="50%", fig.ncol=2}
+cotabplot(~ IsContinuation + IsApproved, data=regression_data, shade=T, main = "Plot 10 - IsContinuation vs. Funding decision")
+cotabplot(~ IsApproved + InstType, data=regression_data, shade=TRUE, main = "Plot 11 - Funding decision vs. Institute Type")
+```
+
+Finally, some mirror plots can help us getting some useful insights. For instance, on the relationship between the funding decision and the internal and external evaluation (already considered in plot 2 and 3). In plot 12 and 13, we see again that applications rated as Outstanding by internal referees are more likely to get fully funded, with respect to those receiving the same grade by external referees. This suggests an higher influence of the internal process, which is in line with founding of previous analysis.
+
+```{r, echo=FALSE, out.width="50%", fig.ncol=2}
+plot_mirror_barplot <- function(dataset, variable1, variable2="IsApproved", plot_title="Plot Title", title_size=8) {
+  table_data_frame <- as.data.frame(table(dataset[,variable1], dataset[,"IsApproved"]))
+  colnames(table_data_frame) <- c(variable1, variable2, "Frequency")
+  levels(table_data_frame[,variable1]) <- list("Outstanding"="6", "Excellent"="5", 
+                                               "Very Good"="4", "Good"="3", "Average"="2", "Poor"="1")
+  table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0] <- -table_data_frame$Frequency[table_data_frame[,"IsApproved"]==0]
+  
+  ggplot(table_data_frame, aes_string(x=variable1, y="Frequency", fill=variable2)) + 
+    geom_bar(stat="identity", position="identity") + 
+    scale_y_continuous(breaks=seq(-100,100,by=50),labels=abs(seq(-100,100,by=50))) +
+    coord_flip() +
+    ggtitle(plot_title) + 
+    theme(plot.title = element_text(size = title_size))
+}
+
+
+p12 <- plot_mirror_barplot(dataset=regression_data, variable1 = "OverallGrade", plot_title = "Plot 12 - OverallGrade vs. Approved; All Data")
+p13 <- plot_mirror_barplot(dataset=regression_data, variable1 = "Ranking", plot_title = "Plot 13 - OverallGrade vs. Approved; All Data")
+p12
+p13
+```
+
+
+## The model
+We want to investigate the relative importance of both applicants' demographic data and of the assessment on the final decision - either (i) approving by fully granting the amount requested, (ii) approving by cutting it or (iii) not approving. Since we have a three-level response variable, we will fit a multinomial regression. To this end, we will use the multinom() function from the nnet package, which fits a multinomial log-linear model via neural networks. 
+Multinomial regression works as follows: suppose we have a k-level response variable, the multinom() function will then compute k-1 equations whose coefficients should be interpreted with respect to a reference level set in advance. In this case, we choose as reference level the case of fully funded projects (IsApproved = 2), which means that positive coefficients will have to be interpreted as increasing the probability of being cut or even not approved (and conversely for negative coefficients). We should also set a reference level for factor predictors - we set both OverallGrade and Ranking raference to grade 6 = Outstanding.
+Note: to use the multinom() function, the assumpation of Independence of Irrelevant Alternatives (IIA), according to which adding or deleting alternative outcome categories should note affact the odds of the remaining outcomes, must hold. For the purposes of this report, we will assume IIA to hold.
+
+In the model we will include all the variables that, according to the exploratory analysis, pontentially impact the funding decision (building also on the logistic regression already performed) and will perform variable selection afterwards. To allow a more meaningful interpretation, also predictors such as Ranking and OverallGrade are considered here as non-ordered factors.
+
+```{r, echo=FALSE, results="hide"}
+regression_data$Ranking <- factor(regression_data$Ranking, ordered = FALSE)
+regression_data$OverallGrade <- factor(regression_data$OverallGrade, ordered = FALSE)
+regression_data$IsApproved <- factor(regression_data$IsApproved)
+
+regression_data$IsApproved <- relevel(regression_data$IsApproved, ref = "2")
+regression_data$Ranking <- relevel(regression_data$Ranking, ref = "6")
+regression_data$OverallGrade <- relevel(regression_data$OverallGrade, ref = "6")
+fit1 <- multinom(formula = IsApproved ~ Gender + Division + OverallGrade + Ranking + Gender:Division + Age + IsContinuation + InstType + AmountRequested + PercentFemale + PercentFemale:Gender, data = regression_data)
+```
+
+Variable selection was performed by using trough the function stepAIC (MASS package), which performs stepwise model selection by AIC in both directions.
+
+
+```{r, results="hide", echo=FALSE} 
+fitbest <- stepAIC(fit1)
+```
+
+```{r, echo=FALSE}
+coefficients(fitbest)
+```
+
+The summary gives the log odds for each of the two other levels, in each variable. With these values, it is possible to compute the probabilities of interest, by referring to the log of the ratio between the probability of the level chosen and the probability of the level of reference.
+
+Apparently, gender is not significant, as it is not included in the final model. 
+
+Concerning the the interpretation of the coefficients, we have to look at some theory behind the multinomial models. As mentioned, the multinom() function computes k-1 equations, with respect to a reference level. The coefficients can be interpreted as generating a variation in the log odds Zk, which are equal to the log of the ratio between the probability of level K and the probability of the level of reference. In our case, for coefficients referring to "granted with cut" we would have:
+
+ln(P(IsApproved = 1)/P(IsApproved = 2)) = Intercept + Sum(Coeff • Predictors) = Z1
+
+Z1 is then then log odd for the Approved-with-cut response.
+
+If we now look at the coefficients in the summary of the final model (see Appendix, p. 10), we can thus interpret them ad follows:
+
+- an increase by one in the variable Age will determine an increase in the odds of not getting funded with respect to getting to fully funded (P(Y=0)/P(y=2)) by the factor exp(0.022). Which is to say:
+P(Y = 0 | age +1)/P(Y=2|age + 1) = exp(0.026) * P(Y=0 | no change in age)/P(Y=2 | no change in age)
+
+The interpretation of factor variables must be done with respect to the reference level. For instance:
+
+- when moving from Ranking 6 (our reference level) to Ranking 5, there will be an increase in the odds of not getting funded with respect to getting to fully funded (P(Y=0)/P(y=2)) by the factor exp(0.94), and by the factor exp(0.32) in the odds of getting funded with a cut with respect to getting to fully funded (P(Y=1)/P(y=2));
+- similarly, when moving from OverallGrade 6 to OverallGrade 3 there will be an increase in the odds of not getting funded with respect to getting to fully funded (P(Y=0)/P(y=2)) by the factor exp(2), and by the factor exp(0.43) in the odds of getting funded with a cut with respect to getting to fully funded (P(Y=1)/P(y=2));
+- when moving from Div1 to Div2, there will be an increase in the odds of not getting funded with respect to getting to fully funded (P(Y=0)/P(y=2)) by the factor exp(0.62), and by the factor exp(0.66) in the odds of getting funded with a cut with respect to getting to fully funded (P(Y=1)/P(y=2)).
+
+To get some insights into the relative importance of the variable we tried an analysis through the effects package. For the final model selected via stepAIC(), we get the following effect plots. 
+
+```{r, echo=FALSE, out.width="50%"}
+eff.fit <- allEffects(fitbest)
+plot(eff.fit)
+plot(Effect(focal.predictors = c("Ranking"), fitbest))
+```
+
+However, apart from Ranking effect plot, all the others do not seem to be very meaningful ways for interpretation.
+Hence, to better assess the variable importance, we decide then to run a random forest. To this end we use randomForest() function from the randomForest package, which is a classification algorithm that can be used for assessing proximities among data points in unsupervised mode. The randomForest function requires to define the number of trees to grow (high enough to ensure repeated predictions) and the number of variable to be randomly sampled at each split (usually set to the square root of the number of columns). It also required to create a train subset. After an exploratory analysis, we set at 200 the number of trees and then plot the importance of the variable with function varImpPlot (package caret), which gives as output a dotchart of variable importance as measured by Random Forest.
+
+```{r, echo=FALSE, out.width="50%", fig.ncol=2}
+set.seed(55)
+train <- sample(1:nrow(regression_data),700)
+fitrf <-  randomForest(IsApproved ~ Gender + Division + OverallGrade + Ranking + Gender:Division + Age + IsContinuation + InstType + AmountRequested + PercentFemale + PercentFemale:Gender, mtry= sqrt(ncol(regression_data)), ntree = 200, subset = train, data = regression_data)
+plot(fitrf, main = "Plot 14 - Random Forest")
+varImpPlot(fitrf, main = "Plot 15 - Variable importance Random Forest")
+```
+
+As we can see from plot 15, Ranking is confirmed to be the most important variable followed by AmonutRequested and Age. Gender appears to be the least important.
+
+
+## Conclusion
+The multinomial regression suggests, in accordance with the other models performed, that gender has no effect on the final decision (it seems acutally the least important). The percentage of female reviewers is for instance more important than the gender of the applicant. Moreover, the grades of the internal referees seem to be those having a major effect in determining the final funding decision. AmountRequested and Age also seem to play a relevant role.
+
+\newpage
+
+##Appendix
+Multinomial model
+```{r, echo=FALSE}
+summary(fitbest)
+```
+
+\newpage
+
+Random forest model
+```{r, echo=FALSE}
+print(fitrf)
+```
