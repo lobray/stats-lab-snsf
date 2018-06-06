@@ -2632,7 +2632,7 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 summary(Model.log.ext)
 ```
 
-```{r, out.width="40%", fig.ncol=2}
+```{r, out.width="50%", fig.ncol=2}
 plot(Effect("ApplicantTrack",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
      lines=list(col=1))
 plot(Effect("ScientificRelevance",Model.log.ext), confint=list(style="band", alpha=0.3, col="grey"),
@@ -2809,7 +2809,7 @@ kable(round(exp(cbind(OR=Model.ex.step$beta,confint(Model.ex.step))), 2),"latex"
   kable_styling(position = "center", latex_options = "hold_position")
 ```
 
-\newpage
+\clearpage
 
 ###  Relative importance within the Internal step
 
