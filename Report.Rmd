@@ -2626,7 +2626,7 @@ The \texttt{summary} of the clm object provides basic information about the fit 
 
 ## A.4 External Step Analysis
 
-### **Logistic Regression** final model
+### Logistic Regression final model
 
 ```{r}
 summary(Model.log.ext)
@@ -2655,7 +2655,7 @@ plot(Effect("Semester",Model.log.ext), confint=list(style="band", alpha=0.3, col
 \newpage
 
 
-### **Ordinal Regression for the Scientific Proposal**
+### Ordinal Regression for the Scientific Proposal
 
 Summary of the final model:
     ```{r}
@@ -2670,7 +2670,7 @@ kable(round(exp(cbind(OR=Model.Prop$beta,confint(Model.Prop))), 2),"latex", book
 ```
 \pagebreak
 
-### **Ordinal Regression for the Applicant Track**
+### Ordinal Regression for the Applicant Track
 
 Summary of the final model:
 ```{r}
@@ -2686,7 +2686,7 @@ kable(round(exp(cbind(OR=Model.App$beta,confint(Model.App))), 2),"latex", bookta
 
 \newpage
 
-### **Ordinal Regression for the Overall Grade**
+### Ordinal Regression for the Overall Grade
 
 Summary of the final model:
 ```{r}
@@ -2704,7 +2704,7 @@ kable(round(exp(cbind(OR=Model.Overall$beta,confint(Model.Overall))), 2),"latex"
 
 ## A.4 Internal Step Analysis
 
-### **Logistic Regression**
+### Logistic Regression
 
 Summary of the final model
 ```{r}
@@ -2735,7 +2735,7 @@ plot(Effect("Semester",Model.log.int),
 
 \newpage
 
-### **Ordinal Regression for the Scientific Proposal**
+### Ordinal Regression for the Scientific Proposal
 
 Summary of the final model:
     ```{r}
@@ -2751,7 +2751,7 @@ kable(round(exp(cbind(OR=Model.project$beta,confint(Model.project))), 2),"latex"
 
 \newpage
 
-### **Ordinal Regression for the Applicant Track**
+### Ordinal Regression for the Applicant Track
 Summary of the final model:
 ```{r}
 summary(Model.track)
