@@ -1774,7 +1774,6 @@ data$ProjectAssessment <- factor(data$ProjectAssessment, ordered = F)
 data$PercentFemale <- factor(data$PercentFemale)
 ```
 
-We also computed the predicted probabilities for each of the Ranking grades, varying the ApplicantTrack grade (plot on the left) and the ProjecAssessment grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. This confirms what we found before: the quality of the project has a greater influence on the final Ranking, compared to the track record.
 
 ```{r relative importance internal}
 Model.int.step<-clm(Ranking ~ Gender + Division + PercentFemale +
