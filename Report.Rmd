@@ -168,7 +168,7 @@ ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
 colnames(ex_proposal)[1] <- "ProposalScore"
 
 p8 <- ggplot(ex_proposal, aes(x=ProposalScore, y= Freq)) +
-  geom_histogram(stat="identity") +
+  geom_histogram(stat="identity",color="black", fill="gray87") +
   theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
                                   margin = margin(t = 10, b = 20, unit = "pt"))) +
   ggtitle("External Scientific Proposal Grade Distribution") +
@@ -179,7 +179,7 @@ in_proposal <- as.data.frame(prop.table(table(internal_regression_data$ProjectAs
 in_proposal$Freq <- as.numeric(in_proposal$Freq)
 colnames(in_proposal)[1] <- "ProposalScore"
 p9  <- ggplot(in_proposal, aes(x=ProposalScore, y= Freq)) +
-  geom_histogram(stat="identity") +
+  geom_histogram(stat="identity",color="black", fill="gray87") +
   theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
                                   margin = margin(t = 10, b = 20, unit = "pt"))) +
   ggtitle("Internal Scientific Proposal Grade Distribution") +
@@ -200,7 +200,7 @@ ex_proposal <- as.data.frame(prop.table(table(ApplicantTrack)))
 ex_proposal$Freq <- as.numeric(ex_proposal$Freq)
 colnames(ex_proposal)[1] <- "ApplicantScore"
 p8b <- ggplot(ex_proposal, aes(x=ApplicantScore, y= Freq)) +
-  geom_histogram(stat="identity") +
+  geom_histogram(stat="identity",color="black", fill="gray87") +
   theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
                                   margin = margin(t = 10, b = 20, unit = "pt"))) +
   ggtitle("External Applicant Track Grade Distribution") +
@@ -211,7 +211,7 @@ in_proposal <- as.data.frame(prop.table(table(internal_regression_data$Applicant
 in_proposal$Freq <- as.numeric(in_proposal$Freq)
 colnames(in_proposal)[1] <- "ApplicantScore"
 p9b  <- ggplot(in_proposal, aes(x=ApplicantScore, y= Freq)) +
-  geom_histogram(stat="identity") +
+  geom_histogram(stat="identity",color="black", fill="gray87") +
   theme(plot.title = element_text(size = rel(1.5), hjust = 0.5, 
                                   margin = margin(t = 10, b = 20, unit = "pt"))) +
   ggtitle("Internal Applicant Track Grade Distribution") +
@@ -525,15 +525,15 @@ kable(round(cbind(OR=sign.OR,exp(confint(Model.log.ext)[id,])), 2),"latex", book
 
 The interpretation of the exponentiated coefficients is as following: the odds is the $\frac{P(Approved = 1 | Grade = x)}{P(Approved = 0 | Grade = x)}$.
 
-* The odds with respect to being approved or not given an Applicant Track grade of 5 is `r round(sign.OR[1],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given an Applicant Track grade of 6 is `r round(sign.OR[2],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Scientific Relevance grade of 4  is `r round(sign.OR[3],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Scientific Relevance grade of 5 is `r round(sign.OR[4],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Scientific Relevance grade of 6 is `r round(sign.OR[5],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Suitability grade of 4 is `r round(sign.OR[6],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Suitability grade of 5 is `r round(sign.OR[7],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given a Suitability grade of 6 is `r round(sign.OR[8],2)` times larger than the odds for the reference level
-* The odds with respect to being approved or not given that the project is a continuation is `r round(sign.OR[9],2)` times larger than the odds for the reference level
+* The odds with respect to being approved or not given an Applicant Track grade of 5 is `r round(sign.OR[1],2)` times larger than the odds for the reference level (Applicant Track grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given an Applicant Track grade of 6 is `r round(sign.OR[2],2)` times larger than the odds for the reference level (Applicant Track grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Scientific Relevance grade of 4  is `r round(sign.OR[3],2)` times larger than the odds for the reference level (Scientific Relevance grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Scientific Relevance grade of 5 is `r round(sign.OR[4],2)` times larger than the odds for the reference level (Scientific Relevance grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Scientific Relevance grade of 6 is `r round(sign.OR[5],2)` times larger than the odds for the reference level (Scientific Relevance grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Suitability grade of 4 is `r round(sign.OR[6],2)` times larger than the odds for the reference level (Suitability grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Suitability grade of 5 is `r round(sign.OR[7],2)` times larger than the odds for the reference level (Suitability grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given a Suitability grade of 6 is `r round(sign.OR[8],2)` times larger than the odds for the reference level (Suitability grade from 1 to 3), keeping all other variables constant
+* The odds with respect to being approved or not given that the project is a continuation is `r round(sign.OR[9],2)` times larger than the odds of being approved given that the project is not a continuation, keeping all other variables constant.
 
 
 
@@ -1581,7 +1581,7 @@ ex_data <- data
 
 ```
 
-We computed the predicted probabilities for each of the Overall grade, varying the Applicant Track grade (plot on the left) and the ProposalCombined grade (plot on the right). It is clear that the same variation in grade implies different changes in probabilities: when the project grade changes, the probability variation is much bigger. The quality of the project has a greater influence on the OverallGrade, compared to the track record.
+
 
 ```{r relative importance external}
 Model.ex.step<-clm(OverallGrade ~ Gender + Division + PercentFemale +
